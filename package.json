@@ -1,0 +1,24 @@
+{
+  "name": "truebit-client",
+  "version": "1.0.0",
+  "description": "Client software for interacting with the Truebit system",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "to",
+    "the",
+    "moon"
+  ],
+  "author": "hswick",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^2.15.1",
+    "ethereumjs-util": "^5.1.5",
+    "install": "^0.11.0",
+    "npm": "^5.8.0",
+    "truffle-contract": "^3.0.4",
+    "web3": "^1.0.0-beta.33"
+  }
+}
