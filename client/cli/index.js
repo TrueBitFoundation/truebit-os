@@ -81,16 +81,21 @@ function configHelper() {
     console.log("Reloaded config from " + filePath)
   } else {
     let defaultConfig = {
-      "networks": ["development"]
+      "networks": {
+        "development" : {
+          "incentive-layer" : __dirname + "/../../incentive-layer/export",
+          "dispute-resolution-layer" : __dirname + "/../../dispute-resolution-layer/export"
+        }
+      }
     }
     fs.writeFileSync(filePath, JSON.stringify(defaultConfig))
     config = defaultConfig
-    console.log("Config file created and reloaded current config")
+    console.log("config.json file created. Reloaded current config")
   }
 }
 
 function networksHelper() {
-  config.networks.forEach((net) => { console.log(net) })
+  Object.keys(config.networks).forEach((net) => { console.log(net) })
 }
 
 function argsParser(tokens) {
@@ -125,7 +130,7 @@ function exec(line) {
       break
     case "start":
       let args = argsParser(tokens)
-      sessionHelper(rl, args['n'])
+      sessionHelper(rl, config, args['n'].trim())
       break
     case "view":
       //start visualizer
