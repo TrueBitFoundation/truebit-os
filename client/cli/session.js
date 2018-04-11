@@ -1,7 +1,6 @@
 const fs = require('fs')
-const contract = require('truffle-contract')
 const Web3 = require('web3')
-
+const contract = require('../lib/getContract')
 
 module.exports = async (rl, config, network) => {
 	if (!config['networks'][network]) {
@@ -9,26 +8,26 @@ module.exports = async (rl, config, network) => {
 	} else {
 
 		//initialize provider
-		const web3 = new Web3.providers.HttpProvider("http://localhost:8545")
+		const httpProvider = new Web3.providers.HttpProvider("http://localhost:8545")
 
 		const networkConfig = config['networks'][network]
 
 		const incentiveLayerContracts = JSON.parse(fs.readFileSync(networkConfig["incentive-layer"] + "/" + network + ".json"))
 		const disputeResolutionLayerContracts = JSON.parse(fs.readFileSync(networkConfig['dispute-resolution-layer'] + "/" + network + ".json"))
 
-		let incentiveLayer = contract({abi: incentiveLayerContracts['TaskExchange'].abi})
-		incentiveLayer.setProvider(web3)
+		console.log("session has been started on " + network + " network")
 
-//dirty hack for web3@1.0.0 support for localhost testrpc, see https://github.com/trufflesuite/truffle-contract/issues/56#issuecomment-331084530
-if (typeof incentiveLayer.currentProvider.sendAsync !== "function") {
-  incentiveLayer.currentProvider.sendAsync = function() {
-    return incentiveLayer.currentProvider.send.apply(
-      incentiveLayer.currentProvider, arguments
-    )
-  }
-}
+		const web3 = new Web3(httpProvider)
 
-		console.log(await incentiveLayer.at(incentiveLayerContracts['TaskExchange'].address))
+		return {
+			network: network,
+			web3: web3,
+			accounts: await web3.eth.getAccounts(),//note: these public keys are all uppercase
+			contracts : {
+				incentiveLayer : await contract(httpProvider, incentiveLayerContracts['TaskExchange']),
+				disputeResolutionLayer : await contract(httpProvider, disputeResolutionLayerContracts['BasicVerificationGame']),
+				computationLayer : await contract(httpProvider, disputeResolutionLayerContracts['SimpleAdderVM'])
+			}
+		}
 	}
-	rl.prompt()
 }

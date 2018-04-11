@@ -10,6 +10,8 @@ const fs = require('fs')
 
 const sessionHelper = require('./session')
 
+const taskGiver = require('../lib/taskGiver')
+
 let config
 fs.readFile('config.json', function(err, data) {
   if (err) {
@@ -109,7 +111,17 @@ function argsParser(tokens) {
   return minimist(args)
 }
 
-function exec(line) {
+let session
+
+async function sessionEnforcer(cb) {
+  if (session) {
+    await cb()
+  } else {
+    throw "session is not available use the `start` command to begin one"
+  }
+}
+
+async function exec(line) {
   let tokens = line.split(" ")
   let command = tokens[0]
   switch(command) {
@@ -130,7 +142,33 @@ function exec(line) {
       break
     case "start":
       let args = argsParser(tokens)
-      sessionHelper(rl, config, args['n'].trim())
+
+      if (args['n']) {
+        session = await sessionHelper(rl, config, args['n'].trim())
+      } else {
+        session = await sessionHelper(rl, config, "development")
+      }
+      
+      break
+    case "accounts":
+      await sessionEnforcer(async () => {
+        console.log(session.accounts)
+      })
+      break
+    case "balance":
+      await sessionEnforcer(async () => {
+        let args = argsParser(tokens)
+        if(!args['a']) {
+          throw 'no account number specified. Use `-a` to specify which account balance you want to see'
+        } else {
+          console.log(await session.web3.eth.getBalance(session.accounts[args['a'].trim()]))
+        }
+      })
+      break
+    case "task":
+      await sessionEnforcer(async () => {
+        taskGiver(session, argsParser(tokens))
+      })
       break
     case "view":
       //start visualizer
@@ -144,7 +182,6 @@ function exec(line) {
   console.log()
   rl.prompt()
 }
-
 
 rl.setPrompt('> ')
 rl.prompt()
