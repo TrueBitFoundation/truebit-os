@@ -11,6 +11,8 @@ const fs = require('fs')
 const sessionHelper = require('./session')
 
 const taskGiver = require('../lib/taskGiver')
+const solver = require('../lib/solver')
+const verifier = require('../lib/verifier')
 
 let config
 fs.readFile('config.json', function(err, data) {
@@ -53,13 +55,26 @@ printBar()
 function helpHelper(command) {
 
   const commands = {
+
     "start": [
       "begins Truebit client session with a specified network.",
       "options:",
       " -n specifies the 'network' to use (default: development)"
     ].join("\n"),
+
     "config": "creates a default config.json file, or reloads the existing config file",
     "networks": "lists the available networks in the currently loaded config",
+    "accounts": "lists the available accounts on the network. Requires a running session.",
+    "balance": "shows the current balance of an account. \n options: \n -a specifies the account number",
+
+    "task": [
+      "Creates a new task on the incentive layer.",
+      "options:",
+      " -a specifies the 'account' number to use",
+      " -d specifies the 'minimum deposit'",
+      " -t specifies the file path to the task json data"
+    ].join("\n"),
+
     "help": "outputs the list of commands. Takes a command as argument to get more info.",
     "quit": "closes the Truebit client terminal session",
     "q": "synonym for `quit`",
@@ -143,10 +158,14 @@ async function exec(line) {
     case "start":
       let args = argsParser(tokens)
 
-      if (args['n']) {
-        session = await sessionHelper(rl, config, args['n'].trim())
+      if (!session) {
+        if (args['n']) {
+          session = await sessionHelper(rl, config, args['n'].trim())
+        } else {
+          session = await sessionHelper(rl, config, "development")
+        }
       } else {
-        session = await sessionHelper(rl, config, "development")
+        console.log("session already exists")
       }
       
       break
@@ -170,6 +189,16 @@ async function exec(line) {
         taskGiver(session, argsParser(tokens))
       })
       break
+    case "solve":
+      await sessionEnforcer(async () => {
+        solver(session, argsParser(tokens))
+      })
+      break
+    case "verify":
+      await sessionEnforcer(async () => {
+        verify(session, argsParser(tokens))
+      })
+      break   
     case "view":
       //start visualizer
       break
