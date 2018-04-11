@@ -2,7 +2,23 @@
 
 This is meant to be the Client software used to interact with the Truebit system.
 
-## Git Submodule Commands
+# Getting Started
+
+## Installation
+```bash
+chmod 755 install.sh
+./install.sh
+
+chmod 755 deploy.sh
+./deploy.sh
+```
+
+## Usage
+```bash
+node cli.js
+```
+
+# Git Submodule Commands
 
 Add submodule
 ```
