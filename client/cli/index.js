@@ -87,7 +87,7 @@ function helpHelper(command) {
       console.log(command + " is not a valid command.")
     }
   } else {
-    console.log("Enter `help` [command] for more info. Possible commands: \n" +  Object.keys(commands).join("\n") )
+    console.log("Enter `help` [command] for more info. To get started take a look at the `start` command (Ex: `help start`). Possible commands: \n" +  Object.keys(commands).join("\n") )
   }
 }
 

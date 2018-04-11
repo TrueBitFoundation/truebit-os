@@ -47,6 +47,3 @@ Pushing changes of a submodule to remote
 ```
 git submodule update --remote --merge
 ```
-
-This is a good blog post to reference CLI apps in Node
-https://www.sitepoint.com/javascript-command-line-interface-cli-node-js/
