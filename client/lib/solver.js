@@ -1,4 +1,5 @@
 const depositsHelper = require('./depositsHelper')
+const util = require('ethereumjs-util')
 
 module.exports = async (session, args) => {
 	if (!args['a']) {
@@ -18,11 +19,34 @@ module.exports = async (session, args) => {
 			let taskCreatedEvent = session.contracts.incentiveLayer.TaskCreated()
 			
 			new Promise(async (resolve, reject) => {
-				console.log("Solver monitoring task creation")
 				taskCreatedEvent.watch(async (error, result) => {
 
-					//log event
-					console.log(result)
+					if (result) {
+						let taskID = result.args.taskID.toNumber()
+						let taskMinDeposit = result.args.minDeposit.toNumber()
+	
+						if (taskMinDeposit <= minDeposit) {
+							let taskData = await session.contracts.incentiveLayer.getTaskData.call(taskID)
+
+							let program = session.web3.utils.hexToBytes(taskData[0]).map((n) => {
+								return util.bufferToHex(util.setLengthLeft(n, 32))
+							})
+
+							try {
+								await session.contracts.incentiveLayer.registerForTask(taskID, {from: account})
+
+								let output = await session.contracts.computationLayer.runSteps.call(program, taskData[1].toNumber())
+
+								let solutionHash = output[1]
+	
+								let tx = await session.contracts.incentiveLayer.commitSolution(taskID, solutionHash, {from: account})
+
+							} catch (e) {
+								//registering for task failed
+							}
+						}
+					}
+
 				})
 			})
 		}

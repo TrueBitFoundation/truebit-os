@@ -39,7 +39,7 @@ module.exports = async (session, args) => {
 					{
 						from: account, 
 						value: 1000,
-						gas: 100000
+						gas: 300000
 					}
 				)
 

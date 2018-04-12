@@ -193,6 +193,7 @@ async function exec(line) {
       await sessionEnforcer(async () => {
         solver(session, argsParser(tokens))
       })
+      console.log("Solver monitoring task creation")
       break
     case "verify":
       await sessionEnforcer(async () => {

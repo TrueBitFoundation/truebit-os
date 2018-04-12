@@ -14,7 +14,8 @@ module.exports = async (session, args) => {
 
       await depositsHelper(session, account, minDeposit)
             
-      //start monitoring for solutions
+			//start monitoring for solutions
+			
 		}
 
 	}
