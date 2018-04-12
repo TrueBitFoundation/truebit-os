@@ -1,6 +1,6 @@
 const depositsHelper = require('./depositsHelper')
 
-module.exports = (session, args) => {
+module.exports = async (session, args) => {
 	if (!args['a']) {
 		throw "please specify which account number you want to use with the `-a` flag"
 	} else {
@@ -12,9 +12,9 @@ module.exports = (session, args) => {
 
 			let minDeposit = args['d'].trim()
 
-            await depositsHelper(session, account, minDeposit)
+      await depositsHelper(session, account, minDeposit)
             
-            //start monitoring for solutions
+      //start monitoring for solutions
 		}
 
 	}

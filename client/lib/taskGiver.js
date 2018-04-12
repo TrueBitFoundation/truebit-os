@@ -25,13 +25,7 @@ module.exports = async (session, args) => {
 						if (err) {
 							reject(taskFilePath + " not found.")
 						} else {
-							resolve("0x" + JSON.parse(data).map((n) => {
-								if (n < 10) {
-									return "0x0" + n.toString(16)
-								} else {
-									return "0x" + n.toString(16)
-								}
-							}))
+							resolve(session.web3.utils.bytesToHex(JSON.parse(data)))
 						}
 					})
 				})
@@ -44,16 +38,14 @@ module.exports = async (session, args) => {
 					session.contracts.disputeResolutionLayer.address,
 					{
 						from: account, 
-						value: 1000
+						value: 1000,
+						gas: 100000
 					}
 				)
 
-				//wait for task to be finalized
-				//let waiting = true
-				//while(waiting) {
-					//timeout(2000)
-					//session.contracts.incentiveLayer.getTaskStatus
-				//}
+				let log = tx.logs.find(log => log.event === 'TaskCreated')
+
+				let taskID = log.args.taskID.toNumber()
 
 			}
 		}

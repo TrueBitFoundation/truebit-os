@@ -1,6 +1,6 @@
 const depositsHelper = require('./depositsHelper')
 
-module.exports = (session, args) => {
+module.exports = async (session, args) => {
 	if (!args['a']) {
 		throw "please specify which account number you want to use with the `-a` flag"
 	} else {
@@ -12,9 +12,19 @@ module.exports = (session, args) => {
 
 			let minDeposit = args['d'].trim()
 
-            await depositsHelper(session, account, minDeposit)
+      await depositsHelper(session, account, minDeposit)
             
-            //start monitoring for tasks
+			//start monitoring for tasks
+			let taskCreatedEvent = session.contracts.incentiveLayer.TaskCreated()
+			
+			new Promise(async (resolve, reject) => {
+				console.log("Solver monitoring task creation")
+				taskCreatedEvent.watch(async (error, result) => {
+
+					//log event
+					console.log(result)
+				})
+			})
 		}
 
 	}
