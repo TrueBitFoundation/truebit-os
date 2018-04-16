@@ -1,5 +1,6 @@
 const depositsHelper = require('./depositsHelper')
 const fs = require('fs')
+const waitForBlock = require('./util/waitForBlock')
 
 module.exports = async (session, args) => {
 
@@ -46,6 +47,48 @@ module.exports = async (session, args) => {
 				let log = tx.logs.find(log => log.event === 'TaskCreated')
 
 				let taskID = log.args.taskID.toNumber()
+
+				//watch for solver selected
+				//TODO: use timeout as well
+				await new Promise(async (resolve, reject) => {
+					let solverSelectedEvent = session.contracts.incentiveLayer.SolverSelected({taskID: taskID})
+
+					solverSelectedEvent.watch(async (err, result) => {
+						if (result) {
+							resolve()
+						}
+					})
+
+				})
+
+				let solution = {}
+
+				await Promise.race([
+					new Promise(async (resolve, reject) => {
+						//watch for solution
+						let solutionCommittedEvent = session.contracts.incentiveLayer.SolutionCommitted({taskID: taskID})
+
+						solutionCommittedEvent.watch(async (err, result) => {
+							if (result) {
+								solution["solution"] = result.args.solution
+								resolve()
+							}
+						})
+					}),
+					new Promise(async (resolve, reject) => {
+						//wait for timeout and then call taskGiver timeout
+						let currentBlockNumber = await session.web3.getBlockNumber()
+						await waitForBlock(session.web3, currentBlockNumber + 40) //40 is interval 2
+						await session.contracts.incentiveLayer.taskGiverTimeout(taskID, {from: account})
+						resolve()
+					})
+				])
+
+				// if(solution) {
+				// 	//wait for finalization
+				// } else {
+				// 	//resubmit???
+				// }
 
 			}
 		}
