@@ -28,14 +28,20 @@ describe('Truebit OS', async function() {
 		assert(os.contracts.computationLayer)
 	})
 
+	let killTaskGiver
+
 	describe('Task Giver', () => {
+
+		after(() => {
+			killTaskGiver()
+		})
 
 		it('should have a task giver', () => {
 			assert(os.taskGiver)
 		})
 
 		it('should initialize task giver', () => {
-			os.taskGiver.init()
+			killTaskGiver = os.taskGiver.init()
 		})
 
 		it('should submit task', async () => {

@@ -9,14 +9,15 @@ function toTaskData(data) {
 	return {
 		taskData: data[0],
 		numSteps: data[1].toNumber(),
-		intervals: [data[2][0].toNumber(), data[2][1].toNumber(), data[2][2].toNumber()]
+		state: data[2].toNumber(),
+		intervals: [data[3][0].toNumber(), data[3][1].toNumber(), data[3][2].toNumber()]
 	}
 }
 
 module.exports = (os) => {
 	return {
 		init: () => {
-			const taskCreatedEvent = os.contracts.incentiveLayer.TaskCreated()
+			let taskCreatedEvent = os.contracts.incentiveLayer.TaskCreated()
 	
 			taskCreatedEvent.watch(async (err, result) => {
 				if (result) {
@@ -39,6 +40,45 @@ module.exports = (os) => {
 					}
 				}
 			})
+
+			let solverSelectedEvent = os.contracts.incentiveLayer.SolverSelected()
+
+			solverSelectedEvent.watch(async (err, result) => {
+				if (result) {
+					const taskID = result.args.taskID.toNumber()
+
+					if (tasks[taskID]) {
+						tasks[taskID]["state"] = "selected"
+
+						//fire off timeout watcher
+					}
+
+				}
+			})
+
+			let solutionCommittedEvent = os.contracts.incentiveLayer.SolutionCommitted()
+
+			solutionCommittedEvent.watch(async (err, result) => {
+				if (result) {
+					const taskID = result.args.taskID.toNumber()
+					if (tasks[taskID]) {
+
+						tasks[taskID]["state"] = "solved"
+
+						//fire off timeout to wait for finalization
+					}
+				}
+			})
+
+			return () => {
+				try {
+					taskCreatedEvent.stopWatching()
+					solverSelectedEvent.stopWatching()
+					solutionCommittedEvent.stopWatching()
+				} catch (e) {
+					//console.log("Events stopped watching ungracefully")
+				}
+			}
 		},
 	
 		submitTask: async (task) => {
