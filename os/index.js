@@ -34,6 +34,7 @@ module.exports = async () => {
 
 	//Setup drivers
 	os["taskGiver"] = require('./lib/taskGiver')(os)
+	os["solver"] = require('./lib/solver')(os)
 
 	return os
 }

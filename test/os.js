@@ -28,36 +28,48 @@ describe('Truebit OS', async function() {
 		assert(os.contracts.computationLayer)
 	})
 
-	let killTaskGiver
+  let killTaskGiver
+  let killSolver
+  let killVerifier
 
-	describe('Task Giver', () => {
-
-		after(() => {
-			killTaskGiver()
-		})
+	describe('Normal Task Life Cycle', () => {
 
 		it('should have a task giver', () => {
 			assert(os.taskGiver)
 		})
 
-		it('should initialize task giver', () => {
-			killTaskGiver = os.taskGiver.init()
+		it('should have a solver', () => {
+			assert(os.solver)
 		})
 
-		it('should submit task', async () => {
-			os.taskGiver.submitTask({
-				minDeposit: 1000,
-				data: [1, 2, 3, 4, 5, 6, 7, 8, 9],
-				intervals: [20, 40, 60],
-				disputeResAddress: os.contracts.disputeResolutionLayer.address,
-				reward: 2000,
-				from: os.accounts[0]
+		before(() => {
+			killTaskGiver = os.taskGiver.init(os.accounts[0])
+			killSolver = os.solver.init(os.accounts[1])
+		})
+
+		after(() => {
+			killTaskGiver()
+			killSolver()
+		})
+
+		describe('Task Giver', () => {
+	
+			it('should submit task', async () => {
+				os.taskGiver.submitTask({
+					minDeposit: 1000,
+					data: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+					intervals: [20, 40, 60],
+					disputeResAddress: os.contracts.disputeResolutionLayer.address,
+					reward: 2000,
+					from: os.accounts[0]
+				})
+	
+				await timeout(2000)
+	
+				assert(Object.keys(os.taskGiver.getTasks()))
 			})
 
-			await timeout(2000)
-
-			assert(Object.keys(os.taskGiver.getTasks()))
-		})
+    })
 
 	})
 })

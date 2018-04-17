@@ -16,8 +16,8 @@ function toTaskData(data) {
 
 module.exports = (os) => {
 	return {
-		init: () => {
-			let taskCreatedEvent = os.contracts.incentiveLayer.TaskCreated()
+		init: (account) => {
+			const taskCreatedEvent = os.contracts.incentiveLayer.TaskCreated()
 	
 			taskCreatedEvent.watch(async (err, result) => {
 				if (result) {
@@ -30,18 +30,18 @@ module.exports = (os) => {
 						waitForBlock(os.web3, taskData.intervals[0], () => {
 							if(tasks[taskID]["state"] == "register") {
 								try {
-									os.contracts.incentiveLayer.taskGiverTimeout(taskID, {from: task.from})
+									os.contracts.incentiveLayer.taskGiverTimeout(taskID, {from: account})
 								} catch(e) {
 									//handle error
 								}
 							}
 						})
-
+						
 					}
 				}
 			})
 
-			let solverSelectedEvent = os.contracts.incentiveLayer.SolverSelected()
+			const solverSelectedEvent = os.contracts.incentiveLayer.SolverSelected()
 
 			solverSelectedEvent.watch(async (err, result) => {
 				if (result) {
@@ -56,7 +56,7 @@ module.exports = (os) => {
 				}
 			})
 
-			let solutionCommittedEvent = os.contracts.incentiveLayer.SolutionCommitted()
+			const solutionCommittedEvent = os.contracts.incentiveLayer.SolutionCommitted()
 
 			solutionCommittedEvent.watch(async (err, result) => {
 				if (result) {
@@ -64,6 +64,10 @@ module.exports = (os) => {
 					if (tasks[taskID]) {
 
 						tasks[taskID]["state"] = "solved"
+						
+						tasks[taskID]["solution"] = {solution: result.args.solution, finalized: false}
+
+						console.log(result.args.solution)
 
 						//fire off timeout to wait for finalization
 					}
