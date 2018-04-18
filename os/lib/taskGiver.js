@@ -3,14 +3,13 @@ let accounts = new Set([])
 
 const depositsHelper = require('./depositsHelper')
 const waitForBlock = require('./util/waitForBlock')
+const fs = require('fs')
+const toTaskData = require('./util/toTaskData')
 
-//bytes taskData, uint numSteps, uint state, uint[3] intervals
-function toTaskData(data) {
+function toSolution(data) {
 	return {
-		taskData: data[0],
-		numSteps: data[1].toNumber(),
-		state: data[2].toNumber(),
-		intervals: [data[3][0].toNumber(), data[3][1].toNumber(), data[3][2].toNumber()]
+		solution: data[0],
+		finalized: data[1]
 	}
 }
 
@@ -27,12 +26,13 @@ module.exports = (os) => {
 						taskData["state"] = "register"
 						tasks[taskID] = taskData
 
-						waitForBlock(os.web3, taskData.intervals[0], () => {
+						waitForBlock(os.web3, taskData.intervals[0] + taskData.taskCreationBlockNumber, async () => {
 							if(tasks[taskID]["state"] == "register") {
 								try {
-									os.contracts.incentiveLayer.taskGiverTimeout(taskID, {from: account})
+									await os.contracts.incentiveLayer.timeout(taskID, {from: account})
 								} catch(e) {
 									//handle error
+									console.error(e)
 								}
 							}
 						})
@@ -48,9 +48,20 @@ module.exports = (os) => {
 					const taskID = result.args.taskID.toNumber()
 
 					if (tasks[taskID]) {
+						let taskData = toTaskData(await os.contracts.incentiveLayer.getTaskData.call(taskID))
 						tasks[taskID]["state"] = "selected"
 
-						//fire off timeout watcher
+						waitForBlock(os.web3, taskData.intervals[1] + taskData.taskCreationBlockNumber, async () => {
+							if(tasks[taskID]["state"] == "selected") {
+								try {
+									await os.contracts.incentiveLayer.timeout(taskID, {from: account})
+								} catch(e) {
+									//handle error
+									console.error(e)
+								}
+							}
+						})
+
 					}
 
 				}
@@ -63,13 +74,33 @@ module.exports = (os) => {
 					const taskID = result.args.taskID.toNumber()
 					if (tasks[taskID]) {
 
-						tasks[taskID]["state"] = "solved"
-						
-						tasks[taskID]["solution"] = {solution: result.args.solution, finalized: false}
+						let taskData = toTaskData(await os.contracts.incentiveLayer.getTaskData.call(taskID))
 
-						console.log(result.args.solution)
+						tasks[taskID]["state"] = "solved"
 
 						//fire off timeout to wait for finalization
+						//should make this recursive in case of verification game
+						waitForBlock(os.web3, taskData.intervals[2] + taskData.taskCreationBlockNumber, async () => {
+							
+							if(tasks[taskID]["state"] == "solved") {
+								try {
+
+									const solution = toSolution(await os.contracts.incentiveLayer.getSolution.call(taskID))
+
+									console.log(solution)
+
+									if (solution.finalized) {
+										fs.writeFile(taskID + ".json", JSON.stringify(solution))
+										await taskExchange.unbondDeposit(taskID, {from: taskGiver})
+									}
+
+								} catch(e) {
+									//handle error
+									console.error(e)
+								}
+							}
+						})
+
 					}
 				}
 			})
@@ -90,7 +121,7 @@ module.exports = (os) => {
 			await depositsHelper(os, task.from, task.minDeposit)
 
 			tx = await os.contracts.incentiveLayer.createTask(
-				task.minDeposit, 
+				task.minDeposit,
 				task.data,
 				task.intervals,
 				task.data.length,

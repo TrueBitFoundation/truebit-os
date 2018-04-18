@@ -1,6 +1,10 @@
 const assert = require('assert')
 const timeout = require('../os/lib/util/timeout')
 
+const BigNumber = require('bignumber.js')
+
+const mineBlocks = require('./helper/mineBlocks')
+
 let os
 
 before(async () => {
@@ -30,7 +34,9 @@ describe('Truebit OS', async function() {
 
   let killTaskGiver
   let killSolver
-  let killVerifier
+	let killVerifier
+	
+	let originalBalance
 
 	describe('Normal Task Life Cycle', () => {
 
@@ -42,9 +48,10 @@ describe('Truebit OS', async function() {
 			assert(os.solver)
 		})
 
-		before(() => {
+		before(async () => {
 			killTaskGiver = os.taskGiver.init(os.accounts[0])
 			killSolver = os.solver.init(os.accounts[1])
+			originalBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
 		})
 
 		after(() => {
@@ -52,24 +59,30 @@ describe('Truebit OS', async function() {
 			killSolver()
 		})
 
-		describe('Task Giver', () => {
-	
-			it('should submit task', async () => {
-				os.taskGiver.submitTask({
-					minDeposit: 1000,
-					data: [1, 2, 3, 4, 5, 6, 7, 8, 9],
-					intervals: [20, 40, 60],
-					disputeResAddress: os.contracts.disputeResolutionLayer.address,
-					reward: 2000,
-					from: os.accounts[0]
-				})
-	
-				await timeout(2000)
-	
-				assert(Object.keys(os.taskGiver.getTasks()))
+		it('should submit task', async () => {
+			os.taskGiver.submitTask({
+				minDeposit: 1000,
+				data: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+				intervals: [20, 40, 60],
+				disputeResAddress: os.contracts.disputeResolutionLayer.address,
+				reward: os.web3.utils.toWei('1', 'ether'),
+				from: os.accounts[0]
 			})
 
-    })
+			await timeout(2000)
+
+			assert(Object.keys(os.taskGiver.getTasks()))
+		})
+
+		it('should have a higher balance', async () => {
+
+			await mineBlocks(os.web3, 65)
+
+			await timeout(5000)
+
+			const newBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
+			assert(originalBalance.isLessThan(newBalance))
+		})
 
 	})
 })

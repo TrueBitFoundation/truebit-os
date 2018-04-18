@@ -2,6 +2,8 @@ let tasks = {}
 
 const depositsHelper = require('./depositsHelper')
 const util = require('ethereumjs-util')
+const waitForBlock = require('./util/waitForBlock')
+const toTaskData = require('./util/toTaskData')
 
 module.exports = (os) => {
   return {
@@ -13,23 +15,39 @@ module.exports = (os) => {
 						let taskID = result.args.taskID.toNumber()
 						let taskMinDeposit = result.args.minDeposit.toNumber()
 
-						let taskData = await os.contracts.incentiveLayer.getTaskData.call(taskID)
-
-						let program = os.web3.utils.hexToBytes(taskData[0]).map((n) => {
-							return util.bufferToHex(util.setLengthLeft(n, 32))
-						})
+						let taskData = toTaskData(await os.contracts.incentiveLayer.getTaskData.call(taskID))
 
 						try {
-							await os.contracts.incentiveLayer.registerForTask(taskID, {from: account})
 
-							let output = await os.contracts.computationLayer.runSteps.call(program, taskData[1].toNumber())
+							let blockNumber = await os.web3.eth.getBlockNumber()
 
-							let solution = output[0][1]
+							if (!(blockNumber > taskData.intervals[0] + taskData.taskCreationBlockNumber)) {
 
-							let tx = await os.contracts.incentiveLayer.commitSolution(taskID, solution, {from: account})
+								await depositsHelper(os, account, taskMinDeposit)
+
+								let tx = await os.contracts.incentiveLayer.registerForTask(taskID, {from: account, gas: 100000})
+
+								tasks[taskID] = taskData
+	
+								let program = os.web3.utils.hexToBytes(taskData.taskData).map((n) => {
+									return util.bufferToHex(util.setLengthLeft(n, 32))
+								})
+	
+								let output = await os.contracts.computationLayer.runSteps.call(program, taskData.numSteps)
+	
+								let solution = output[0][1]
+	
+								tx = await os.contracts.incentiveLayer.commitSolution(taskID, solution, {from: account})
+	
+								waitForBlock(os.web3, taskData.intervals[2] + taskData.taskCreationBlockNumber, async () => {
+									if (!tasks[taskID]["challenged"]) {
+										await os.contracts.incentiveLayer.finalizeTask(taskID, {from: account})
+									}
+								})
+							}
 
 						} catch (e) {
-							//registering for task failed
+							console.error(e)
 						}
 					}
 			})
