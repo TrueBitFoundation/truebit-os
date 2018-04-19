@@ -20,7 +20,7 @@ module.exports = (os) => {
 	
 			taskCreatedEvent.watch(async (err, result) => {
 				if (result) {
-					if (accounts.has(result.args.creator)) {
+					if (account.toLowerCase() == result.args.creator) {
 						let taskID = result.args.taskID.toNumber()
 						let taskData = toTaskData(await os.contracts.incentiveLayer.getTaskData.call(taskID))
 						taskData["state"] = "register"
@@ -87,11 +87,9 @@ module.exports = (os) => {
 
 									const solution = toSolution(await os.contracts.incentiveLayer.getSolution.call(taskID))
 
-									console.log(solution)
-
 									if (solution.finalized) {
-										fs.writeFile(taskID + ".json", JSON.stringify(solution))
-										await taskExchange.unbondDeposit(taskID, {from: taskGiver})
+										fs.writeFile("solutions/" + taskID + ".json", JSON.stringify(solution), (err) => { if (err) console.log(err)})
+										await os.contracts.incentiveLayer.unbondDeposit(taskID, {from: account})
 									}
 
 								} catch(e) {

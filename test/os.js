@@ -5,6 +5,8 @@ const BigNumber = require('bignumber.js')
 
 const mineBlocks = require('./helper/mineBlocks')
 
+const fs = require('fs')
+
 let os
 
 before(async () => {
@@ -32,9 +34,11 @@ describe('Truebit OS', async function() {
 		assert(os.contracts.computationLayer)
 	})
 
-  let killTaskGiver
-  let killSolver
+  	let killTaskGiver
+  	let killSolver
 	let killVerifier
+
+	let taskID
 	
 	let originalBalance
 
@@ -71,6 +75,10 @@ describe('Truebit OS', async function() {
 
 			await timeout(2000)
 
+			let tasks = os.taskGiver.getTasks()
+
+			taskID = Object.keys(tasks)[0]
+
 			assert(Object.keys(os.taskGiver.getTasks()))
 		})
 
@@ -82,6 +90,10 @@ describe('Truebit OS', async function() {
 
 			const newBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
 			assert(originalBalance.isLessThan(newBalance))
+		})
+
+		it('should have a solution', () => {
+			assert(fs.existsSync("solutions/" + taskID + ".json"))
 		})
 
 	})
