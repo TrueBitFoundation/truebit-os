@@ -1,6 +1,4 @@
-# Truebit Client
-
-This is meant to be the Client software used to interact with the Truebit system.
+# Truebit OS
 
 # Getting Started
 
@@ -15,8 +13,42 @@ chmod 755 deploy.sh
 
 ## Usage
 ```bash
-node cli.js
+node os/shell.js
 ```
+
+## Example
+
+After starting up the shell you can enter commands to start submitting and solving tasks:
+
+You can start up a task giver process that will monitor the incentive layer smart contract for events:
+```
+start task -a 0
+```
+
+Now the process will be monitoring for tasks created by account 0.
+
+We can also start up a solver:
+```
+start solve -a 1
+```
+
+We've started up a solver with account 1 (this is to simulate different users, but it could be the same account).
+
+Finally, we can submit our task:
+```
+task -a 0 -t testTask.json
+```
+
+We have specified to submit a task from account 0. And the data related to the task is located at testTask.json
+
+If you are running on this on a development test net you will need to skip blocks to see the solution in the solutions directory.
+```
+skip 65
+```
+
+Now you should see a json file in solutions/ labelled with the task id.
+
+You can exit out of the shell and close the running processes with `quit`
 
 # Git Submodule Commands
 

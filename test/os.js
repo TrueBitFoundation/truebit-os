@@ -3,14 +3,14 @@ const timeout = require('../os/lib/util/timeout')
 
 const BigNumber = require('bignumber.js')
 
-const mineBlocks = require('./helper/mineBlocks')
+const mineBlocks = require('../os/lib/util/mineBlocks')
 
 const fs = require('fs')
 
 let os
 
 before(async () => {
-	os = await require('../os')()
+	os = await require('../os/kernel')()
 })
 
 describe('Truebit OS', async function() {

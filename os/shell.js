@@ -6,22 +6,25 @@ const minimist = require('minimist')
 const readline = require('readline')
 const rl = readline.createInterface(process.stdin, process.stdout)
 
+const mineBlocks = require('./lib/util/mineBlocks')
+
 const fs = require('fs')
 
-const sessionHelper = require('./session')
+let os
 
-const taskGiver = require('../lib/taskGiver')
-const solver = require('../lib/solver')
-const verifier = require('../lib/verifier')
+function setup() {
+  (async () => {
+    os = await require('./kernel')()
+  })()
+}
 
-let config
-fs.readFile('config.json', function(err, data) {
-  if (err) {
-    throw "config file not found. Type `config` to setup a configuration"
-  } else {
-    config = JSON.parse(data)
-  }
-})
+setup()
+
+function skipHelper(n) {
+  (async () => {
+    await mineBlocks(os.web3, n)
+  })()
+}
 
 function printBar() {
   let i = 0
@@ -57,9 +60,9 @@ function helpHelper(command) {
   const commands = {
 
     "start": [
-      "begins Truebit client session with a specified network.",
+      "begins a Truebit process. Possible commands are `task`, `solve`, or `verify`",
       "options:",
-      " -n specifies the 'network' to use (default: development)"
+      " -a specifies the account to use"
     ].join("\n"),
 
     "config": "creates a default config.json file, or reloads the existing config file",
@@ -91,28 +94,8 @@ function helpHelper(command) {
   }
 }
 
-function configHelper() {
-  let filePath = './config.json'
-  if (fs.existsSync(filePath)) {
-    config = JSON.parse(fs.readFileSync(filePath))
-    console.log("Reloaded config from " + filePath)
-  } else {
-    let defaultConfig = {
-      "networks": {
-        "development" : {
-          "incentive-layer" : __dirname + "/../../incentive-layer/export",
-          "dispute-resolution-layer" : __dirname + "/../../dispute-resolution-layer/export"
-        }
-      }
-    }
-    fs.writeFileSync(filePath, JSON.stringify(defaultConfig))
-    config = defaultConfig
-    console.log("config.json file created. Reloaded current config")
-  }
-}
-
 function networksHelper() {
-  Object.keys(config.networks).forEach((net) => { console.log(net) })
+  Object.keys(os.config.networks).forEach((net) => { console.log(net) })
 }
 
 function argsParser(tokens) {
@@ -126,13 +109,77 @@ function argsParser(tokens) {
   return minimist(args)
 }
 
-let session
 
-async function sessionEnforcer(cb) {
-  if (session) {
-    await cb()
+let sessions = {}
+
+async function taskGiver(options) {
+  if(options['a']) {
+    const account = os.accounts[options['a'].trim()]
+
+    if (sessions[account]["task"]) {
+      if(options['t']) {
+        new Promise((resolve, reject) => {
+          fs.readFile(options['t'].trim(), (err, data) => {
+            if(err) {
+              throw err
+            } else {
+              let taskData = JSON.parse(data)
+              taskData["from"] = account
+              taskData["disputeResAddress"] = os.contracts.disputeResolutionLayer.address
+              taskData["reward"] = os.web3.utils.toWei(taskData.reward, 'ether')
+              os.taskGiver.submitTask(taskData)
+              console.log("Task submitted")
+            }
+          })
+        })
+      } else {
+        throw "No task file specified. Make sure to use the `-t` flag."
+      }
+    } else {
+      throw "task giver session for " + account + " not found."
+    }
   } else {
-    throw "session is not available use the `start` command to begin one"
+    throw "account not specified. Make sure to use the `-a` flag."
+  }
+}
+
+function addToSession(account, command, network, cb) {
+  if(!sessions[account]) {
+    sessions[account] = {}
+  }
+  if(sessions[account][command]) {
+    throw command + " for " + account + " already running."
+  } else {
+    let session = {}
+    session[command] = network
+    sessions[account] = session
+    cb()
+  }
+}
+
+function startHelper(command, options) {
+  if(options['a']) {
+    const account = os.accounts[options['a'].trim()]
+    switch(command) {
+      case "task":
+        addToSession(account, command, "development", () => {
+          os.taskGiver.init(account)
+          console.log("Task Giver initialized")
+        })
+        break
+      case "solve":
+        addToSession(account, command, "development", () => {
+          os.solver.init(account)
+          console.log("Solver initialized")
+        })
+        break
+      case "verify":
+        break
+      default:
+        throw command + " not available"
+    }
+  } else {
+    throw "account not specified. Make sure to use the `-a` flag."
   }
 }
 
@@ -155,51 +202,25 @@ async function exec(line) {
     case "networks":
       networksHelper()
       break
-    case "start":
-      let args = argsParser(tokens)
-
-      if (!session) {
-        if (args['n']) {
-          session = await sessionHelper(rl, config, args['n'].trim())
-        } else {
-          session = await sessionHelper(rl, config, "development")
-        }
-      } else {
-        console.log("session already exists")
-      }
-      
-      break
     case "accounts":
-      await sessionEnforcer(async () => {
-        console.log(session.accounts)
-      })
+      console.log(os.accounts)
       break
     case "balance":
-      await sessionEnforcer(async () => {
-        let args = argsParser(tokens)
-        if(!args['a']) {
-          throw 'no account number specified. Use `-a` to specify which account balance you want to see'
-        } else {
-          console.log(await session.web3.eth.getBalance(session.accounts[args['a'].trim()]))
-        }
-      })
+      let args = argsParser(tokens)
+      if(!args['a']) {
+        throw 'no account number specified. Use `-a` to specify which account balance you want to see'
+      } else {
+        console.log(await os.web3.eth.getBalance(session.accounts[args['a'].trim()]))
+      }
+      break
+    case "start":
+      startHelper(tokens[1], argsParser(tokens))
       break
     case "task":
-      await sessionEnforcer(async () => {
-        taskGiver(session, argsParser(tokens))
-      })
+      taskGiver(argsParser(tokens))
       break
-    case "solve":
-      await sessionEnforcer(async () => {
-        solver(session, argsParser(tokens))
-      })
-      console.log("Solver monitoring task creation")
-      break
-    case "verify":
-      await sessionEnforcer(async () => {
-        verify(session, argsParser(tokens))
-      })
-      break   
+    case "skip":
+      skipHelper(tokens[1])
     case "view":
       //start visualizer
       break
