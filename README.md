@@ -41,7 +41,7 @@ task -a 0 -t testTask.json
 
 We have specified to submit a task from account 0. And the data related to the task is located at testTask.json
 
-If you are running on this on a development test net you will need to skip blocks to see the solution in the solutions directory.
+If you are running this on a development test net you will need to skip blocks to see the solution in the solutions directory.
 ```
 skip 65
 ```
