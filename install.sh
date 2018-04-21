@@ -1,15 +1,9 @@
-npm install
+#!/bin/bash
+cd $(dirname $0)
 
-cd incentive-layer
 git submodule init
-git submodule update
+git submodule update || exit $?
+
 npm install
-
-cd ..
-
-cd dispute-resolution-layer
-git submodule init
-git submodule update
-npm install
-
-cd ..
+(cd ./dispute-resolution-layer && npm install)
+(cd ./incentive-layer && npm install)
