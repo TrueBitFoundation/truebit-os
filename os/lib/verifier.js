@@ -9,7 +9,8 @@ function toGameData(data) {
 	return {
 		low: data[0].toNumber(),
 		med: data[1].toNumber(),
-		high: data[2].toNumber()
+		high: data[2].toNumber(),
+		medHash: data[3]
 	}
 }
 
@@ -48,7 +49,6 @@ module.exports = (os) => {
 				}
 			})
 
-			//TODO: add verifier to event
 			const verificationCommittedEvent = os.contracts.incentiveLayer.VerificationCommitted()
 
 			verificationCommittedEvent.watch(async (err, result) => {
@@ -73,7 +73,7 @@ module.exports = (os) => {
 					if(account.toLowerCase() == verifier) {
 						games[gameId] = {ongoing: true}
 
-						const gameData =  toGameData(gameData(gameId))
+						const gameData =  toGameData(await os.contracts.disputeResolutionLayer.gameData.call(gameId))
 
 						const toQueryStep = calculateMidpoint(gameData.low, gameData.high)
 						await os.contracts.disputeResolutionLayer.query(gameId, toQueryStep, {from: account})
@@ -90,7 +90,7 @@ module.exports = (os) => {
 					let hash = result.args.hash
 
 					if (games[gameId]) {
-						const gameData =  toGameData(gameData(gameId))
+						const gameData =  toGameData(await os.contracts.disputeResolutionLayer.gameData.call(gameId))
 
 						let taskData = toTaskData(await os.contracts.incentiveLayer.getTaskData.call(games[gameId].taskID))
 	
@@ -100,9 +100,9 @@ module.exports = (os) => {
 	
 						let output = await os.contracts.computationLayer.runSteps.call(program, gameData.med)
 	
-						const result = await api.getResult(session.input, medStep)
+						let solutionHash = output[1]
 	
-						if (result.stateHash == session.medHash) {
+						if (solutionHash == gameData.medHash) {
 							// we agree with their state; look in the right half
 							await os.contracts.disputeResolutionLayer.query(gameId, calculateMidpoint(gameData.med, gameData.high), {from: account})
 						} else {
@@ -111,6 +111,7 @@ module.exports = (os) => {
 						}
 
 						//start timeout watcher
+						
 					}
 				}
 			})
