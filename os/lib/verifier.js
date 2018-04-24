@@ -76,7 +76,7 @@ module.exports = (os) => {
 						const gameData =  toGameData(gameData(gameId))
 
 						const toQueryStep = calculateMidpoint(gameData.low, gameData.high)
-						await os.contracts.disputeResolutionLayer.query(gameId, toQueryStep)
+						await os.contracts.disputeResolutionLayer.query(gameId, toQueryStep, {from: account})
 						
 					}
 				}
@@ -104,11 +104,13 @@ module.exports = (os) => {
 	
 						if (result.stateHash == session.medHash) {
 							// we agree with their state; look in the right half
-							return calculateMidpoint(medStep, highStep)
+							await os.contracts.disputeResolutionLayer.query(gameId, calculateMidpoint(gameData.med, gameData.high), {from: account})
 						} else {
 							// we disagree with their state; look in the left half.
-							return calculateMidpoint(lowStep, medStep)
+							await os.contracts.disputeResolutionLayer.query(gameId, calculateMidpoint(gameData.low, gameData.med), {from: account})
 						}
+
+						//start timeout watcher
 					}
 				}
 			})
