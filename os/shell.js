@@ -118,19 +118,16 @@ async function taskGiver(options) {
 
     if (sessions[account]["task"]) {
       if(options['t']) {
-        new Promise((resolve, reject) => {
-          fs.readFile(options['t'].trim(), (err, data) => {
-            if(err) {
-              throw err
-            } else {
-              let taskData = JSON.parse(data)
-              taskData["from"] = account
-              taskData["disputeResAddress"] = os.contracts.disputeResolutionLayer.address
-              taskData["reward"] = os.web3.utils.toWei(taskData.reward, 'ether')
-              os.taskGiver.submitTask(taskData)
-              console.log("Task submitted")
-            }
-          })
+        fs.readFile(options['t'].trim(), (err, data) => {
+          if(err) {
+            throw err
+          } else {
+            let taskData = JSON.parse(data)
+            taskData["from"] = account
+            taskData["disputeResAddress"] = os.contracts.disputeResolutionLayer.address
+            taskData["reward"] = os.web3.utils.toWei(taskData.reward, 'ether')
+            os.taskGiver.submitTask(taskData)
+          }
         })
       } else {
         throw "No task file specified. Make sure to use the `-t` flag."
@@ -218,6 +215,7 @@ async function exec(line) {
       break
     case "task":
       taskGiver(argsParser(tokens))
+      console.log("Task submitted")
       break
     case "skip":
       skipHelper(tokens[1])
