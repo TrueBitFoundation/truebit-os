@@ -8,17 +8,34 @@ const toTaskData = require('./util/toTaskData')
 const merkleTree = require('./util/merkleTree')
 const sha3 = require('ethereumjs-util').sha3
 
-module.exports = (os) => {
-  return {
-		init: (account) => {
-			const taskCreatedEvent = os.contracts.incentiveLayer.TaskCreated()
+const fs = require('fs')
+
+const contract = require('./contractHelper')
+
+function setup(httpProvider) {
+	return (async () => {
+		ilConfig = JSON.parse(fs.readFileSync(__dirname + "/incentive-layer/export/development.json"))
+		incentiveLayer = await contract(httpProvider, ilConfig['TaskExchange'])
+		drlConfig = JSON.parse(fs.readFileSync(__dirname + "/dispute-resolution-layer/export/development.json"))
+		disputeResolutionLayer = await contract(httpProvider, drlConfig['BasicVerificationGame'])
+		computationLayer = await contract(httpProvider, drlConfig['SimpleAdderVM'])
+		return [incentiveLayer, disputeResolutionLayer, computationLayer]
+	})()
+}
+
+module.exports = {
+		init: async (web3, account) => {
+
+			let [incentiveLayer, disputeResolutionLayer, computationLayer] = await setup(web3.currentProvider)
+
+			const taskCreatedEvent = incentiveLayer.TaskCreated()
 
 			taskCreatedEvent.watch(async (err, result) => {
 					if (result) {
 						let taskID = result.args.taskID.toNumber()
 						let taskMinDeposit = result.args.minDeposit.toNumber()
 
-						let taskData = toTaskData(await os.contracts.incentiveLayer.getTaskData.call(taskID))
+						let taskData = toTaskData(await incentiveLayer.getTaskData.call(taskID))
 
 						try {
 
@@ -28,7 +45,7 @@ module.exports = (os) => {
 
 								await depositsHelper(os, account, taskMinDeposit)
 
-								let tx = await os.contracts.incentiveLayer.registerForTask(taskID, {from: account, gas: 100000})
+								let tx = await incentiveLayer.registerForTask(taskID, {from: account, gas: 100000})
 
 								tasks[taskID] = taskData
 	
@@ -36,15 +53,15 @@ module.exports = (os) => {
 									return util.bufferToHex(util.setLengthLeft(n, 32))
 								})
 	
-								let output = await os.contracts.computationLayer.runSteps.call(program, taskData.numSteps)
+								let output = await computationLayer.runSteps.call(program, taskData.numSteps)
 	
 								let solution = output[0][1]
 	
-								tx = await os.contracts.incentiveLayer.commitSolution(taskID, solution, {from: account})
+								tx = await incentiveLayer.commitSolution(taskID, solution, {from: account})
 	
 								waitForBlock(os.web3, taskData.intervals[2] + taskData.taskCreationBlockNumber, async () => {
 									if (!tasks[taskID]["challenged"]) {
-										await os.contracts.incentiveLayer.finalizeTask(taskID, {from: account})
+										await incentiveLayer.finalizeTask(taskID, {from: account})
 									}
 								})
 							}
@@ -55,7 +72,7 @@ module.exports = (os) => {
 					}
       })
 
-			const verificationCommittedEvent = os.contracts.incentiveLayer.VerificationCommitted()
+			const verificationCommittedEvent = incentiveLayer.VerificationCommitted()
 
 			verificationCommittedEvent.watch(async (err, result) => {
 				if (result) {
@@ -65,7 +82,7 @@ module.exports = (os) => {
 						games[gameId] = {taskID: taskID}
 						tasks[taskID]["gameId"] = gameId
 
-						let taskData = toTaskData(await os.contracts.incentiveLayer.getTaskData.call(games[gameId].taskID))
+						let taskData = toTaskData(await incentiveLayer.getTaskData.call(games[gameId].taskID))
 
 						let program = os.web3.utils.hexToBytes(taskData.taskData).map((n) => {
 							return util.bufferToHex(util.setLengthLeft(n, 32))
@@ -82,7 +99,7 @@ module.exports = (os) => {
 				}
       })
       
-      const newQueryEvent = os.contracts.disputeResolutionLayer.NewQuery()
+      const newQueryEvent = disputeResolutionLayer.NewQuery()
 
       newQueryEvent.watch(async (err, result) => {
         if (result) {
@@ -90,45 +107,45 @@ module.exports = (os) => {
           let stepNumber = result.args.stepNumber
 
 					if (games[gameId]) {
-						const gameData =  toGameData(await os.contracts.disputeResultionLayer.gameData.call(gameId))
+						const gameData =  toGameData(await disputeResultionLayer.gameData.call(gameId))
 
-            let taskData = toTaskData(await os.contracts.incentiveLayer.getTaskData.call(games[gameId].taskID))
+            let taskData = toTaskData(await incentiveLayer.getTaskData.call(games[gameId].taskID))
             
             if (gameData.low + 1 != gameData.high) {
               let program = os.web3.utils.hexToBytes(taskData.taskData).map((n) => {
                 return util.bufferToHex(util.setLengthLeft(n, 32))
               })
     
-              let output = await os.contracts.computationLayer.runSteps.call(program, gameData.med)
+              let output = await computationLayer.runSteps.call(program, gameData.med)
     
               const result = await api.getResult(session.input, medStep)
               let solutionHash = output[1]
     
               if (solutionHash == game.medHash) {
                 // we agree with their state; look in the right half
-                await os.contracts.disputeResolutionLayer.query(gameId, calculateMidpoint(gameData.med, gameData.high), {from: account})
+                await disputeResolutionLayer.query(gameId, calculateMidpoint(gameData.med, gameData.high), {from: account})
               } else {
                 // we disagree with their state; look in the left half.
-                await os.contracts.disputeResolutionLayer.query(gameId, calculateMidpoint(gameData.low, gameData.med), {from: account})
+                await disputeResolutionLayer.query(gameId, calculateMidpoint(gameData.low, gameData.med), {from: account})
               }
   
 							//start timeout watcher
 							waitForBlock(os.web3, taskData.intervals[2] + taskData.taskCreationBlockNumber, async () => {
 								if (!tasks[taskID]["challenged"]) {
-									await os.contracts.incentiveLayer.finalizeTask(taskID, {from: account})
+									await incentiveLayer.finalizeTask(taskID, {from: account})
 								}
 							})
 							
             } else {
-							const gameData =  toGameData(await os.contracts.disputeResultionLayer.gameData.call(gameId))
+							const gameData =  toGameData(await disputeResultionLayer.gameData.call(gameId))
 
 							const game = games[gameId]
 
-							let lowStepState = await os.contracts.computationLayer.runSteps.call(game["program"], gameData.low)[0]
+							let lowStepState = await computationLayer.runSteps.call(game["program"], gameData.low)[0]
 
 							let highStepIndex = game.high - 1
 
-							let highStepState = await os.contracts.computationLayer.runStep.call(lowStepState, game.high, game["program"][highStepIndex])
+							let highStepState = await computationLayer.runStep.call(lowStepState, game.high, game["program"][highStepIndex])
 					
 							let proof = game["merkle-tree"].getProofOrdered(game["hashes"][highStepIndex], game.high)
 							const newProof = '0x' + proof.map(e => e.toString('hex')).join('')
@@ -150,4 +167,3 @@ module.exports = (os) => {
 			}
 		}
 	}
-}

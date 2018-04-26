@@ -1,40 +1,20 @@
-const network = "development"
-
-//get contracts
-const config = require('./lib/configHelper')()
-
-const networkConfig = config['networks'][network]
-
-const Web3 = require('web3')
-const httpProvider = new Web3.providers.HttpProvider("http://localhost:8545")
-const web3 = new Web3(httpProvider)
-
-const contract = require('./lib/contractHelper')
-
 const fs = require('fs')
 
-const incentiveLayerContracts = JSON.parse(fs.readFileSync(networkConfig["incentive-layer"] + "/" + network + ".json"))
-const disputeResolutionLayerContracts = JSON.parse(fs.readFileSync(networkConfig['dispute-resolution-layer'] + "/" + network + ".json"))
+const Web3 = require('web3')
 
-module.exports = async () => {
+module.exports = async (configPath) => {
+	const config = JSON.parse(fs.readFileSync(configPath))
 
-	const contracts = {
-		incentiveLayer : await contract(httpProvider, incentiveLayerContracts['TaskExchange']),
-		disputeResolutionLayer : await contract(httpProvider, disputeResolutionLayerContracts['BasicVerificationGame']),
-		computationLayer : await contract(httpProvider, disputeResolutionLayerContracts['SimpleAdderVM'])
-	}
+	const httpProvider = new Web3.providers.HttpProvider(config["http-url"])
+	const web3 = new Web3(httpProvider)
 
-	//OS setup multi staged
-	let os = {
-		config: config,
+	const accounts = await web3.eth.getAccounts()
+
+	return {
+		taskGiver: require(config["task-giver"]),
+		solver: require(config["solver"]),
+		verifier: require(config["verifier"]),
 		web3: web3,
-		accounts: await web3.eth.getAccounts(),//note: these public keys are all uppercase
-		contracts : contracts,
+		accounts: accounts
 	}
-
-	//Setup drivers
-	os["taskGiver"] = require('./lib/taskGiver')(os)
-	os["solver"] = require('./lib/solver')(os)
-
-	return os
 }

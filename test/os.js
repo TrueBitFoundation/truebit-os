@@ -10,28 +10,14 @@ const fs = require('fs')
 let os
 
 before(async () => {
-	os = await require('../os/kernel')()
+	os = await require('../os/kernel')("config.json")
 })
 
 describe('Truebit OS', async function() {
 	this.timeout(60000)
 
-	it('should have a proper config', () => {
-		assert(os.config.networks)
-		assert(os.config.networks.development)
-		assert(os.config.networks.development["incentive-layer"])
-		assert(os.config.networks.development["dispute-resolution-layer"])
-	})
-
 	it('should have a web3', () => {
 		assert(os.web3)
-	})
-
-	it('should have contracts', () => {
-		assert(os.contracts)
-		assert(os.contracts.incentiveLayer)
-		assert(os.contracts.disputeResolutionLayer)
-		assert(os.contracts.computationLayer)
 	})
 
   	let killTaskGiver
@@ -53,8 +39,8 @@ describe('Truebit OS', async function() {
 		})
 
 		before(async () => {
-			killTaskGiver = os.taskGiver.init(os.accounts[0])
-			killSolver = os.solver.init(os.accounts[1])
+			killTaskGiver = os.taskGiver.init(os.web3, os.accounts[0])
+			killSolver = os.solver.init(os.web3, os.accounts[1])
 			originalBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
 		})
 
@@ -68,7 +54,7 @@ describe('Truebit OS', async function() {
 				minDeposit: 1000,
 				data: [1, 2, 3, 4, 5, 6, 7, 8, 9],
 				intervals: [20, 40, 60],
-				disputeResAddress: os.contracts.disputeResolutionLayer.address,
+				//disputeResAddress: os.contracts.disputeResolutionLayer.address,
 				reward: os.web3.utils.toWei('1', 'ether'),
 				from: os.accounts[0]
 			})

@@ -1,6 +1,6 @@
-[submodule "dispute-resolution-layer"]
-	path = dispute-resolution-layer
-	url = git@github.com:TrueBitFoundation/dispute-resolution-layer.git
-[submodule "incentive-layer"]
-	path = incentive-layer
+[submodule "basic-client/incentive-layer"]
+	path = basic-client/incentive-layer
 	url = git@github.com:TrueBitFoundation/incentive-layer.git
+[submodule "basic-client/dispute-resolution-layer"]
+	path = basic-client/dispute-resolution-layer
+	url = git@github.com:TrueBitFoundation/dispute-resolution-layer.git

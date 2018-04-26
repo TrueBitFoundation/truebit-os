@@ -12,13 +12,12 @@ const fs = require('fs')
 
 let os
 
-function setup() {
+function setup(configPath) {
   (async () => {
-    os = await require('./kernel')()
+    os = await require('./kernel')(configPath)
+    console.log("Truebit OS has been initialized with config at " + configPath)
   })()
 }
-
-setup()
 
 function skipHelper(n) {
   (async () => {
@@ -124,7 +123,6 @@ async function taskGiver(options) {
           } else {
             let taskData = JSON.parse(data)
             taskData["from"] = account
-            taskData["disputeResAddress"] = os.contracts.disputeResolutionLayer.address
             taskData["reward"] = os.web3.utils.toWei(taskData.reward, 'ether')
             os.taskGiver.submitTask(taskData)
           }
@@ -159,18 +157,19 @@ function startHelper(command, options) {
     const account = os.accounts[options['a'].trim()]
     switch(command) {
       case "task":
-        addToSession(account, command, "development", () => {
-          os.taskGiver.init(account)
+        //addToSession(account, command, "development", () => {
+          os.taskGiver.init(os.web3, account)
           console.log("Task Giver initialized")
-        })
+        //})
         break
       case "solve":
-        addToSession(account, command, "development", () => {
-          os.solver.init(account)
+        //addToSession(account, command, "development", () => {
+          os.solver.init(os.web3, account)
           console.log("Solver initialized")
-        })
+        //})
         break
       case "verify":
+        os.verifier.init(os.web3, account)
         break
       default:
         throw command + " not available"
@@ -209,6 +208,9 @@ async function exec(line) {
       } else {
         console.log(await os.web3.eth.getBalance(session.accounts[args['a'].trim()]))
       }
+      break
+    case "setup":
+      setup(tokens[1])
       break
     case "start":
       startHelper(tokens[1], argsParser(tokens))

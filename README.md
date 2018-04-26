@@ -79,3 +79,9 @@ Pushing changes of a submodule to remote
 ```
 git submodule update --remote --merge
 ```
+
+Deleting submodules
+```
+git rm *submodule_name*
+rm -rf .git/modules/*submodule_name*
+```

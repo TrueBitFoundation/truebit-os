@@ -5,6 +5,7 @@ const depositsHelper = require('./depositsHelper')
 const waitForBlock = require('./util/waitForBlock')
 const fs = require('fs')
 const toTaskData = require('./util/toTaskData')
+const contract = require('./contractHelper')
 
 function toSolution(data) {
 	return {
@@ -13,23 +14,36 @@ function toSolution(data) {
 	}
 }
 
-module.exports = (os) => {
-	return {
-		init: (account) => {
-			const taskCreatedEvent = os.contracts.incentiveLayer.TaskCreated()
+const ilConfig = JSON.parse(fs.readFileSync(__dirname + "/incentive-layer/export/development.json"))
+const drlConfig = JSON.parse(fs.readFileSync(__dirname + "/dispute-resolution-layer/export/development.json"))
+
+function setup(httpProvider) {
+	return (async () => {
+		
+		incentiveLayer = await contract(httpProvider, ilConfig['TaskExchange'])
+		return incentiveLayer
+	})()
+}
+
+module.exports = {
+		init: async (web3, account) => {
+
+			let incentiveLayer = await setup(web3.currentProvider)
+
+			const taskCreatedEvent = incentiveLayer.TaskCreated()
 	
 			taskCreatedEvent.watch(async (err, result) => {
 				if (result) {
 					if (account.toLowerCase() == result.args.creator) {
 						let taskID = result.args.taskID.toNumber()
-						let taskData = toTaskData(await os.contracts.incentiveLayer.getTaskData.call(taskID))
+						let taskData = toTaskData(await incentiveLayer.getTaskData.call(taskID))
 						taskData["state"] = "register"
 						tasks[taskID] = taskData
 
 						waitForBlock(os.web3, taskData.intervals[0] + taskData.taskCreationBlockNumber, async () => {
 							if(tasks[taskID]["state"] == "register") {
 								try {
-									await os.contracts.incentiveLayer.timeout(taskID, {from: account})
+									await incentiveLayer.timeout(taskID, {from: account})
 								} catch(e) {
 									//handle error
 									console.error(e)
@@ -41,20 +55,20 @@ module.exports = (os) => {
 				}
 			})
 
-			const solverSelectedEvent = os.contracts.incentiveLayer.SolverSelected()
+			const solverSelectedEvent = incentiveLayer.SolverSelected()
 
 			solverSelectedEvent.watch(async (err, result) => {
 				if (result) {
 					const taskID = result.args.taskID.toNumber()
 
 					if (tasks[taskID]) {
-						let taskData = toTaskData(await os.contracts.incentiveLayer.getTaskData.call(taskID))
+						let taskData = toTaskData(await incentiveLayer.getTaskData.call(taskID))
 						tasks[taskID]["state"] = "selected"
 
 						waitForBlock(os.web3, taskData.intervals[1] + taskData.taskCreationBlockNumber, async () => {
 							if(tasks[taskID]["state"] == "selected") {
 								try {
-									await os.contracts.incentiveLayer.timeout(taskID, {from: account})
+									await incentiveLayer.timeout(taskID, {from: account})
 								} catch(e) {
 									//handle error
 									console.error(e)
@@ -67,14 +81,14 @@ module.exports = (os) => {
 				}
 			})
 
-			const solutionCommittedEvent = os.contracts.incentiveLayer.SolutionCommitted()
+			const solutionCommittedEvent = incentiveLayer.SolutionCommitted()
 
 			solutionCommittedEvent.watch(async (err, result) => {
 				if (result) {
 					const taskID = result.args.taskID.toNumber()
 					if (tasks[taskID]) {
 
-						let taskData = toTaskData(await os.contracts.incentiveLayer.getTaskData.call(taskID))
+						let taskData = toTaskData(await incentiveLayer.getTaskData.call(taskID))
 
 						tasks[taskID]["state"] = "solved"
 
@@ -85,11 +99,11 @@ module.exports = (os) => {
 							if(tasks[taskID]["state"] == "solved") {
 								try {
 
-									const solution = toSolution(await os.contracts.incentiveLayer.getSolution.call(taskID))
+									const solution = toSolution(await incentiveLayer.getSolution.call(taskID))
 
 									if (solution.finalized) {
 										fs.writeFile("solutions/" + taskID + ".json", JSON.stringify(solution), (err) => { if (err) console.log(err)})
-										await os.contracts.incentiveLayer.unbondDeposit(taskID, {from: account})
+										await incentiveLayer.unbondDeposit(taskID, {from: account})
 									}
 
 								} catch(e) {
@@ -116,14 +130,14 @@ module.exports = (os) => {
 	
 		submitTask: async (task) => {
 
-			await depositsHelper(os, task.from, task.minDeposit)
+			await depositsHelper(os.web3, incentiveLayer, task.from, task.minDeposit)
 
-			tx = await os.contracts.incentiveLayer.createTask(
+			tx = await incentiveLayer.createTask(
 				task.minDeposit,
 				task.data,
 				task.intervals,
 				task.data.length,
-				task.disputeResAddress,
+				drlConfig["BasicVerificationGame"].address,
 				{
 					from: task.from, 
 					value: task.reward,
@@ -138,4 +152,3 @@ module.exports = (os) => {
 			return tasks
 		}
 	}
-}
