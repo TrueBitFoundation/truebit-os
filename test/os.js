@@ -9,8 +9,11 @@ const fs = require('fs')
 
 let os
 
+let taskSubmitter
+
 before(async () => {
 	os = await require('../os/kernel')("config.json")
+	taskSubmitter = require('../basic-client/taskSubmitter')(os.web3)
 })
 
 describe('Truebit OS', async function() {
@@ -39,9 +42,10 @@ describe('Truebit OS', async function() {
 		})
 
 		before(async () => {
-			killTaskGiver = os.taskGiver.init(os.web3, os.accounts[0])
-			killSolver = os.solver.init(os.web3, os.accounts[1])
+			killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0])
+			killSolver = await os.solver.init(os.web3, os.accounts[1])
 			originalBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
+
 		})
 
 		after(() => {
@@ -50,7 +54,7 @@ describe('Truebit OS', async function() {
 		})
 
 		it('should submit task', async () => {
-			os.taskGiver.submitTask({
+			taskSubmitter.submitTask({
 				minDeposit: 1000,
 				data: [1, 2, 3, 4, 5, 6, 7, 8, 9],
 				intervals: [20, 40, 60],

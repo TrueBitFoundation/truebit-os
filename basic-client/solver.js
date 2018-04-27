@@ -39,17 +39,17 @@ module.exports = {
 
 						try {
 
-							let blockNumber = await os.web3.eth.getBlockNumber()
+							let blockNumber = await web3.eth.getBlockNumber()
 
 							if (!(blockNumber > taskData.intervals[0] + taskData.taskCreationBlockNumber)) {
 
-								await depositsHelper(os, account, taskMinDeposit)
+								await depositsHelper(web3, incentiveLayer, account, taskMinDeposit)
 
 								let tx = await incentiveLayer.registerForTask(taskID, {from: account, gas: 100000})
 
 								tasks[taskID] = taskData
 	
-								let program = os.web3.utils.hexToBytes(taskData.taskData).map((n) => {
+								let program = web3.utils.hexToBytes(taskData.taskData).map((n) => {
 									return util.bufferToHex(util.setLengthLeft(n, 32))
 								})
 	
@@ -59,7 +59,7 @@ module.exports = {
 	
 								tx = await incentiveLayer.commitSolution(taskID, solution, {from: account})
 	
-								waitForBlock(os.web3, taskData.intervals[2] + taskData.taskCreationBlockNumber, async () => {
+								waitForBlock(web3, taskData.intervals[2] + taskData.taskCreationBlockNumber, async () => {
 									if (!tasks[taskID]["challenged"]) {
 										await incentiveLayer.finalizeTask(taskID, {from: account})
 									}
@@ -84,7 +84,7 @@ module.exports = {
 
 						let taskData = toTaskData(await incentiveLayer.getTaskData.call(games[gameId].taskID))
 
-						let program = os.web3.utils.hexToBytes(taskData.taskData).map((n) => {
+						let program = web3.utils.hexToBytes(taskData.taskData).map((n) => {
 							return util.bufferToHex(util.setLengthLeft(n, 32))
 						})
 
@@ -112,7 +112,7 @@ module.exports = {
             let taskData = toTaskData(await incentiveLayer.getTaskData.call(games[gameId].taskID))
             
             if (gameData.low + 1 != gameData.high) {
-              let program = os.web3.utils.hexToBytes(taskData.taskData).map((n) => {
+              let program = web3.utils.hexToBytes(taskData.taskData).map((n) => {
                 return util.bufferToHex(util.setLengthLeft(n, 32))
               })
     
@@ -130,7 +130,7 @@ module.exports = {
               }
   
 							//start timeout watcher
-							waitForBlock(os.web3, taskData.intervals[2] + taskData.taskCreationBlockNumber, async () => {
+							waitForBlock(web3, taskData.intervals[2] + taskData.taskCreationBlockNumber, async () => {
 								if (!tasks[taskID]["challenged"]) {
 									await incentiveLayer.finalizeTask(taskID, {from: account})
 								}

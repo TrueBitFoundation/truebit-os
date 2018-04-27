@@ -44,12 +44,12 @@ module.exports = {
 	
 					let taskData = toTaskData(await incentiveLayer.getTaskData.call(taskID))
 	
-					let blockNumber = await os.web3.eth.getBlockNumber()
+					let blockNumber = await web3.eth.getBlockNumber()
 	
 					if (!(blockNumber > taskData.intervals[0] + taskData.taskCreationBlockNumber)) {
 						tasks[taskID] = taskData
 		
-						let program = os.web3.utils.hexToBytes(taskData.taskData).map((n) => {
+						let program = web3.utils.hexToBytes(taskData.taskData).map((n) => {
 							return util.bufferToHex(util.setLengthLeft(n, 32))
 						})
 	
@@ -58,7 +58,7 @@ module.exports = {
 						let mySolution = output[0][1]
 	
 						if(mySolution != solution) {
-							await depositsHelper(os, account, taskMinDeposit)
+							await depositsHelper(web3, incentiveLayer, account, taskMinDeposit)
 	
 							await incentiveLayer.commitChallenge(taskID, {from: account})
 						}
@@ -111,7 +111,7 @@ module.exports = {
 
 						let taskData = toTaskData(await incentiveLayer.getTaskData.call(games[gameId].taskID))
 	
-						let program = os.web3.utils.hexToBytes(taskData.taskData).map((n) => {
+						let program = web3.utils.hexToBytes(taskData.taskData).map((n) => {
 							return util.bufferToHex(util.setLengthLeft(n, 32))
 						})
 	
