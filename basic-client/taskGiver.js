@@ -1,5 +1,4 @@
 let tasks = {}
-let accounts = new Set([])
 
 const depositsHelper = require('./depositsHelper')
 const waitForBlock = require('./util/waitForBlock')
@@ -15,11 +14,9 @@ function toSolution(data) {
 }
 
 const ilConfig = JSON.parse(fs.readFileSync(__dirname + "/incentive-layer/export/development.json"))
-const drlConfig = JSON.parse(fs.readFileSync(__dirname + "/dispute-resolution-layer/export/development.json"))
 
 function setup(httpProvider) {
 	return (async () => {
-		
 		incentiveLayer = await contract(httpProvider, ilConfig['TaskExchange'])
 		return incentiveLayer
 	})()
@@ -40,7 +37,7 @@ module.exports = {
 						taskData["state"] = "register"
 						tasks[taskID] = taskData
 
-						waitForBlock(os.web3, taskData.intervals[0] + taskData.taskCreationBlockNumber, async () => {
+						waitForBlock(web3, taskData.intervals[0] + taskData.taskCreationBlockNumber, async () => {
 							if(tasks[taskID]["state"] == "register") {
 								try {
 									await incentiveLayer.timeout(taskID, {from: account})
@@ -65,7 +62,7 @@ module.exports = {
 						let taskData = toTaskData(await incentiveLayer.getTaskData.call(taskID))
 						tasks[taskID]["state"] = "selected"
 
-						waitForBlock(os.web3, taskData.intervals[1] + taskData.taskCreationBlockNumber, async () => {
+						waitForBlock(web3, taskData.intervals[1] + taskData.taskCreationBlockNumber, async () => {
 							if(tasks[taskID]["state"] == "selected") {
 								try {
 									await incentiveLayer.timeout(taskID, {from: account})
@@ -94,7 +91,7 @@ module.exports = {
 
 						//fire off timeout to wait for finalization
 						//should make this recursive in case of verification game
-						waitForBlock(os.web3, taskData.intervals[2] + taskData.taskCreationBlockNumber, async () => {
+						waitForBlock(web3, taskData.intervals[2] + taskData.taskCreationBlockNumber, async () => {
 							
 							if(tasks[taskID]["state"] == "solved") {
 								try {
@@ -126,26 +123,6 @@ module.exports = {
 					//console.log("Events stopped watching ungracefully")
 				}
 			}
-		},
-	
-		submitTask: async (task) => {
-
-			await depositsHelper(os.web3, incentiveLayer, task.from, task.minDeposit)
-
-			tx = await incentiveLayer.createTask(
-				task.minDeposit,
-				task.data,
-				task.intervals,
-				task.data.length,
-				drlConfig["BasicVerificationGame"].address,
-				{
-					from: task.from, 
-					value: task.reward,
-					gas: 300000
-				}
-			)
-			
-			accounts.add(task.from.toLowerCase())
 		},
 	
 		getTasks: () => {

@@ -17,7 +17,7 @@ let os
 function setup(configPath) {
   (async () => {
     os = await require('./kernel')(configPath)
-    console.log("Truebit OS has been initialized with config at " + configPath)
+    //console.log("Truebit OS has been initialized with config at " + configPath)
   })()
 }
 

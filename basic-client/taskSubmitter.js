@@ -1,0 +1,37 @@
+const depositsHelper = require('./depositsHelper')
+const fs = require('fs')
+const contract = require('./contractHelper')
+
+module.exports = (web3) => {
+    const ilConfig = JSON.parse(fs.readFileSync(__dirname + "/incentive-layer/export/development.json"))
+    const drlConfig = JSON.parse(fs.readFileSync(__dirname + "/dispute-resolution-layer/export/development.json"))
+
+    function setup(httpProvider) {
+        return (async () => {
+            incentiveLayer = await contract(httpProvider, ilConfig['TaskExchange'])
+            return incentiveLayer
+        })()
+    }
+
+    return {
+        submitTask: async (task) => {
+
+            let incentiveLayer = await setup(web3.currentProvider)
+    
+            await depositsHelper(web3, incentiveLayer, task.from, task.minDeposit)
+    
+            tx = await incentiveLayer.createTask(
+                task.minDeposit,
+                task.data,
+                task.intervals,
+                task.data.length,
+                drlConfig["BasicVerificationGame"].address,
+                {
+                    from: task.from, 
+                    value: task.reward,
+                    gas: 300000
+                }
+            )
+        }
+    }
+}
