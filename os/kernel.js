@@ -2,6 +2,14 @@ const fs = require('fs')
 
 const Web3 = require('web3')
 
+function requireHelper(cb) {
+	try {
+		return cb()
+	} catch (e) {
+		return undefined
+	}
+}
+
 module.exports = async (configPath) => {
 	const config = JSON.parse(fs.readFileSync(configPath))
 
@@ -11,9 +19,9 @@ module.exports = async (configPath) => {
 	const accounts = await web3.eth.getAccounts()
 
 	return {
-		taskGiver: require(config["task-giver"]),
-		solver: require(config["solver"]),
-		verifier: require(config["verifier"]),
+		taskGiver: requireHelper(() => { return require(config["task-giver"]) }),
+		solver: requireHelper(() => { return require(config["solver"]) }),
+		verifier: requireHelper(() => { return require(config["verifier"]) }),
 		web3: web3,
 		accounts: accounts
 	}

@@ -10,6 +10,8 @@ const mineBlocks = require('./lib/util/mineBlocks')
 
 const fs = require('fs')
 
+let configPath = process.argv[2]
+
 let os
 
 function setup(configPath) {
@@ -18,6 +20,8 @@ function setup(configPath) {
     console.log("Truebit OS has been initialized with config at " + configPath)
   })()
 }
+
+setup(configPath)
 
 function skipHelper(n) {
   (async () => {
@@ -208,9 +212,6 @@ async function exec(line) {
       } else {
         console.log(await os.web3.eth.getBalance(session.accounts[args['a'].trim()]))
       }
-      break
-    case "setup":
-      setup(tokens[1])
       break
     case "start":
       startHelper(tokens[1], argsParser(tokens))
