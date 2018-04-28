@@ -5,15 +5,33 @@
 ## Installation
 ```bash
 chmod 755 install.sh
-./install.sh
+./basic-client/install.sh
 
 chmod 755 deploy.sh
-./deploy.sh
+./basic-client/deploy.sh
 ```
 
+The `basic-client` directory houses an example project with the relevant modules to interface with the Truebit OS kernel. 
+These are `taskGiver.js`, `solver.js`, and `verifier.js`. Please note that any of these modules are optional and can be run independently of each other.
+
+The point of `basic-client` it is meant as a template for anyone to base their interactive verification game project off of. Such a project can then be hosted on the Truebit OS platform.
+
 ## Usage
+
+The way that Truebit OS knows where to load the relevant modules is with a config file. This is a simple JSON file with a couple fields, that tell the OS where to find the modules at. Here is the example config.json provided used for `basic-client`:
+```javascript
+{
+    "http-url": "http://localhost:8545",
+    "verifier": "../basic-client/verifier",
+    "solver": "../basic-client/solver",
+    "task-giver": "../basic-client/taskGiver"
+}
+```
+
+Once a user has created their config file they can start up the Truebit OS shell. Ex:
+
 ```bash
-node os/shell.js
+node os/shell.js basic-client/config.json
 ```
 
 ## Example

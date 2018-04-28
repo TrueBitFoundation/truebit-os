@@ -12,11 +12,12 @@ const fs = require('fs')
 
 let configPath = process.argv[2]
 
-let os
+let os, taskSubmitter
 
 function setup(configPath) {
   (async () => {
     os = await require('./kernel')(configPath)
+    taskSubmitter = require('../basic-client/taskSubmitter')(os.web3)
     //console.log("Truebit OS has been initialized with config at " + configPath)
   })()
 }
@@ -119,23 +120,19 @@ async function taskGiver(options) {
   if(options['a']) {
     const account = os.accounts[options['a'].trim()]
 
-    if (sessions[account]["task"]) {
-      if(options['t']) {
-        fs.readFile(options['t'].trim(), (err, data) => {
-          if(err) {
-            throw err
-          } else {
-            let taskData = JSON.parse(data)
-            taskData["from"] = account
-            taskData["reward"] = os.web3.utils.toWei(taskData.reward, 'ether')
-            os.taskGiver.submitTask(taskData)
-          }
-        })
-      } else {
-        throw "No task file specified. Make sure to use the `-t` flag."
-      }
+    if(options['t']) {
+      fs.readFile(options['t'].trim(), (err, data) => {
+        if (err) {
+          throw err
+        } else {
+          let taskData = JSON.parse(data)
+          taskData["from"] = account
+          taskData["reward"] = os.web3.utils.toWei(taskData.reward, 'ether')
+          taskSubmitter.submitTask(taskData)
+        }
+      })
     } else {
-      throw "task giver session for " + account + " not found."
+      throw "No task file specified. Make sure to use the `-t` flag."
     }
   } else {
     throw "account not specified. Make sure to use the `-a` flag."
