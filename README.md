@@ -1,5 +1,7 @@
 # Truebit OS
 
+The Truebit OS is meant to be a general purpose platform for interactive verification games. The benefit of it is that users are not locked into a particular client, but can build their own and then host it on the Truebit platform. Benefitting from the time we spend on development and research for solving problems related to running interactive verification games on a blockchain.
+
 # Getting Started
 
 ## Installation
@@ -14,7 +16,9 @@ chmod 755 deploy.sh
 The `basic-client` directory houses an example project with the relevant modules to interface with the Truebit OS kernel. 
 These are `taskGiver.js`, `solver.js`, and `verifier.js`. Please note that any of these modules are optional and can be run independently of each other.
 
-The point of `basic-client` it is meant as a template for anyone to base their interactive verification game project off of. Such a project can then be hosted on the Truebit OS platform.
+The point of `basic-client` is to function as a template for anyone to base their interactive verification game project off of. Such a project can then be hosted on the Truebit OS platform.
+
+Currently it uses the `TaskExchange` contract for the incentive layer. The `BasicVerificationGame` as the dispute resolution layer. And the `SimpleAdderVM` for the computation layer. In order to run tasks with this setup you simply add a list of numbers you want summed by the SimpleAdderVM. It then creates a task on the `TaskExchange` contract which will be finalized after a specified number of blocks. In the case of a challenge to the task's solution, a verification game is created on the dispute resolution layer. In this case, this is handled by the `BasicVerificationGame` contract. The two contracts for the incentive layer and the dispute resolution layer don't have to be used, but they can be helpful to inherit from other smart contracts to build similar systems with custom features for a particular problem. 
 
 ## Usage
 
