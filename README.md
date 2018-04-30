@@ -6,10 +6,10 @@ The Truebit OS is meant to be a general purpose platform for interactive verific
 
 ## Installation
 ```bash
-chmod 755 install.sh
+chmod 755 basic-client/install.sh
 ./basic-client/install.sh
 
-chmod 755 deploy.sh
+chmod 755 basic-client/deploy.sh
 ./basic-client/deploy.sh
 ```
 
