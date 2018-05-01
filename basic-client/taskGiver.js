@@ -97,6 +97,7 @@ module.exports = {
 								try {
 
 									const solution = toSolution(await incentiveLayer.getSolution.call(taskID))
+									solution["data"] = web3.utils.hexToBytes(taskData.taskData)
 
 									if (solution.finalized) {
 										fs.writeFile("solutions/" + taskID + ".json", JSON.stringify(solution), (err) => { if (err) console.log(err)})
