@@ -20,9 +20,12 @@ module.exports = (web3) => {
     
             await depositsHelper(web3, incentiveLayer, task.from, task.minDeposit)
     
+            // Incentive layer is restricted to bytes32 for task data
+            taskData = web3.utils.bytesToHex(task.data)
+
             tx = await incentiveLayer.createTask(
                 task.minDeposit,
-                task.data,
+                taskData,
                 task.intervals,
                 task.data.length,
                 drlConfig["BasicVerificationGame"].address,
