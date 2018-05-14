@@ -6,7 +6,7 @@ cache:
     - "node_modules"
 
 before_install:
-  - npm i -g ganache-cli
+  - npm i -g ganache-cli truffle
   - ganache-cli &
 
 install:
