@@ -11,6 +11,7 @@ before_install:
 
 install:
   - npm install
+  - chmod 755 basic-client/install.sh basic-client/deploy.sh
   - ./basic-client/install.sh
   - ./basic-client/deploy.sh
 
