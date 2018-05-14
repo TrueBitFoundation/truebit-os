@@ -12,7 +12,7 @@ let os
 let taskSubmitter
 
 before(async () => {
-	os = await require('../os/kernel')("config.json")
+	os = await require('../os/kernel')("./basic-client/config.json")
 	taskSubmitter = require('../basic-client/taskSubmitter')(os.web3)
 })
 

@@ -1,0 +1,19 @@
+language: node_js
+node_js:
+  - "8"
+cache:
+  directories:
+    - "node_modules"
+
+before_install:
+  - npm i -g ganache-cli truffle
+  - ganache-cli &>/dev/null &
+
+install:
+  - npm install
+  - chmod 755 basic-client/install.sh basic-client/deploy.sh
+  - ./basic-client/install.sh
+  - ./basic-client/deploy.sh
+
+script:
+  - npm test
