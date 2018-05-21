@@ -63,11 +63,8 @@ describe('Truebit OS', async function() {
 			})
 
 			await timeout(2000)
-
 			let tasks = os.taskGiver.getTasks()
-
 			taskID = Object.keys(tasks)[0]
-
 			assert(Object.keys(os.taskGiver.getTasks()))
 		})
 
