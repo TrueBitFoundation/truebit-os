@@ -82,8 +82,13 @@ describe('Truebit OS', async function() {
 		})
 
 		it('should have a solution', () => {
-			assert(fs.existsSync("solutions/" + taskID + ".json"))
-		})
+      assert(fs.existsSync('solutions/' + taskID + '.json'));
+      const { solution } = require('../solutions/' + taskID + '.json');
+      const expected =
+        '0x000000000000000000000000000000000000000000000000000000000000002d';
+      const actual = solution;
+      assert(expected === actual);
+    });
 
 	})
 })
