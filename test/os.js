@@ -63,11 +63,8 @@ describe('Truebit OS', async function() {
 			})
 
 			await timeout(2000)
-
 			let tasks = os.taskGiver.getTasks()
-
 			taskID = Object.keys(tasks)[0]
-
 			assert(Object.keys(os.taskGiver.getTasks()))
 		})
 
@@ -81,9 +78,13 @@ describe('Truebit OS', async function() {
 			assert(originalBalance.isLessThan(newBalance))
 		})
 
-		it('should have a solution', () => {
-			assert(fs.existsSync("solutions/" + taskID + ".json"))
-		})
-
+		it('should have a correct solution', () => {
+			assert(fs.existsSync('solutions/' + taskID + '.json'));
+			const { solution } = require('../solutions/' + taskID + '.json');
+			const expected =
+				'0x000000000000000000000000000000000000000000000000000000000000002d';
+			const actual = solution;
+			assert(expected === actual);
+		});
 	})
 })
