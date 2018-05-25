@@ -2,6 +2,10 @@
 
 [![Build Status](https://travis-ci.org/TrueBitFoundation/truebit-os.svg?branch=master)](https://travis-ci.org/TrueBitFoundation/truebit-os)
 
+<p align="center">
+  <img src="./gundam-schematic.gif"/>
+</p>
+
 The Truebit OS is meant to be a general purpose platform for interactive verification games. The benefit of it is that users are not locked into a particular client, but can build their own and then host it on the Truebit platform. Benefitting from the time we spend on development and research for solving problems related to running interactive verification games on a blockchain.
 
 For a simple intro and a high level overview watch this [video demo](https://www.youtube.com/watch?v=VRQwmNGHbhI)
