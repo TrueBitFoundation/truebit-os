@@ -10,6 +10,8 @@ The Truebit OS is meant to be a general purpose platform for interactive verific
 
 For a simple intro and a high level overview watch this [video demo](https://www.youtube.com/watch?v=VRQwmNGHbhI)
 
+If you want to talk to the developers working on this project feel free to say hello on our [Gitter](https://gitter.im/TrueBitFoundation/Lobby)
+
 # Getting Started
 
 ## Installation
