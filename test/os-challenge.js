@@ -1,5 +1,4 @@
 const assert = require('assert')
-
 const timeout = require('../os/lib/util/timeout')
 
 const BigNumber = require('bignumber.js')
@@ -8,23 +7,17 @@ const mineBlocks = require('../os/lib/util/mineBlocks')
 
 const fs = require('fs')
 
-const logger = require('../os/logger')
-
 let os
 
 let taskSubmitter
 
 before(async () => {
     os = await require('../os/kernel')("./basic-client/config.json")
-    taskSubmitter = require('../basic-client/taskSubmitter')(os.web3, os.logger)
+    taskSubmitter = require('../basic-client/taskSubmitter')(os.web3)
 })
 
 describe('Truebit OS', async function() {
     this.timeout(60000)
-
-    it('should have a logger', () => {
-	assert(os.logger)
-    })
 
     it('should have a web3', () => {
 	assert(os.web3)
@@ -42,7 +35,7 @@ describe('Truebit OS', async function() {
 	assert(os.verifier)
     })
     
-    describe('Normal task lifecycle', async () => {
+    describe('Solution to task is challenged', async () => {
 	let killTaskGiver
 	let killSolver
 	let killVerifier
@@ -55,12 +48,14 @@ describe('Truebit OS', async function() {
 	before(async () => {
 	    killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0])
 	    killSolver = await os.solver.init(os.web3, os.accounts[1])
+	    killVerifier = await os.verifier.init(os.web3, os.accounts[2], true)
 	    originalBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
 	})
 
 	after(() => {
 	    killTaskGiver()
 	    killSolver()
+	    killVerifier()
 	})
 	
 	it('should submit task', async () => {
@@ -96,6 +91,6 @@ describe('Truebit OS', async function() {
 		      '0x000000000000000000000000000000000000000000000000000000000000002d'
 	    const actual = solution
 	    assert(expected === actual)
-	})
+	})	
     })
 })
