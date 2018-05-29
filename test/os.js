@@ -15,7 +15,7 @@ let taskSubmitter
 
 before(async () => {
     os = await require('../os/kernel')("./basic-client/config.json")
-    taskSubmitter = require('../basic-client/taskSubmitter')(os.web3)
+    taskSubmitter = require('../basic-client/taskSubmitter')(os.web3, os.logger)
 })
 
 describe('Truebit OS', async function() {
