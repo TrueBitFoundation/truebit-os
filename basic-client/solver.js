@@ -28,7 +28,7 @@ module.exports = {
 
 			logger.log({
 				level: 'info',
-				message: `solver initialized.`
+				message: `Solver initialized`
 			  });
 
 			let [incentiveLayer, disputeResolutionLayer, computationLayer] = await setup(web3.currentProvider)

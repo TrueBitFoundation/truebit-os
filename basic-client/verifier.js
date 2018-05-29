@@ -34,8 +34,8 @@ module.exports = {
 
 			logger.log({
 				level: 'info',
-				message: `verifier initialized.`
-			  });
+				message: `Verifier initialized`
+			});
 
 			let [incentiveLayer, disputeResolutionLayer, computationLayer] = await setup(web3.currentProvider)
 			

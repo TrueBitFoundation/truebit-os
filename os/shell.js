@@ -17,7 +17,7 @@ let os, taskSubmitter
 function setup(configPath) {
   (async () => {
     os = await require('./kernel')(configPath)
-    taskSubmitter = require('../basic-client/taskSubmitter')(os.web3)
+    taskSubmitter = require('../basic-client/taskSubmitter')(os.web3, os.logger)
     //console.log("Truebit OS has been initialized with config at " + configPath)
   })()
 }
@@ -160,17 +160,15 @@ function startHelper(command, options) {
       case "task":
         //addToSession(account, command, "development", () => {
           os.taskGiver.init(os.web3, account, os.logger)
-          console.log("Task Giver initialized")
         //})
         break
       case "solve":
         //addToSession(account, command, "development", () => {
-          os.solver.init(os.web3, account)
-          console.log("Solver initialized")
+          os.solver.init(os.web3, account, os.logger)
         //})
         break
       case "verify":
-        os.verifier.init(os.web3, account)
+        os.verifier.init(os.web3, account, os.logger)
         break
       default:
         throw command + " not available"
@@ -215,7 +213,6 @@ async function exec(line) {
       break
     case "task":
       taskGiver(argsParser(tokens))
-      console.log("Task submitted")
       break
     case "skip":
       skipHelper(tokens[1])

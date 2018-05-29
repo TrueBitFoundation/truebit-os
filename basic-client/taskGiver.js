@@ -27,7 +27,7 @@ module.exports = {
 
 			logger.log({
 				level: 'info',
-				message: `giver initialized.`
+				message: `Task Giver initialized`
 			  });
 
 			let incentiveLayer = await setup(web3.currentProvider)
@@ -107,6 +107,10 @@ module.exports = {
 									if (solution.finalized) {
 										fs.writeFile("solutions/" + taskID + ".json", JSON.stringify(solution), (err) => { if (err) console.log(err)})
 										await incentiveLayer.unbondDeposit(taskID, {from: account})
+										logger.log({
+											level: 'info',
+											message: `Task Giver Solution for ${taskID} is ${solution.solution}`
+										});
 									}
 
 								} catch(e) {
