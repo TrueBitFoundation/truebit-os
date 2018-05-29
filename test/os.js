@@ -1,4 +1,5 @@
 const assert = require('assert')
+
 const timeout = require('../os/lib/util/timeout')
 
 const BigNumber = require('bignumber.js')
