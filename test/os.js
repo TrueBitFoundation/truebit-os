@@ -7,9 +7,13 @@ const mineBlocks = require('../os/lib/util/mineBlocks')
 
 const fs = require('fs')
 
+const logger = require('../os/logger')
+
+
 let os
 
 let taskSubmitter
+
 
 before(async () => {
     os = await require('../os/kernel')("./basic-client/config.json")
@@ -17,10 +21,32 @@ before(async () => {
 })
 
 describe('Truebit OS', async function() {
-    this.timeout(60000)
+	this.timeout(60000)
+	
+	it('should have a logger', () => {
+		os.logger.log({
+		  level: 'warn',
+		  message: 'What time is the testing at?'
+		})
+		assert(fs.existsSync('./combined.log.json'))
+		// want json of all logs?
+		// console.log(logs)
+		let logs = fs
+		  .readFileSync('./combined.log.json')
+		  .toString()
+		  .split('\n')
+		  .filter(defined => {
+			return defined
+		  })
+		  .map(logLine => {
+			if (logLine) {
+			  return JSON.parse(logLine)
+			}
+		  })
+	  });
 
     it('should have a web3', () => {
-	assert(os.web3)
+		assert(os.web3)
     })
 
     let killTaskGiver

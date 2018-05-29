@@ -1,6 +1,6 @@
-const winston = require('winston');
-const { createLogger, format, transports } = winston;
-const { combine, timestamp, label, colorize, json, printf } = format;
+const winston = require('winston')
+const { createLogger, format, transports } = winston
+const { combine, timestamp, label, colorize, json, printf } = format
 
 const logger = createLogger({
   format: format.combine(
@@ -16,7 +16,7 @@ const logger = createLogger({
       filename: 'combined.log.json'
     })
   ]
-});
+})
 
 if (process.env.NODE_ENV !== 'production') {
   logger.add(
@@ -28,11 +28,11 @@ if (process.env.NODE_ENV !== 'production') {
         printf(info => {
           return `${info.timestamp} [${info.label}] ${info.level}: ${
             info.message
-          }`;
+          }`
         })
       )
     })
-  );
+  )
 }
 
-module.exports = logger;
+module.exports = logger
