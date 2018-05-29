@@ -2,3 +2,5 @@
 solutions/*.json
 
 combined.log.json
+
+.vscode
