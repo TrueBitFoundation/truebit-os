@@ -9,11 +9,9 @@ const fs = require('fs')
 
 const logger = require('../os/logger')
 
-
 let os
 
 let taskSubmitter
-
 
 before(async () => {
     os = await require('../os/kernel')("./basic-client/config.json")
@@ -22,28 +20,10 @@ before(async () => {
 
 describe('Truebit OS', async function() {
 	this.timeout(60000)
-	
+
 	it('should have a logger', () => {
-		os.logger.log({
-		  level: 'warn',
-		  message: 'What time is the testing at?'
-		})
-		assert(fs.existsSync('./combined.log.json'))
-		// want json of all logs?
-		// console.log(logs)
-		let logs = fs
-		  .readFileSync('./combined.log.json')
-		  .toString()
-		  .split('\n')
-		  .filter(defined => {
-			return defined
-		  })
-		  .map(logLine => {
-			if (logLine) {
-			  return JSON.parse(logLine)
-			}
-		  })
-	  });
+		assert(os.logger)
+	});
 
     it('should have a web3', () => {
 		assert(os.web3)
@@ -59,58 +39,58 @@ describe('Truebit OS', async function() {
 
     describe('Normal Task Life Cycle', () => {
 
-	it('should have a task giver', () => {
-	    assert(os.taskGiver)
-	})
-
-	it('should have a solver', () => {
-	    assert(os.solver)
-	})
-
-		before(async () => {
-			killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0], os.logger)
-			killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger)
-			originalBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
+		it('should have a task giver', () => {
+			assert(os.taskGiver)
 		})
 
-	after(() => {
-	    killTaskGiver()
-	    killSolver()
-	})
+		it('should have a solver', () => {
+			assert(os.solver)
+		})
 
-	it('should submit task', async () => {
-	    taskSubmitter.submitTask({
-		minDeposit: 1000,
-		data: [1, 2, 3, 4, 5, 6, 7, 8, 9],
-		intervals: [20, 40, 60],
-		//disputeResAddress: os.contracts.disputeResolutionLayer.address,
-		reward: os.web3.utils.toWei('1', 'ether'),
-		from: os.accounts[0]
-	    })
+			before(async () => {
+				killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0], os.logger)
+				killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger)
+				originalBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
+			})
 
-	    await timeout(2000)
-	    let tasks = os.taskGiver.getTasks()
-	    taskID = Object.keys(tasks)[0]
-	    assert(Object.keys(os.taskGiver.getTasks()))
-	})
+		after(() => {
+			killTaskGiver()
+			killSolver()
+		})
 
-	it('should have a higher balance', async () => {
+		it('should submit task', async () => {
+			taskSubmitter.submitTask({
+			minDeposit: 1000,
+			data: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+			intervals: [20, 40, 60],
+			//disputeResAddress: os.contracts.disputeResolutionLayer.address,
+			reward: os.web3.utils.toWei('1', 'ether'),
+			from: os.accounts[0]
+			})
 
-	    await mineBlocks(os.web3, 65)
+			await timeout(2000)
+			let tasks = os.taskGiver.getTasks()
+			taskID = Object.keys(tasks)[0]
+			assert(Object.keys(os.taskGiver.getTasks()))
+		})
 
-	    await timeout(5000)
+		it('should have a higher balance', async () => {
 
-	    const newBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
-	    assert(originalBalance.isLessThan(newBalance))
-	})
+			await mineBlocks(os.web3, 65)
 
-	it('should have a correct solution', () => {
-	    assert(fs.existsSync('solutions/' + taskID + '.json'))
-	    const { solution } = require('../solutions/' + taskID + '.json')
-	    const expected =
-		      '0x000000000000000000000000000000000000000000000000000000000000002d'
-	    const actual = solution
-	    assert(expected === actual)
-	})
+			await timeout(5000)
+
+			const newBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
+			assert(originalBalance.isLessThan(newBalance))
+		})
+
+		it('should have a correct solution', () => {
+			assert(fs.existsSync('solutions/' + taskID + '.json'))
+			const { solution } = require('../solutions/' + taskID + '.json')
+			const expected =
+				'0x000000000000000000000000000000000000000000000000000000000000002d'
+			const actual = solution
+			assert(expected === actual)
+		})
     })
 })
