@@ -29,7 +29,7 @@ function setup(httpProvider) {
 }
 
 module.exports = {
-    init: async (web3, account, logger) => {
+    init: async (web3, account, logger, test = false) => {
 
 	logger.log({
 	    level: 'info',

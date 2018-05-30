@@ -13,7 +13,6 @@ let taskSubmitter
 
 before(async () => {
     os = await require('../os/kernel')("./basic-client/config.json")
-    taskSubmitter = require('../basic-client/taskSubmitter')(os.web3)
 })
 
 describe('Truebit OS', async function() {
@@ -21,6 +20,10 @@ describe('Truebit OS', async function() {
 
     it('should have a web3', () => {
 	assert(os.web3)
+    })
+
+    it('should have a logger', () => {
+	assert(os.logger)
     })
 
     it('should have a task giver', () => {
@@ -46,9 +49,12 @@ describe('Truebit OS', async function() {
 	
 
 	before(async () => {
-	    killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0])
-	    killSolver = await os.solver.init(os.web3, os.accounts[1])
-	    killVerifier = await os.verifier.init(os.web3, os.accounts[2], true)
+
+	    taskSubmitter = require('../basic-client/taskSubmitter')(os.web3, os.logger)
+	    
+	    killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0], os.logger)
+	    killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger)
+	    killVerifier = await os.verifier.init(os.web3, os.accounts[2], os.logger, true)
 	    originalBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
 	})
 
