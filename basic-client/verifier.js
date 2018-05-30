@@ -13,6 +13,7 @@ const util = require('ethereumjs-util')
 const fs = require('fs')
 const merkleTree = require('./util/merkleTree')
 const sha3 = require('ethereumjs-util').sha3
+const toProgram = require('./util/toProgram')
 
 const contract = require('./contractHelper')
 
@@ -52,11 +53,9 @@ module.exports = {
 		
 		if (!(blockNumber > taskData.intervals[0] + taskData.taskCreationBlockNumber)) {
 		    tasks[taskID] = taskData
-		    
-		    let program = web3.utils.hexToBytes(taskData.taskData).map((n) => {
-			return util.bufferToHex(util.setLengthLeft(n, 32))
-		    })
-		    
+
+		    let program = toProgram(web3, taskData.taskData)
+		    		    
 		    let output = await computationLayer.runSteps.call(program, taskData.numSteps)
 		    
 		    let mySolution = output[0][1]
@@ -84,23 +83,26 @@ module.exports = {
 		    //Get task data to initialize game
 		    let taskData = toTaskData(await incentiveLayer.getTaskData(taskID))
 
-		    let chunks = []
-		    for(i = 0; i < taskData.taskData.length; i++) {
-			if((i - 1) % 2 == 0) {
-			    chunks.push("0x00000000000000000000000000000000000000000000000000000000000000" + taskData.taskData[i-1] + taskData.taskData[i])
-			}
-		    }
+		    let program = toProgram(web3, taskData.taskData)
 
-		    chunks = chunks.slice(1, chunks.length)
-
-		    let hashes = chunks.map(e => sha3(3))
+		    let hashes = program.map(e => sha3(e))
 		    mtree = new merkleTree.MerkleTree(hashes, true)
 		    root = mtree.getRoot()
 
-		    let solutionHash = web3.utils.soliditySha3((await incentiveLayer.getSolution(taskID))[0])
+		    let solution = await incentiveLayer.getSolution(taskID)
+
+		    let stateHash = (await incentiveLayer.getSolution(taskID))[1]
 
 		    //Initialize new game
-		    await disputeResolutionLayer.initGame(gameId, merkleTree.bufToHex(root), solutionHash, taskData.numSteps, responseTime, computationLayer.address, {from: account, gas: 300000})
+		    await disputeResolutionLayer.initGame(
+			gameId,
+			merkleTree.bufToHex(root),
+			stateHash,
+			taskData.numSteps,
+			responseTime,
+			computationLayer.address,
+			{from: account, gas: 300000}
+		    )
 		}
 	    }
 	})

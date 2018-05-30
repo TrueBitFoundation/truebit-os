@@ -8,6 +8,7 @@ const toTaskData = require('./util/toTaskData')
 const toGameData = require('./util/toGameData')
 const merkleTree = require('./util/merkleTree')
 const sha3 = require('ethereumjs-util').sha3
+const toProgram = require('./util/toProgram')
 
 const fs = require('fs')
 
@@ -54,16 +55,16 @@ module.exports = {
 			let tx = await incentiveLayer.registerForTask(taskID, {from: account, gas: 100000})
 
 			tasks[taskID] = taskData
-			
-			let program = web3.utils.hexToBytes(taskData.taskData).map((n) => {
-			    return util.bufferToHex(util.setLengthLeft(n, 32))
-			})
-			
+
+			let program = toProgram(web3, taskData.taskData)
+						
 			let output = await computationLayer.runSteps.call(program, taskData.numSteps)
 			
 			let solution = output[0][1]
+
+			let stateHash = await computationLayer.merklizeState.call(output[0])
 			
-			tx = await incentiveLayer.commitSolution(taskID, solution, {from: account})
+			tx = await incentiveLayer.commitSolution(taskID, solution, stateHash, {from: account})
 			
 			waitForBlock(web3, taskData.intervals[2] + taskData.taskCreationBlockNumber, async () => {
 			    if (!tasks[taskID]["challenged"]) {
@@ -91,14 +92,13 @@ module.exports = {
 
 		    let taskData = toTaskData(await incentiveLayer.getTaskData.call(games[gameId].taskID))
 
-		    let program = web3.utils.hexToBytes(taskData.taskData).map((n) => {
-			return util.bufferToHex(util.setLengthLeft(n, 32))
-		    })
+		    let program = toProgram(web3, taskData.taskData)
 
 		    let hashes = program.map(e => sha3(e))
 
 		    mtree = new merkleTree.MerkleTree(hashes, true)
 		    root = mtree.getRoot()
+		    games[gameId]["program"] = program
 		    games[gameId]["merkle-tree"] = mtree
 		    games[gameId]["merkle-root"] = root
 		    games[gameId]["hashes"] = hashes
@@ -150,20 +150,27 @@ module.exports = {
 		    } else {
 			//Game has reached final step; Solver prove innocence
 			
-			const gameData =  toGameData(await disputeResolutionLayer.gameData.call(gameId))
+			const gameData = toGameData(await disputeResolutionLayer.gameData.call(gameId))
 
 			const game = games[gameId]
 
-			let lowStepState = await computationLayer.runSteps.call(game["program"], gameData.low)[0]
+			let lowStepState = (await computationLayer.runSteps.call(game["program"], gameData.low))[0]
 
-			let highStepIndex = game.high - 1
+			let highStepIndex = gameData.high - 1
 
-			let highStepState = await computationLayer.runStep.call(lowStepState, game.high, game["program"][highStepIndex])
+			let highStepState = await computationLayer.runStep.call(lowStepState, game["program"][highStepIndex])
 			
-			let proof = game["merkle-tree"].getProofOrdered(game["hashes"][highStepIndex], game.high)
+			let proof = game["merkle-tree"].getProofOrdered(game["hashes"][highStepIndex], gameData.high)
 			const newProof = '0x' + proof.map(e => e.toString('hex')).join('')
 
-			await basicVerificationGame.performStepVerification(gameId, lowStepState, highStepState, newProof, {from: account})
+			await disputeResolutionLayer.performStepVerification(
+			    gameId,
+			    lowStepState,
+			    highStepState,
+			    game["program"][highStepIndex],
+			    newProof,
+			    {from: account}
+			)
 		    }
 		}
             }

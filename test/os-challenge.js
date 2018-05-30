@@ -76,6 +76,8 @@ describe('Truebit OS', async function() {
 
 	it('should have a higher balance', async () => {
 
+	    await timeout(5000)
+
 	    await mineBlocks(os.web3, 65)
 
 	    await timeout(5000)
