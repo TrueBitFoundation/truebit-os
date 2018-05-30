@@ -1,2 +1,6 @@
 /node_modules
 solutions/*.json
+
+combined.log.json
+
+.vscode

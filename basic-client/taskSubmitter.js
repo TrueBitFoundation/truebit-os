@@ -2,7 +2,7 @@ const depositsHelper = require('./depositsHelper')
 const fs = require('fs')
 const contract = require('./contractHelper')
 
-module.exports = (web3) => {
+module.exports = (web3, logger) => {
     const ilConfig = JSON.parse(fs.readFileSync(__dirname + "/incentive-layer/export/development.json"))
     const drlConfig = JSON.parse(fs.readFileSync(__dirname + "/dispute-resolution-layer/export/development.json"))
 
@@ -35,6 +35,10 @@ module.exports = (web3) => {
                     gas: 300000
                 }
             )
+            logger.log({
+				level: 'info',
+				message: `Task submitted ${tx.tx}`
+			});
         }
     }
 }
