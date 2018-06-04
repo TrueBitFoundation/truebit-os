@@ -1,0 +1,5 @@
+{
+    "http-url": "http://localhost:8545",
+    "task-giver" : "../wasm-client/taskGiver"
+}
+    

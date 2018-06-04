@@ -17,9 +17,9 @@ module.exports = (web3, logger) => {
         submitTask: async (task) => {
 
             let incentiveLayer = await setup(web3.currentProvider)
-    
+	    
             await depositsHelper(web3, incentiveLayer, task.from, task.minDeposit)
-    
+	    
             // Incentive layer is restricted to bytes32 for task data
             taskData = web3.utils.bytesToHex(task.data)
 
@@ -36,9 +36,9 @@ module.exports = (web3, logger) => {
                 }
             )
             logger.log({
-				level: 'info',
-				message: `Task submitted ${tx.tx}`
-			});
+		level: 'info',
+		message: `Task submitted ${tx.tx}`
+	    });
         }
     }
 }

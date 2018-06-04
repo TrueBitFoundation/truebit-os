@@ -4,3 +4,9 @@
 [submodule "basic-client/dispute-resolution-layer"]
 	path = basic-client/dispute-resolution-layer
 	url = https://github.com/TrueBitFoundation/dispute-resolution-layer.git
+[submodule "wasm-client/ocaml-offchain"]
+	path = wasm-client/ocaml-offchain
+	url = git@github.com:TrueBitFoundation/ocaml-offchain.git
+[submodule "wasm-client/webasm-solidity"]
+	path = wasm-client/webasm-solidity
+	url = git@github.com:TrueBitFoundation/webasm-solidity.git
