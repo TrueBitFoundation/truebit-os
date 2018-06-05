@@ -10,6 +10,8 @@ const fs = require('fs')
 
 const logger = require('../os/logger')
 
+const merkleComputer = require('../wasm-client/webasm-solidity/merkle-computer')
+
 let os
 
 let taskSubmitter
@@ -33,9 +35,9 @@ describe('Truebit OS WASM', async function() {
 	assert(os.taskGiver)
     })
 
-    // it('should have a solver', () => {
-    // 	assert(os.solver)
-    // })
+    it('should have a solver', () => {
+    	assert(os.solver)
+    })
 
     // it('should have a verifier', () => {
     // 	assert(os.verifier)
@@ -49,41 +51,68 @@ describe('Truebit OS WASM', async function() {
 	let taskID
 	
 	let originalBalance
+
+	let storageAddress, initStateHash
 	
 
 	before(async () => {
 	    taskSubmitter = require('../wasm-client/taskSubmitter')(os.web3, os.logger)
 	    
-	    //killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0], os.logger)
-	    //killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger)
+	    killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0], os.logger)
+	    killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger)
 	    originalBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
 	})
 
 	after(() => {
-	    //killTaskGiver()
-	    //killSolver()
+	    killTaskGiver()
+	    killSolver()
+	})
+
+	it('should upload task onchain', async () => {
+	    wastCode = fs.readFileSync(__dirname + "/../wasm-client/webasm-solidity/data/factorial.wast")
+
+	    storageAddress = await taskSubmitter.uploadOnchain(wastCode, {from: os.accounts[0], gas: 400000})
+
+	})
+
+	it('should get initial state hash', async () => {
+	    let config = {
+		code_file: __dirname + "/../wasm-client/webasm-solidity/data/factorial.wast",
+		input_file: "",
+		actor: {},
+		files: []
+	    }
+	    
+	    initStateHash = await taskSubmitter.getInitStateHash(config)
 	})
 	
 	it('should submit task', async () => {
 
-	    await taskSubmitter.submitTask({
+	    let tx = await taskSubmitter.submitTask({
 		from: os.accounts[0],
-		minDeposit: os.web3.utils.toWei('1', 'ether')
+		minDeposit: os.web3.utils.toWei('1', 'ether'),
+		storageAddress: storageAddress,
+		initStateHash: initStateHash,
+		codeType: merkleComputer.CodeType.WAST,
+		storageType: merkleComputer.StorageType.BLOCKCHAIN,
+		gas: 300000
 	    })
 
-	    //await timeout(2000)
-	    //let tasks = os.taskGiver.getTasks()
+	    await timeout(2000)
+	    let tasks = os.taskGiver.getTasks()
 	    //taskID = Object.keys(tasks)[0]
-	    //assert(Object.keys(os.taskGiver.getTasks()))
+	    assert(Object.keys(os.taskGiver.getTasks()))
 	})
 
 	// it('should have a higher balance', async () => {
 
-	//     await mineBlocks(os.web3, 65)
+	//     await mineBlocks(os.web3, 110)
 
 	//     await timeout(5000)
 
 	//     const newBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
+	//     console.log(newBalance)
+	//     console.log(originalBalance)
 	//     assert(originalBalance.isLessThan(newBalance))
 	// })
 
