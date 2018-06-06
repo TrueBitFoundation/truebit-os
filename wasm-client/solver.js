@@ -2,6 +2,7 @@ const depositsHelper = require('./depositsHelper')
 const fs = require('fs')
 const contract = require('./contractHelper')
 const toTaskInfo = require('./util/toTaskInfo')
+const toSolutionInfo = require('./util/toSolutionInfo')
 
 const setupVM = require('./util/setupVM')
 
@@ -44,44 +45,48 @@ module.exports = {
 
 		let solution, vm
 
-		//TODO: Need to check if task is solved already
-		
-		if(storageType == merkleComputer.StorageType.BLOCKCHAIN) {
+		let solutionInfo = toSolutionInfo(await incentiveLayer.solutionInfo.call(taskID))
 
-		    let wasmCode = await fileSystem.getCode.call(storageAddress)
+		if (solutionInfo.solver == '0x0000000000000000000000000000000000000000') {
+		    if(storageType == merkleComputer.StorageType.BLOCKCHAIN) {
 
-		    let buf = Buffer.from(wasmCode.substr(2), "hex")
+			let wasmCode = await fileSystem.getCode.call(storageAddress)
 
-		    vm = await setupVM(
-			incentiveLayer,
-			merkleComputer,
-			taskID,
-			buf,
-			result.args.ct.toNumber()
-		    )
-		    
-		    let interpreterArgs = []
-		    solution = await vm.executeWasmTask(interpreterArgs)
-		}
+			let buf = Buffer.from(wasmCode.substr(2), "hex")
 
-		try {
-		    
-		    await incentiveLayer.solveIO(
-			taskID,
-			solution.vm.code,
-			solution.vm.input_size,
-			solution.vm.input_name,
-			solution.vm.input_data,
-			{from: account, gas: 200000}
-		    )
-
-		    tasks[taskID] = {
-			solution: solution,
-			vm: vm
+			vm = await setupVM(
+			    incentiveLayer,
+			    merkleComputer,
+			    taskID,
+			    buf,
+			    result.args.ct.toNumber()
+			)
+			
+			let interpreterArgs = []
+			solution = await vm.executeWasmTask(interpreterArgs)
 		    }
-		} catch(e) {
-		    //TODO: Add logging unsuccessful submission attempt
-		    console.log(e)
+
+		    try {
+			
+			await incentiveLayer.solveIO(
+			    taskID,
+			    solution.vm.code,
+			    solution.vm.input_size,
+			    solution.vm.input_name,
+			    solution.vm.input_data,
+			    {from: account, gas: 200000}
+			)
+
+			tasks[taskID] = {
+			    solution: solution,
+			    vm: vm
+			}
+			
+			
+		    } catch(e) {
+			//TODO: Add logging unsuccessful submission attempt
+			console.log(e)
+		    }
 		}
 	    }
 	})

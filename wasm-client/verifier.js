@@ -39,9 +39,25 @@ module.exports = {
 	solvedEvent.watch(async (err, result) => {
 	    if (result) {
 		let taskID = result.args.id.toNumber()
+		let storageAddress = result.args.stor
 
 		let taskInfo = toTaskInfo(await incentiveLayer.taskInfo.call(taskID))
 		if(result.args.cs.toNumber() == merkleComputer.StorageType.BLOCKCHAIN) {
+		    let wasmCode = await fileSystem.getCode.call(storageAddress)
+
+		    let buf = Buffer.from(wasmCode.substr(2), "hex")
+
+		    vm = await setupVM(
+			incentiveLayer,
+			merkleComputer,
+			taskID,
+			buf,
+			result.args.ct.toNumber()
+		    )
+		    
+		    let interpreterArgs = []
+		    solution = await vm.executeWasmTask(interpreterArgs)
+		    		    
 		}
 
 					  
