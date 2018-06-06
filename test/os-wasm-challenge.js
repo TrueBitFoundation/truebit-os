@@ -39,11 +39,11 @@ describe('Truebit OS WASM', async function() {
     	assert(os.solver)
     })
 
-    // it('should have a verifier', () => {
-    // 	assert(os.verifier)
-    // })
+    it('should have a verifier', () => {
+    	assert(os.verifier)
+    })
     
-    describe('Normal task lifecycle', async () => {
+    describe('Task lifecycle with challenge', async () => {
 	let killTaskGiver
 	let killSolver
 	let killVerifier
@@ -60,6 +60,7 @@ describe('Truebit OS WASM', async function() {
 	    
 	    killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0], os.logger)
 	    killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger)
+	    killSolver = await os.verifier.init(os.web3, os.accounts[1], os.logger, true)
 	    originalBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
 	})
 
@@ -85,22 +86,13 @@ describe('Truebit OS WASM', async function() {
 	    
 	    initStateHash = await taskSubmitter.getInitStateHash(config)
 	})
-
-	it('should make a simple bundle', async () => {
-	    bundleID = await taskSubmitter.makeSimpleBundle({
-		from: os.accounts[0],
-		gas: 200000,
-		initStateHash: initStateHash,
-		storageAddress: storageAddress
-	    })	    
-	})
 	
 	it('should submit task', async () => {
 
 	    let tx = await taskSubmitter.submitTask({
 		from: os.accounts[0],
 		minDeposit: os.web3.utils.toWei('1', 'ether'),
-		storageAddress: bundleID,
+		storageAddress: storageAddress,
 		initStateHash: initStateHash,
 		codeType: merkleComputer.CodeType.WAST,
 		storageType: merkleComputer.StorageType.BLOCKCHAIN,

@@ -64,6 +64,7 @@ module.exports = {
 	return () => {
 	    try {
 		taskPostedEvent.stopWatching()
+		solvedEvent.stopWatching()
 	    } catch (e) {
 	    }
 	}
