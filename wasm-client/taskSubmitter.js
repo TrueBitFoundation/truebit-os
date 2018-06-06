@@ -65,7 +65,7 @@ module.exports = (web3, logger) => {
 	    let randomNum = Math.floor(Math.random()*Math.pow(2, 60))
 
 	    let bundleID = await fileSystem.calcId.call(randomNum, {from: bundlePayload.from})
-	    await fileSystem.makeSimpleBundle(
+	    let tx = await fileSystem.makeSimpleBundle(
 		randomNum,
 		bundlePayload.storageAddress,
 		bundlePayload.initStateHash,

@@ -2,7 +2,9 @@ const depositsHelper = require('./depositsHelper')
 const fs = require('fs')
 const contract = require('./contractHelper')
 const toTaskInfo = require('./util/toTaskInfo')
-const toVmParameters = require('./util/toVmParameters')
+const toSolutionInfo = require('./util/toSolutionInfo')
+const setupVM = require('./util/setupVM')
+const midpoint = require('./util/midpoint')
 
 const merkleComputer = require(__dirname+ "/webasm-solidity/merkle-computer")
 
@@ -12,7 +14,8 @@ function setup(httpProvider) {
     return (async () => {
 	incentiveLayer = await contract(httpProvider, wasmClientConfig['tasks'])
 	fileSystem = await contract(httpProvider, wasmClientConfig['filesystem'])
-	return [incentiveLayer, fileSystem]
+	disputeResolutionLayer = await contract(httpProvider, wasmClientConfig['interactive'])
+	return [incentiveLayer, fileSystem, disputeResolutionLayer]
     })()
 }
 
@@ -23,15 +26,16 @@ function writeFile(fname, buf) {
 const solverConf = { error: false, error_location: 0, stop_early: -1, deposit: 1 }
 
 let tasks = {}
+let games = {}
 
 module.exports = {
     init: async (web3, account, logger, test = false) => {
 	logger.log({
 	    level: 'info',
-	    message: `Task Giver initialized`
+	    message: `Verifier initialized`
 	})
 
-	let [incentiveLayer, filesSystem] = await setup(web3.currentProvider)
+	let [incentiveLayer, fileSystem, disputeResolutionLayer] = await setup(web3.currentProvider)
 
 	//Solution committed event
 	const solvedEvent = incentiveLayer.Solved()
@@ -42,6 +46,8 @@ module.exports = {
 		let storageAddress = result.args.stor
 
 		let taskInfo = toTaskInfo(await incentiveLayer.taskInfo.call(taskID))
+		let solutionInfo = toSolutionInfo(await incentiveLayer.solutionInfo.call(taskID))
+		
 		if(result.args.cs.toNumber() == merkleComputer.StorageType.BLOCKCHAIN) {
 		    let wasmCode = await fileSystem.getCode.call(storageAddress)
 
@@ -57,17 +63,96 @@ module.exports = {
 		    
 		    let interpreterArgs = []
 		    solution = await vm.executeWasmTask(interpreterArgs)
-		    		    
 		}
 
-					  
+		if(solutionInfo.resultHash != solution.hash || test) {
+		    await incentiveLayer.challenge(taskID, {from: account, gas: 350000})
+		    tasks[taskID] = {
+			solverSolutionHash: solutionInfo.resultHash,
+			solutionHash: solution.hash,
+			vm: vm
+		    }
+		}
+	    }
+	})
 
+	const startChallengeEvent = disputeResolutionLayer.StartChallenge()
+
+	startChallengeEvent.watch(async (err, result) => {
+	    if(result) {
+		let challenger = result.args.c
+
+		if (challenger.toLowerCase() == account.toLowerCase()) {
+		    let gameID = result.args.uniq
+
+		    let taskID = (await disputeResolutionLayer.getTask.call(gameID)).toNumber()
+
+		    games[gameID] = {
+			prover: result.args.prover,
+			taskID: taskID
+		    }
+		}		
+	    }
+	})
+
+	const reportedEvent = disputeResolutionLayer.Reported()
+
+	reportedEvent.watch(async (err, result) => {
+	    if (result) {
+		let gameID = result.args.id
+
+		if (games[gameID]) {
+		    let lowStep = result.args.idx1.toNumber()
+		    let highStep = result.args.idx2.toNumber()
+
+		    let stepNumber = midpoint(lowStep, highStep)
+
+		    let reportedStateHash = await disputeResolutionlayer.getStateAt.call(gameID, stepNumber)
+
+		    let stateHash = await tasks[taskID].vm.getLocation(stepNumber, tasks[taskID].interpreterArgs)
+
+		    let num = reportedStateHash == stateHash ? 1 : 0
+
+		    await disputeResolutionLayer.query(
+			gameID,
+			lowStep,
+			highStep,
+			num,
+			{from: account}
+		    )
+		}
+	    }
+	})
+
+	const postedPhasesEvent = disputeResolutionLayer.PostedPhases()
+
+	postedPhasesEvent.watch(async (err, result) => {
+	    if (result) {
+		let gameID = result.args.id
+
+		if (games[gameID]) {
+		    let lowStep = result.args.idx1
+		    let phases = result.args.arr
+
+		    let taskID = games[gameID].taskID
+
+		    if (test) {
+			await disputeResolutionLayer.selectPhase(gameID, lowStep, phases[1], 1, {from: account}) 
+		    } else {
+			let states = (await tasks[taskID].vm.getStep(lowStep, tasks[taskID].interpreterArgs))
+
+			//TODO: actually select incorrect phase
+		    }
+		}
 	    }
 	})
 
 	return () => {
 	    try {
 		solvedEvent.stopWatching()
+		startChallengeEvent.stopWatching()
+		reportedEvent.stopWatching()
+		postedPhasesEvent.stopWatching()
 	    } catch(e) {
 	    }
 	}

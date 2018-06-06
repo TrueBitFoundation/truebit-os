@@ -92,7 +92,7 @@ describe('Truebit OS WASM', async function() {
 		gas: 200000,
 		initStateHash: initStateHash,
 		storageAddress: storageAddress
-	    })	    
+	    })
 	})
 	
 	it('should submit task', async () => {
@@ -104,7 +104,7 @@ describe('Truebit OS WASM', async function() {
 		initStateHash: initStateHash,
 		codeType: merkleComputer.CodeType.WAST,
 		storageType: merkleComputer.StorageType.BLOCKCHAIN,
-		gas: 300000
+		gas: 350000
 	    })
 
 	    await timeout(2000)

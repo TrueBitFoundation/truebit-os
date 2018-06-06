@@ -60,13 +60,14 @@ describe('Truebit OS WASM', async function() {
 	    
 	    killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0], os.logger)
 	    killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger)
-	    killSolver = await os.verifier.init(os.web3, os.accounts[1], os.logger, true)
+	    killVerifier = await os.verifier.init(os.web3, os.accounts[2], os.logger, true)
 	    originalBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
 	})
 
 	after(() => {
 	    killTaskGiver()
 	    killSolver()
+	    killVerifier()
 	})
 
 	it('should upload task onchain', async () => {
@@ -86,17 +87,26 @@ describe('Truebit OS WASM', async function() {
 	    
 	    initStateHash = await taskSubmitter.getInitStateHash(config)
 	})
-	
+
+	it('should make a simple bundle', async () => {
+	    bundleID = await taskSubmitter.makeSimpleBundle({
+		from: os.accounts[0],
+		gas: 200000,
+		initStateHash: initStateHash,
+		storageAddress: storageAddress
+	    })
+	})
+		
 	it('should submit task', async () => {
 
 	    let tx = await taskSubmitter.submitTask({
 		from: os.accounts[0],
 		minDeposit: os.web3.utils.toWei('1', 'ether'),
-		storageAddress: storageAddress,
+		storageAddress: bundleID,
 		initStateHash: initStateHash,
 		codeType: merkleComputer.CodeType.WAST,
 		storageType: merkleComputer.StorageType.BLOCKCHAIN,
-		gas: 300000
+		gas: 350000
 	    })
 
 	    await timeout(2000)
