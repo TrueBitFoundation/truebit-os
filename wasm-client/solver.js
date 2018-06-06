@@ -2,7 +2,8 @@ const depositsHelper = require('./depositsHelper')
 const fs = require('fs')
 const contract = require('./contractHelper')
 const toTaskInfo = require('./util/toTaskInfo')
-const toVmParameters = require('./util/toVmParameters')
+
+const setupVM = require('./util/setupVM')
 
 const merkleComputer = require(__dirname+ "/webasm-solidity/merkle-computer")
 
@@ -16,11 +17,6 @@ function setup(httpProvider) {
     })()
 }
 
-function writeFile(fname, buf) {
-    return new Promise(function (cont,err) { fs.writeFile(fname, buf, function (err, res) { cont() }) })
-}
-
-const solverConf = { error: false, error_location: 0, stop_early: -1, deposit: 1 }
 
 let tasks = {}
 
@@ -48,36 +44,23 @@ module.exports = {
 
 		let solution, vm
 
-		//TODO: Need to check if solution is solved already
+		//TODO: Need to check if task is solved already
 		
 		if(storageType == merkleComputer.StorageType.BLOCKCHAIN) {
-		    //TODO: This seems like it could be more efficient
 
 		    let wasmCode = await fileSystem.getCode.call(storageAddress)
 
 		    let buf = Buffer.from(wasmCode.substr(2), "hex")
 
-		    let filePath = process.cwd() + "/tmp.solverWasmCode.wast"
-
-		    await writeFile(filePath, buf)
+		    vm = await setupVM(
+			incentiveLayer,
+			merkleComputer,
+			taskID,
+			buf,
+			result.args.ct.toNumber()
+		    )
 		    
-		    let vmParameters = toVmParameters(await incentiveLayer.getVMParameters.call(taskID))
-
-		    let config = {
-			code_file: filePath,
-			input_file: "",
-			actor: solverConf,
-			files: [],
-			vm_parameters: vmParameters,
-			code_type: result.args.ct.toNumber()
-		    }
-
-		    let randomPath = process.cwd() + "/tmp.giver_" + Math.floor(Math.random()*Math.pow(2, 60)).toString(32)
-
-		    vm = merkleComputer.init(config, randomPath)
-
 		    let interpreterArgs = []
-
 		    solution = await vm.executeWasmTask(interpreterArgs)
 		}
 
