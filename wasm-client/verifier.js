@@ -44,6 +44,7 @@ module.exports = {
 	    if (result) {
 		let taskID = result.args.id.toNumber()
 		let storageAddress = result.args.stor
+		let minDeposit = result.args.deposit.toNumber()
 
 		let taskInfo = toTaskInfo(await incentiveLayer.taskInfo.call(taskID))
 		let solutionInfo = toSolutionInfo(await incentiveLayer.solutionInfo.call(taskID))
@@ -66,12 +67,20 @@ module.exports = {
 		}
 
 		if(solutionInfo.resultHash != solution.hash || test) {
+
+		    await depositsHelper(web3, incentiveLayer, account, minDeposit) 
+		    
 		    await incentiveLayer.challenge(taskID, {from: account, gas: 350000})
 		    tasks[taskID] = {
 			solverSolutionHash: solutionInfo.resultHash,
 			solutionHash: solution.hash,
 			vm: vm
 		    }
+		    logger.log({
+			level: 'info',
+			message: `Challenged solution for task ${taskID}`
+		    })
+		    
 		}
 	    }
 	})
@@ -102,12 +111,19 @@ module.exports = {
 		let gameID = result.args.id
 
 		if (games[gameID]) {
+		    
 		    let lowStep = result.args.idx1.toNumber()
 		    let highStep = result.args.idx2.toNumber()
+		    let taskID = games[gameID].taskID
 
+		    logger.log({
+			level: 'info',
+			message: `Report received game: ${gameID} low: ${lowStep} high: ${highStep}`
+		    })
+		    
 		    let stepNumber = midpoint(lowStep, highStep)
 
-		    let reportedStateHash = await disputeResolutionlayer.getStateAt.call(gameID, stepNumber)
+		    let reportedStateHash = await disputeResolutionLayer.getStateAt.call(gameID, stepNumber)
 
 		    let stateHash = await tasks[taskID].vm.getLocation(stepNumber, tasks[taskID].interpreterArgs)
 
@@ -120,6 +136,7 @@ module.exports = {
 			num,
 			{from: account}
 		    )
+		    
 		}
 	    }
 	})
@@ -131,6 +148,12 @@ module.exports = {
 		let gameID = result.args.id
 
 		if (games[gameID]) {
+
+		    logger.log({
+			level: 'info',
+			message: `Phases posted for game: ${gameID}`
+		    })
+		    
 		    let lowStep = result.args.idx1
 		    let phases = result.args.arr
 

@@ -78,14 +78,17 @@ describe('Truebit OS WASM', async function() {
 	})
 
 	it('should get initial state hash', async () => {
+	    
 	    let config = {
 		code_file: __dirname + "/../wasm-client/webasm-solidity/data/factorial.wast",
 		input_file: "",
 		actor: {},
-		files: []
+		files: [],
+		code_type: 0,//For some reason this wont work unless I set this
 	    }
 	    
 	    initStateHash = await taskSubmitter.getInitStateHash(config)
+
 	})
 
 	it('should make a simple bundle', async () => {
@@ -109,7 +112,10 @@ describe('Truebit OS WASM', async function() {
 		gas: 350000
 	    })
 
-	    await timeout(2000)
+	    await timeout(20000)
+	    await mineBlocks(os.web3, 110)
+	    await timeout(3000)
+	    
 	    let tasks = os.taskGiver.getTasks()
 	    //taskID = Object.keys(tasks)[0]
 	    assert(Object.keys(os.taskGiver.getTasks()))

@@ -4,6 +4,7 @@ const contract = require('./contractHelper')
 const toTaskInfo = require('./util/toTaskInfo')
 const toSolutionInfo = require('./util/toSolutionInfo')
 const midpoint = require('./util/midpoint')
+const toIndices = require('./util/toIndices')
 
 const setupVM = require('./util/setupVM')
 
@@ -12,8 +13,6 @@ const merkleComputer = require(__dirname+ "/webasm-solidity/merkle-computer")
 
 
 const wasmClientConfig = JSON.parse(fs.readFileSync(__dirname + "/webasm-solidity/export/development.json"))
-
-
 
 function setup(httpProvider) {
     return (async () => {
@@ -37,151 +36,195 @@ module.exports = {
 
 	let [incentiveLayer, fileSystem, disputeResolutionLayer] = await setup(web3.currentProvider)
 
-	// const taskPostedEvent = incentiveLayer.Posted()
+	const taskPostedEvent = incentiveLayer.Posted()
 
-	// taskPostedEvent.watch(async (err, result) => {
-	//     if (result) {
-	// 	let taskID = result.args.id
+	taskPostedEvent.watch(async (err, result) => {
+	    if (result) {
+		let taskID = result.args.id
 		
-	// 	let minDeposit = result.args.deposit.toNumber()
-	// 	await depositsHelper(web3, incentiveLayer, account, minDeposit)
+		let minDeposit = result.args.deposit.toNumber()		
 
-	// 	let storageType = result.args.cs.toNumber()
-	// 	let storageAddress = result.args.stor
-	// 	let initStateHash = result.args.hash
+		let storageType = result.args.cs.toNumber()
+		let storageAddress = result.args.stor
+		let initStateHash = result.args.hash
 
-	// 	let solution, vm, interpreterArgs
+		let solution, vm, interpreterArgs
 
-	// 	let solutionInfo = toSolutionInfo(await incentiveLayer.solutionInfo.call(taskID))
+		let solutionInfo = toSolutionInfo(await incentiveLayer.solutionInfo.call(taskID))
 
-	// 	if (solutionInfo.solver == '0x0000000000000000000000000000000000000000') {
-	// 	    if(storageType == merkleComputer.StorageType.BLOCKCHAIN) {
-
-	// 		let wasmCode = await fileSystem.getCode.call(storageAddress)
-
-	// 		let buf = Buffer.from(wasmCode.substr(2), "hex")
-
-	// 		vm = await setupVM(
-	// 		    incentiveLayer,
-	// 		    merkleComputer,
-	// 		    taskID,
-	// 		    buf,
-	// 		    result.args.ct.toNumber()
-	// 		)
-			
-	// 		interpreterArgs = []
-	// 		solution = await vm.executeWasmTask(interpreterArgs)
-	// 	    }
-
-	// 	    try {
-			
-	// 		await incentiveLayer.solveIO(
-	// 		    taskID,
-	// 		    solution.vm.code,
-	// 		    solution.vm.input_size,
-	// 		    solution.vm.input_name,
-	// 		    solution.vm.input_data,
-	// 		    {from: account, gas: 200000}
-	// 		)
-
-	// 		tasks[taskID] = {
-	// 		    solution: solution,
-	// 		    vm: vm,
-	// 		    interpreterArgs: interpreterArgs
-	// 		}
-			
-			
-	// 	    } catch(e) {
-	// 		//TODO: Add logging unsuccessful submission attempt
-	// 		console.log(e)
-	// 	    }
-	// 	}
-	//     }
-	// })
-
-	// const startChallengeEvent = disputeResolutionLayer.StartChallenge()
-
-	// startChallengeEvent.watch(async (err, result) => {
-	//     if (result) {
-	// 	let solver = result.args.solver
-	// 	let gameID = result.args.uniq
-	// 	if (solver.toLowerCase() == account.toLowerCase()) {
-
-	// 	    let taskID = (await disputeResolutionLayer.getTask.call(gameID)).toNumber()
-	// 	    //Initialize verification game
-	// 	    let vm = tasks[taskID].vm
-
-	// 	    let solution = tasks[taskID].solution
-
-	// 	    let initWasm = await vm.initializeWasmTask(tasks[taskID].interpreterArgs)
-
-	// 	    let lowStep = 0
-	// 	    let highStep = solution.steps + 1
-
-	// 	    games[gameID] = {
-	// 		lowStep: lowStep,
-	// 		highStep: highStep,
-	// 		taskID: taskID
-	// 	    }
+		if (solutionInfo.solver == '0x0000000000000000000000000000000000000000') {
+		    await depositsHelper(web3, incentiveLayer, account, minDeposit)
+		    logger.log({
+			level: 'info',
+			message: `Solving task ${taskID}`
+		    })
 		    
-	// 	    await disputeResolutionLayer.initialize(
-	// 		gameID,
-	// 		merkleComputer.getRoots(initWasm.vm),
-	// 		merkleComputer.getPointers(initWasm.vm),
-	// 		solution.steps + 1,
-	// 		merkleComputer.getRoots(solution.vm),
-	// 		merkleComputer.getPointers(solution.vm),
-	// 		{
-	// 		    from: account,
-	// 		    gas: 1000000
-	// 		}
-	// 	    )
+		    if(storageType == merkleComputer.StorageType.BLOCKCHAIN) {
 
-	// 	    //Post response to implied midpoint query
-	// 	    let stepNumber = midpoint(lowStep, highStep)
+			let wasmCode = await fileSystem.getCode.call(storageAddress)
 
-	// 	    let stateHash = await tasks[taskID].vm.getLocation(stepNumber, tasks[taskID].interpreterArgs)
+			let buf = Buffer.from(wasmCode.substr(2), "hex")
 
-	// 	    await disputeResolutionLayer.report(gameID, lowStep, highStep, [stateHash], {from: account})
-	// 	}
-	//     }
-	// })
+			vm = await setupVM(
+			    incentiveLayer,
+			    merkleComputer,
+			    taskID,
+			    buf,
+			    result.args.ct.toNumber()
+			)
+			
+			interpreterArgs = []
+			solution = await vm.executeWasmTask(interpreterArgs)
+		    }
+
+		    try {
+			
+			await incentiveLayer.solveIO(
+			    taskID,
+			    solution.vm.code,
+			    solution.vm.input_size,
+			    solution.vm.input_name,
+			    solution.vm.input_data,
+			    {from: account, gas: 200000}
+			)
+
+			logger.log({
+			    level: 'info',
+			    message: `Submitted solution for task ${taskID} successfully`
+			})
+			
+
+			tasks[taskID] = {
+			    solution: solution,
+			    vm: vm,
+			    interpreterArgs: interpreterArgs
+			}
+			
+			
+		    } catch(e) {
+			//TODO: Add logging unsuccessful submission attempt
+			console.log(e)
+		    }
+		}
+	    }
+	})
+
+	const startChallengeEvent = disputeResolutionLayer.StartChallenge()
+
+	startChallengeEvent.watch(async (err, result) => {
+	    if (result) {
+		let solver = result.args.p
+		let gameID = result.args.uniq
+		if (solver.toLowerCase() == account.toLowerCase()) {
+
+		    let taskID = (await disputeResolutionLayer.getTask.call(gameID)).toNumber()
+
+		    logger.log({
+			level: 'info',
+			message: `Solution to task ${taskID} has been challenged`
+		    })
+		    
+		    
+		    //Initialize verification game
+		    let vm = tasks[taskID].vm
+
+		    let solution = tasks[taskID].solution
+
+		    let initWasm = await vm.initializeWasmTask(tasks[taskID].interpreterArgs)
+
+		    let lowStep = 0
+		    let highStep = solution.steps + 1
+
+		    games[gameID] = {
+			lowStep: lowStep,
+			highStep: highStep,
+			taskID: taskID
+		    }
+		    
+		    await disputeResolutionLayer.initialize(
+			gameID,
+			merkleComputer.getRoots(initWasm.vm),
+			merkleComputer.getPointers(initWasm.vm),
+			solution.steps + 1,
+			merkleComputer.getRoots(solution.vm),
+			merkleComputer.getPointers(solution.vm),
+			{
+			    from: account,
+			    gas: 1000000
+			}
+		    )		    
+
+		    logger.log({
+			level: 'info',
+			message: `Game ${gameID} has been initialized`
+		    })
+
+		    let indices = toIndices(await disputeResolutionLayer.getIndices.call(gameID))
+
+		    //Post response to implied midpoint query
+		    let stepNumber = midpoint(indices.low, indices.high)
+
+		    let stateHash = await tasks[taskID].vm.getLocation(stepNumber, tasks[taskID].interpreterArgs)
+
+		    await disputeResolutionLayer.report(gameID, indices.low, indices.high, [stateHash], {from: account})
+
+		    logger.log({
+			level: 'info',
+			message: `Reported state hash for step: ${stepNumber} game: ${gameID} low: ${indices.low} high: ${indices.high}`
+		    })
+		    
+		}
+	    }
+	})
 
 	const queriedEvent = disputeResolutionLayer.Queried()
 
 	queriedEvent.watch(async (err, result) => {
-	     if (result) {
+	    if (result) {
 		let gameID = result.args.id
 		let lowStep = result.args.idx1.toNumber()
 		let highStep = result.args.idx2.toNumber()
 
-		if(games[gameID]) {
-		    let taskID = games[gameID].taskID		    
-		    if(lowStep + 1 != highStep) {
-			let stepNumber = midpoint(lowStep, highStep)
+		 if(games[gameID]) {
+		     
+		     let taskID = games[gameID].taskID
 
-			let stateHash = await tasks[taskID].vm.getLocation(stepNumber, tasks[taskID].interpreterArgs)
+		     logger.log({
+			 level: 'info',
+			 message: `Received query Task: ${taskID} Game: ${gameID}`
+		     })
+		     
+		     if(lowStep + 1 != highStep) {
+			 let stepNumber = midpoint(lowStep, highStep)
 
-			await disputeResolutionLayer.report(gameID, lowStep, highStep, [stateHash], {from: account})
-			
-		    } else {
-			//Post phases
-			let lowStepState = await disputeResolutionLayer.getStateAt.call(gameID, lowStep)
-			let highStepState = await disputeResolutionLayer.getStateAt.call(gameID, highStep)
+			 let stateHash = await tasks[taskID].vm.getLocation(stepNumber, tasks[taskID].interpreterArgs)
 
-			let states = (await tasks[taskID].vm.getStep(lowStep, tasks[taskID].interpreterArgs)).states
+			 await disputeResolutionLayer.report(gameID, lowStep, highStep, [stateHash], {from: account})
+			 
+		     } else {
+			 //Post phases
+			 let lowStepState = await disputeResolutionLayer.getStateAt.call(gameID, lowStep)
+			 let highStepState = await disputeResolutionLayer.getStateAt.call(gameID, highStep)
 
-			await disputeResolutionLayer.postPhases(
-			    gameID,
-			    lowStep,
-			    states,
-			    {
-				from: account,
-				gas: 400000
-			    }
-			)
-		    }
-		}
+			 let states = (await tasks[taskID].vm.getStep(lowStep, tasks[taskID].interpreterArgs)).states
+
+			 await disputeResolutionLayer.postPhases(
+			     gameID,
+			     lowStep,
+			     states,
+			     {
+				 from: account,
+				 gas: 400000
+			     }
+			 )
+
+			 logger.log({
+			     level: 'info',
+			     message: `Phases have been posted for game ${gameID}`
+			 })
+			 
+		     }
+		 }
 	     }
 	})
 
@@ -195,6 +238,12 @@ module.exports = {
 		    
 		    let lowStep = result.args.idx1.toNumber()
 		    let phase = result.args.phase.toNumber()
+
+		    logger.log({
+			level: 'info',
+			message: `Phase ${phase} for game  ${gameID}`
+		    })
+		    
 
 		    let stepResults = await tasks[taskID].vm.getStep(lowStep, tasks[taskID].interpreterArgs)
 
@@ -217,7 +266,7 @@ module.exports = {
 
     		    let vm = proof.vm
 
-    		    await interactiveContract.methods.callJudge(
+    		    await disputeResolutionLayer.callJudge(
     			gameID,
     			lowStep,
     			phase,
@@ -227,8 +276,14 @@ module.exports = {
     			m.op,
     			[m.reg1, m.reg2, m.reg3, m.ireg],
     			merkleComputer.getRoots(vm),
-    			merkleComputer.getPointers(vm)
-    		    ).send({from: solver, gas: 400000})
+    			merkleComputer.getPointers(vm),
+    			{from: account, gas: 400000}
+		    )
+
+		    logger.log({
+			level: 'info',
+			message: `Judge called for game ${gameID}`
+		    })
 		    
 		}
 	    }

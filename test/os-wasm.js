@@ -107,7 +107,10 @@ describe('Truebit OS WASM', async function() {
 		gas: 350000
 	    })
 
-	    await timeout(2000)
+	    await timeout(5000)
+	    await mineBlocks(os.web3, 110)
+	    await timeout(5000)
+	    
 	    let tasks = os.taskGiver.getTasks()
 	    //taskID = Object.keys(tasks)[0]
 	    assert(Object.keys(os.taskGiver.getTasks()))
