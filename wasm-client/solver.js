@@ -5,12 +5,12 @@ const toTaskInfo = require('./util/toTaskInfo')
 const toSolutionInfo = require('./util/toSolutionInfo')
 const midpoint = require('./util/midpoint')
 const toIndices = require('./util/toIndices')
+const waitForBlock = require('./util/waitForBlock')
 
 const setupVM = require('./util/setupVM')
 
 
 const merkleComputer = require(__dirname+ "/webasm-solidity/merkle-computer")
-
 
 const wasmClientConfig = JSON.parse(fs.readFileSync(__dirname + "/webasm-solidity/export/development.json"))
 
@@ -58,25 +58,27 @@ module.exports = {
 			level: 'info',
 			message: `Solving task ${taskID}`
 		    })
-		    
+
+		    let buf
 		    if(storageType == merkleComputer.StorageType.BLOCKCHAIN) {
 
 			let wasmCode = await fileSystem.getCode.call(storageAddress)
 
-			let buf = Buffer.from(wasmCode.substr(2), "hex")
+			buf = Buffer.from(wasmCode.substr(2), "hex")
 
-			vm = await setupVM(
-			    incentiveLayer,
-			    merkleComputer,
-			    taskID,
-			    buf,
-			    result.args.ct.toNumber()
-			)
-			
-			interpreterArgs = []
-			solution = await vm.executeWasmTask(interpreterArgs)
 		    }
 
+		    vm = await setupVM(
+			incentiveLayer,
+			merkleComputer,
+			taskID,
+			buf,
+			result.args.ct.toNumber()
+		    )
+		    
+		    interpreterArgs = []
+		    solution = await vm.executeWasmTask(interpreterArgs)
+		    
 		    try {
 			
 			await incentiveLayer.solveIO(
@@ -172,6 +174,13 @@ module.exports = {
 			level: 'info',
 			message: `Reported state hash for step: ${stepNumber} game: ${gameID} low: ${indices.low} high: ${indices.high}`
 		    })
+
+		    let currentBlockNumber = await web3.eth.getBlockNumber()
+		    waitForBlock(web3, currentBlockNumber + 105, async () => {
+			if(await disputeResolutionLayer.gameOver.call(gameID)) {
+			    await disputeResolutionLayer.gameOver(gameID, {from: account})
+			}
+		    })
 		    
 		}
 	    }
@@ -185,45 +194,54 @@ module.exports = {
 		let lowStep = result.args.idx1.toNumber()
 		let highStep = result.args.idx2.toNumber()
 
-		 if(games[gameID]) {
-		     
-		     let taskID = games[gameID].taskID
+		if(games[gameID]) {
+		    
+		    let taskID = games[gameID].taskID
 
-		     logger.log({
-			 level: 'info',
-			 message: `Received query Task: ${taskID} Game: ${gameID}`
-		     })
-		     
-		     if(lowStep + 1 != highStep) {
-			 let stepNumber = midpoint(lowStep, highStep)
+		    logger.log({
+			level: 'info',
+			message: `Received query Task: ${taskID} Game: ${gameID}`
+		    })
+		    
+		    if(lowStep + 1 != highStep) {
+			let stepNumber = midpoint(lowStep, highStep)
 
-			 let stateHash = await tasks[taskID].vm.getLocation(stepNumber, tasks[taskID].interpreterArgs)
+			let stateHash = await tasks[taskID].vm.getLocation(stepNumber, tasks[taskID].interpreterArgs)
 
-			 await disputeResolutionLayer.report(gameID, lowStep, highStep, [stateHash], {from: account})
-			 
-		     } else {
-			 //Post phases
-			 let lowStepState = await disputeResolutionLayer.getStateAt.call(gameID, lowStep)
-			 let highStepState = await disputeResolutionLayer.getStateAt.call(gameID, highStep)
+			await disputeResolutionLayer.report(gameID, lowStep, highStep, [stateHash], {from: account})
+			
+		    } else {
+			//Final step -> post phases
+			
+			let lowStepState = await disputeResolutionLayer.getStateAt.call(gameID, lowStep)
+			let highStepState = await disputeResolutionLayer.getStateAt.call(gameID, highStep)
 
-			 let states = (await tasks[taskID].vm.getStep(lowStep, tasks[taskID].interpreterArgs)).states
+			let states = (await tasks[taskID].vm.getStep(lowStep, tasks[taskID].interpreterArgs)).states
 
-			 await disputeResolutionLayer.postPhases(
-			     gameID,
-			     lowStep,
-			     states,
-			     {
-				 from: account,
-				 gas: 400000
-			     }
-			 )
+			await disputeResolutionLayer.postPhases(
+			    gameID,
+			    lowStep,
+			    states,
+			    {
+				from: account,
+				gas: 400000
+			    }
+			)
 
-			 logger.log({
-			     level: 'info',
-			     message: `Phases have been posted for game ${gameID}`
-			 })
-			 
-		     }
+			logger.log({
+			    level: 'info',
+			    message: `Phases have been posted for game ${gameID}`
+			})
+			
+		    }
+		    
+		    let currentBlockNumber = await web3.eth.getBlockNumber()	    
+		    waitForBlock(web3, currentBlockNumber + 105, async () => {
+			if(await disputeResolutionLayer.gameOver.call(gameID)) {
+			    await disputeResolutionLayer.gameOver(gameID, {from: account})
+			}
+		    })
+		    
 		 }
 	     }
 	})

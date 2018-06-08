@@ -5,6 +5,7 @@ const toTaskInfo = require('./util/toTaskInfo')
 const toSolutionInfo = require('./util/toSolutionInfo')
 const setupVM = require('./util/setupVM')
 const midpoint = require('./util/midpoint')
+const waitForBlock = require('./util/waitForBlock')
 
 const merkleComputer = require(__dirname+ "/webasm-solidity/merkle-computer")
 
@@ -136,6 +137,14 @@ module.exports = {
 			num,
 			{from: account}
 		    )
+
+		    let currentBlockNumber = await web3.eth.getBlockNumber()
+		    waitForBlock(web3, currentBlockNumber + 105, async () => {
+			if(await disputeResolutionLayer.gameOver.call(gameID)) {
+			    await disputeResolutionLayer.gameOver(gameID, {from: account})
+			}
+		    })
+		    
 		    
 		}
 	    }
@@ -166,6 +175,14 @@ module.exports = {
 
 			//TODO: actually select incorrect phase
 		    }
+		    
+		    let currentBlockNumber = await web3.eth.getBlockNumber()
+		    waitForBlock(web3, currentBlockNumber + 105, async () => {
+			if(await disputeResolutionLayer.gameOver.call(gameID)) {
+			    await disputeResolutionLayer.gameOver(gameID, {from: account})
+			}
+		    })
+		    
 		}
 	    }
 	})

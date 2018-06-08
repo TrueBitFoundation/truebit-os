@@ -127,14 +127,5 @@ describe('Truebit OS WASM', async function() {
 	//     console.log(originalBalance)
 	//     assert(originalBalance.isLessThan(newBalance))
 	// })
-
-	// it('should have a correct solution', () => {
-	//     assert(fs.existsSync('solutions/' + taskID + '.json'))
-	//     const { solution } = require('../solutions/' + taskID + '.json')
-	//     const expected =
-	// 	      '0x000000000000000000000000000000000000000000000000000000000000002d'
-	//     const actual = solution
-	//     assert(expected === actual)
-	// })
     })
 })
