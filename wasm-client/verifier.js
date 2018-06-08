@@ -171,9 +171,19 @@ module.exports = {
 		    if (test) {
 			await disputeResolutionLayer.selectPhase(gameID, lowStep, phases[phase], phase, {from: account}) 
 		    } else {
-			let states = (await tasks[taskID].vm.getStep(lowStep, tasks[taskID].interpreterArgs))
+			let states = (await tasks[taskID].vm.getStep(lowStep, tasks[taskID].interpreterArgs)).states
 
-			//TODO: actually select incorrect phase
+			for(let i = 0; i < phases.length; i++) {
+			    if (states[i] != phases[i]) {
+				await disputeResolutionLayer.selectPhase(
+				    gameID,
+				    lowStep,
+				    phases[i],
+				    i,
+				    {from: account}
+				) 				
+			    }
+			}
 		    }
 		    
 		    let currentBlockNumber = await web3.eth.getBlockNumber()
