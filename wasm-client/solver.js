@@ -9,7 +9,6 @@ const waitForBlock = require('./util/waitForBlock')
 
 const setupVM = require('./util/setupVM')
 
-
 const merkleComputer = require(__dirname+ "/webasm-solidity/merkle-computer")
 
 const wasmClientConfig = JSON.parse(fs.readFileSync(__dirname + "/webasm-solidity/export/development.json"))
@@ -269,8 +268,6 @@ module.exports = {
 
 		    let proof = stepResults[phaseStep]
 
-		    //TODO: for each different phase step there are different ways to do this
-
     		    let merkle = proof.location || []
 
     		    let merkle2 = []
@@ -281,23 +278,59 @@ module.exports = {
 		    }
 
     		    let m = proof.machine || {reg1:0, reg2:0, reg3:0, ireg:0, vm:"0x00", op:"0x00"}
+		    let vm
+		    if (typeof proof.vm != "object") {
+			vm = {
+			    code: "0x00",
+			    stack:"0x00",
+			    call_stack:"0x00",
+			    calltable:"0x00",
+			    globals : "0x00",
+			    memory:"0x00",
+			    calltypes:"0x00",
+			    input_size:"0x00",
+			    input_name:"0x00",
+			    input_data:"0x00",
+			    pc:0,
+			    stack_ptr:0,
+			    call_ptr:0,
+			    memsize:0
+			}
+		    } else { vm = proof.vm }
 
-    		    let vm = proof.vm
+		    if (phase == 6 && parseInt(m.op.substr(-12, 2), 16) == 16) {
+			disputeResolutionLayer.callCustomJudge(
+			    gameID,
+			    lowStep,
+			    m.op,
+			    [m.reg1, m.reg2, m.reg3, m.ireg],
+			    proof.merkle.result_state,
+			    proof.merkle.result_size,
+			    proof.merkle.list,
+			    merkleComputer.getRoots(vm),
+			    merkleComputer.getPointers(vm),
+			    {from: account, gas: 400000}
+			)
 
-    		    await disputeResolutionLayer.callJudge(
-    			gameID,
-    			lowStep,
-    			phase,
-    			merkle,
-    			merkle2,
-    			m.vm,
-    			m.op,
-    			[m.reg1, m.reg2, m.reg3, m.ireg],
-    			merkleComputer.getRoots(vm),
-    			merkleComputer.getPointers(vm),
-    			{from: account, gas: 400000}
-		    )
-
+			//TODO
+			//merkleComputer.getLeaf(proof.merkle.list, proof.merkle.location)
+			//merkleComputer.storeHash(hash, proof.merkle.data)
+		    } else {
+    			await disputeResolutionLayer.callJudge(
+    			    gameID,
+    			    lowStep,
+    			    phase,
+    			    merkle,
+    			    merkle2,
+    			    m.vm,
+    			    m.op,
+    			    [m.reg1, m.reg2, m.reg3, m.ireg],
+    			    merkleComputer.getRoots(vm),
+    			    merkleComputer.getPointers(vm),
+    			    {from: account, gas: 400000}
+			)			
+		    }
+		    
 		    logger.log({
 			level: 'info',
 			message: `Judge called for game ${gameID}`

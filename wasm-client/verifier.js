@@ -30,7 +30,7 @@ let tasks = {}
 let games = {}
 
 module.exports = {
-    init: async (web3, account, logger, test = false) => {
+    init: async (web3, account, logger, test = false, phase = 1) => {
 	logger.log({
 	    level: 'info',
 	    message: `Verifier initialized`
@@ -169,7 +169,7 @@ module.exports = {
 		    let taskID = games[gameID].taskID
 
 		    if (test) {
-			await disputeResolutionLayer.selectPhase(gameID, lowStep, phases[1], 1, {from: account}) 
+			await disputeResolutionLayer.selectPhase(gameID, lowStep, phases[phase], phase, {from: account}) 
 		    } else {
 			let states = (await tasks[taskID].vm.getStep(lowStep, tasks[taskID].interpreterArgs))
 
