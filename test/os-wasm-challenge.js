@@ -99,7 +99,7 @@ describe('Truebit OS WASM', async function() {
 		storageAddress: storageAddress
 	    })
 	})
-		
+	
 	it('should submit task', async () => {
 
 	    let tx = await taskSubmitter.submitTask({
@@ -112,7 +112,7 @@ describe('Truebit OS WASM', async function() {
 		gas: 350000
 	    })
 
-	    await timeout(20000)
+	    await timeout(25000)
 	    await mineBlocks(os.web3, 110)
 	    await timeout(3000)
 	    
