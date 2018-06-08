@@ -1,9 +1,11 @@
+// This file contains all vorpal cli commands.
+// No logic should be implemented in this file, the correct place to implement logic is the cliLib.
 const figlet = require('figlet')
 const chalk = require('chalk')
 const logger = require('../os/logger')
 const vorpal = require('vorpal')()
 
-const cliLib = require('./lib')
+const cliLib = require('./cliLib')
 
 console.log(
   chalk.green(figlet.textSync('Truebit:', { horizontalLayout: 'full' }))
@@ -21,11 +23,7 @@ let os
 vorpal
   .command('version', 'display package version')
   .action(async (args, callback) => {
-    const version = require('../package.json').version
-    os.logger.log({
-      level: 'info',
-      message: `version ${version}`
-    })
+    return cliLib.version({ os })
     callback()
   })
 
@@ -38,19 +36,17 @@ vorpal
     const account = os.accounts[args.options.account || 0]
     switch (args.command) {
       case 'task':
-        os.taskGiver.init(os.web3, account, os.logger)
-        break
+        return cliLib.initTaskGiver({ os, account })
       case 'solve':
-        os.solver.init(os.web3, account, os.logger)
-        break
+        return cliLib.initSolver({ os, account })
       case 'verify':
-        os.verifier.init(os.web3, account, os.logger)
-        break
+        return cliLib.initVerifier({ os, account })
       default:
         os.logger.log({
           level: 'error',
           message: `command not available: ${args.command}`
         })
+        throw new Error('command not available')
     }
 
     callback()
@@ -59,6 +55,8 @@ vorpal
 vorpal
   .command('task', 'submit a task')
   .option('-a, --account <num>', 'index of web3 account to use.')
+  // TODO: implement
+  // .option('-d, --deposit <num>', 'minimum deposit')
   .option('-t, --task <pathToTask>', 'the path to a task.json')
   .action(async (args, callback) => {
     await cliLib.taskGiver({
@@ -76,6 +74,50 @@ vorpal
       os,
       args
     })
+    callback()
+  })
+
+vorpal
+  .command(
+    'accounts',
+    'lists the available accounts on the network. Requires a running session.'
+  )
+  .action(async (args, callback) => {
+    await cliLib.accounts({
+      os
+    })
+    callback()
+  })
+
+vorpal
+  .command('balance', 'show the balance of an account')
+  .option('-a, --account <num>', 'index of web3 account to use.')
+  .action(async (args, callback) => {
+    await cliLib.balance({
+      os,
+      args
+    })
+    callback()
+  })
+
+// All commands below this point are stubbed
+vorpal
+  .command(
+    'config',
+    'creates a default config.json file, or reloads the existing config file'
+  )
+  .action(async (args, callback) => {
+    throw new Error('not implemented')
+    callback()
+  })
+
+vorpal
+  .command(
+    'networks',
+    'lists the available networks in the currently loaded config'
+  )
+  .action(async (args, callback) => {
+    throw new Error('not implemented')
     callback()
   })
 
