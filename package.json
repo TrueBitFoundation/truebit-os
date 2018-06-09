@@ -8,8 +8,8 @@
 						"setup": "./basic-client/install.sh && ./basic-client/deploy.sh",
 						"start": "node os/shell.js basic-client/config.json",
 						"deploy": "./basic-client/deploy.sh",
-						"test": "mocha",
-						"tests": "npm run test",
+						"test": "mocha ./test/os.js ./test/cliLib.spec.js",
+						"tests": "npm run test ./test/cliLib.spec.js ",
 						"truebit": "node ./cli/index.js basic-client/config.json"
 			},
 			"keywords": [
