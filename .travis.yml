@@ -15,4 +15,4 @@ install:
   - npm run setup
 
 script:
-  - NODE_ENV='production' npm run tests
+  - NODE_ENV='production' npm run test
