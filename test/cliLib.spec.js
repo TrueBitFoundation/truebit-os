@@ -1,10 +1,21 @@
 const assert = require('assert')
+const BigNumber = require('bignumber.js')
 
 const cliLib = require('../cli/cliLib')
+
+let killTaskGiver
+let killSolver
+let killVerifier
 
 // setup is required before all other tests.
 before(async () => {
   os = await cliLib.setup('./basic-client/config.json')
+})
+
+after(() => {
+  killTaskGiver()
+  killSolver()
+  killVerifier()
 })
 
 // no fat arrow because of timeout
@@ -20,22 +31,22 @@ describe('CLI Lib', async function() {
 
   describe('initTaskGiver', async () => {
     it('initializes os.taskGiver', async () => {
-      let data = await cliLib.initTaskGiver({ os, account: os.accounts[0] })
-      assert(typeof data === 'function')
+      killTaskGiver = await cliLib.initTaskGiver({ os, account: os.accounts[0] })
+      assert(typeof killTaskGiver === 'function')
     })
   })
 
   describe('initSolver', async () => {
     it('initializes os.solver', async () => {
-      let data = await cliLib.initSolver({ os, account: os.accounts[1] })
-      assert(typeof data === 'function')
+      killSolver = await cliLib.initSolver({ os, account: os.accounts[1] })
+      assert(typeof killSolver === 'function')
     })
   })
 
   describe('initVerifier', async () => {
     it('initializes os.verifier', async () => {
-      let data = await cliLib.initVerifier({ os, account: os.accounts[2] })
-      assert(typeof data === 'function')
+      killVerifier = await cliLib.initVerifier({ os, account: os.accounts[2] })
+      assert(typeof killVerifier === 'function')
     })
   })
 
@@ -50,8 +61,9 @@ describe('CLI Lib', async function() {
           }
         }
       })
-      // TODO: This should probably not return undefined.
-      assert(typeof data === 'undefined')
+      // TODO: More tests here.
+      assert(tx.logs[1].event === 'TaskCreated')
+      taskID = new BigNumber(tx.logs[1].args.taskID)
     })
   })
 
