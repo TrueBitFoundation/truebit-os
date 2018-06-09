@@ -38,7 +38,8 @@ module.exports = (web3, logger) => {
             logger.log({
 				level: 'info',
 				message: `Task submitted ${tx.tx}`
-			});
+            });
+            return tx
         }
     }
 }
