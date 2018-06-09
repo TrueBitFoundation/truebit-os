@@ -9,7 +9,7 @@
 						"start": "node os/shell.js basic-client/config.json",
 						"deploy": "./basic-client/deploy.sh",
 						"test": "mocha",
-						"tests": "npm run test test/os.js && npm run test test/os-challenge.js",
+						"tests": "npm run test",
 						"truebit": "node ./cli/index.js basic-client/config.json"
 			},
 			"keywords": [
