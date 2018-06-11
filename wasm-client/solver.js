@@ -72,7 +72,8 @@ module.exports = {
 			merkleComputer,
 			taskID,
 			buf,
-			result.args.ct.toNumber()
+			result.args.ct.toNumber(),
+			false
 		    )
 		    
 		    interpreterArgs = []

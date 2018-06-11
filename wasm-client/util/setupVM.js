@@ -10,11 +10,11 @@ const toVmParameters = require('./toVmParameters')
 
 module.exports = async (incentiveLayer, merkleComputer, taskID, wasmCodeBuffer, codeType, verifier = true) => {
     //TODO: add random path to ensure it doesnt get over written
-
+    
     let agentName = "solver"
     if(verifier) agentName = "verifier"
     
-    let filePath = process.cwd() + "/tmp." + agentName + "WasmCode.wast"
+    let filePath = process.cwd() + "/temp/" + "tmp." + agentName + Math.floor(Math.random()*Math.pow(2, 60)).toString(32) + "WasmCode.wast"
 
     await writeFile(filePath, wasmCodeBuffer)
     
