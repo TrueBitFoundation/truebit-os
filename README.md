@@ -16,11 +16,10 @@ If you want to talk to the developers working on this project feel free to say h
 
 ## Installation
 ```bash
-chmod 755 basic-client/install.sh
-./basic-client/install.sh
-
-chmod 755 basic-client/deploy.sh
-./basic-client/deploy.sh
+npm i
+npm run setup
+npm run test
+npm run truebit
 ```
 
 The `basic-client` directory houses an example project with the relevant modules to interface with the Truebit OS kernel. 
@@ -45,7 +44,7 @@ The way that Truebit OS knows where to load the relevant modules is with a confi
 Once a user has created their config file they can start up the Truebit OS shell. Ex:
 
 ```bash
-node os/shell.js basic-client/config.json
+npm run truebit
 ```
 
 ## Example
