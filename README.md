@@ -81,6 +81,14 @@ Now you should see a json file in solutions/ labelled with the task id.
 
 You can exit out of the shell and close the running processes with `quit`
 
+### Logging
+
+Logging is provided by [winston](https://github.com/winstonjs/winston). If you would like to disable console logging, you can set the NODE_ENV to production, like so:
+
+```
+NODE_ENV='production' npm run test
+```
+
 # Git Submodule Commands
 
 Add submodule
