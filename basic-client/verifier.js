@@ -177,10 +177,14 @@ module.exports = {
 
 	return () => {
 	    try {
-		solutionCommittedEvent.stopWatching()
-		newGameEvent.stopWatching()
-		verificationCommittedEvent.stopWatching()
-		newResponseEvent.stopWatching()
+			let emptyCallback = data => {
+				// empty callback required to prevent error in web3
+				// console.log('taskCreatedEvent.stopWatching callback:', data)
+			  }
+		solutionCommittedEvent.stopWatching(emptyCallback)
+		newGameEvent.stopWatching(emptyCallback)
+		verificationCommittedEvent.stopWatching(emptyCallback)
+		newResponseEvent.stopWatching(emptyCallback)
 	    } catch(e) {
 
 	    }

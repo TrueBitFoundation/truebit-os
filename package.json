@@ -1,34 +1,35 @@
 {
-			"name": "truebit-client",
-			"version": "1.0.0",
-			"description": "Client software for interacting with the Truebit system",
-			"main": "index.js",
-			"scripts": {
-						"fixperms": "chmod 755 basic-client/install.sh basic-client/deploy.sh",
-						"setup": "./basic-client/install.sh && ./basic-client/deploy.sh",
-						"start": "node os/shell.js basic-client/config.json",
-						"deploy": "./basic-client/deploy.sh",
-						"test": "mocha",
-						"tests": "npm run test test/os.js && npm run test test/os-challenge.js"
-			},
-			"keywords": [
-						"to",
-						"the",
-						"moon"
-			],
-			"author": "hswick",
-			"license": "ISC",
-			"dependencies": {
-						"bignumber.js": "^6.0.0",
-						"chalk": "^2.3.2",
-						"clear": "^0.1.0",
-						"ethereumjs-util": "^5.1.5",
-						"figlet": "^1.2.0",
-						"minimist": "^1.2.0",
-						"mocha": "^5.1.0",
-						"npm": "^6.1.0",
-						"truffle-contract": "^3.0.5",
-						"web3": "^1.0.0-beta.33",
-						"winston": "^3.0.0-rc5"
-			}
+  "name": "truebit-client",
+  "version": "1.0.0",
+  "description": "Client software for interacting with the Truebit system",
+  "main": "index.js",
+  "scripts": {
+    "fixperms": "chmod 755 basic-client/install.sh basic-client/deploy.sh",
+    "setup": "./basic-client/install.sh && ./basic-client/deploy.sh",
+    "start": "node ./cli/index.js basic-client/config.json",
+    "deploy": "./basic-client/deploy.sh",
+    "test": "mocha ./test/os.js ./test/cliLib.spec.js",
+    "truebit": "node ./cli/index.js basic-client/config.json"
+  },
+  "keywords": [
+    "to",
+    "the",
+    "moon"
+  ],
+  "author": "hswick",
+  "license": "ISC",
+  "dependencies": {
+    "bignumber.js": "^6.0.0",
+    "chalk": "^2.3.2",
+    "clear": "^0.1.0",
+    "ethereumjs-util": "^5.1.5",
+    "figlet": "^1.2.0",
+    "minimist": "^1.2.0",
+    "mocha": "^5.1.0",
+    "npm": "^6.1.0",
+    "truffle-contract": "^3.0.5",
+    "vorpal": "^1.12.0",
+    "web3": "^1.0.0-beta.34",
+    "winston": "^3.0.0-rc5"
+  }
 }

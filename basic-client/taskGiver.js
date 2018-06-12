@@ -7,138 +7,167 @@ const toTaskData = require('./util/toTaskData')
 const contract = require('./contractHelper')
 
 function toSolution(data) {
-    return {
-	solution: data[0],
-	finalized: data[1]
-    }
+  return {
+    solution: data[0],
+    finalized: data[1]
+  }
 }
 
-const ilConfig = JSON.parse(fs.readFileSync(__dirname + "/incentive-layer/export/development.json"))
+const ilConfig = JSON.parse(
+  fs.readFileSync(__dirname + '/incentive-layer/export/development.json')
+)
 
 function setup(httpProvider) {
-    return (async () => {
-	incentiveLayer = await contract(httpProvider, ilConfig['TaskExchange'])
-	return incentiveLayer
-    })()
+  return (async () => {
+    incentiveLayer = await contract(httpProvider, ilConfig['TaskExchange'])
+    return incentiveLayer
+  })()
 }
 
 module.exports = {
+  init: async (web3, account, logger) => {
+    logger.log({
+      level: 'info',
+      message: `Task Giver initialized`
+    })
 
-    init: async (web3, account, logger) => {
+    let incentiveLayer = await setup(web3.currentProvider)
 
-	logger.log({
-	    level: 'info',
-	    message: `Task Giver initialized`
-	})
+    const taskCreatedEvent = incentiveLayer.TaskCreated()
 
-	let incentiveLayer = await setup(web3.currentProvider)
+    taskCreatedEvent.watch(async (err, result) => {
+      if (result) {
+        if (account.toLowerCase() == result.args.creator) {
+          let taskID = result.args.taskID.toNumber()
+          let taskData = toTaskData(
+            await incentiveLayer.getTaskData.call(taskID)
+          )
+          taskData['state'] = 'register'
+          tasks[taskID] = taskData
 
-	const taskCreatedEvent = incentiveLayer.TaskCreated()
-	
-	taskCreatedEvent.watch(async (err, result) => {
-	    if (result) {
-		if (account.toLowerCase() == result.args.creator) {
-		    let taskID = result.args.taskID.toNumber()
-		    let taskData = toTaskData(await incentiveLayer.getTaskData.call(taskID))
-		    taskData["state"] = "register"
-		    tasks[taskID] = taskData
+          waitForBlock(
+            web3,
+            taskData.intervals[0] + taskData.taskCreationBlockNumber,
+            async () => {
+              if (tasks[taskID]['state'] == 'register') {
+                try {
+                  await incentiveLayer.timeout(taskID, { from: account })
+                } catch (e) {
+                  //handle error
+                  console.error(e)
+                }
+              }
+            }
+          )
+        }
+      }
+    })
 
-		    waitForBlock(web3, taskData.intervals[0] + taskData.taskCreationBlockNumber, async () => {
-			if(tasks[taskID]["state"] == "register") {
-			    try {
-				await incentiveLayer.timeout(taskID, {from: account})
-			    } catch(e) {
-				//handle error
-				console.error(e)
-			    }
-			}
-		    })
-		    
-		}
-	    }
-	})
+    const solverSelectedEvent = incentiveLayer.SolverSelected()
 
-	const solverSelectedEvent = incentiveLayer.SolverSelected()
+    solverSelectedEvent.watch(async (err, result) => {
+      if (result) {
+        const taskID = result.args.taskID.toNumber()
 
-	solverSelectedEvent.watch(async (err, result) => {
-	    if (result) {
-		const taskID = result.args.taskID.toNumber()
+        if (tasks[taskID]) {
+          let taskData = toTaskData(
+            await incentiveLayer.getTaskData.call(taskID)
+          )
+          tasks[taskID]['state'] = 'selected'
 
-		if (tasks[taskID]) {
-		    let taskData = toTaskData(await incentiveLayer.getTaskData.call(taskID))
-		    tasks[taskID]["state"] = "selected"
+          waitForBlock(
+            web3,
+            taskData.intervals[1] + taskData.taskCreationBlockNumber,
+            async () => {
+              if (tasks[taskID]['state'] == 'selected') {
+                try {
+                  await incentiveLayer.timeout(taskID, { from: account })
+                } catch (e) {
+                  //handle error
+                  console.error(e)
+                }
+              }
+            }
+          )
+        }
+      }
+    })
 
-		    waitForBlock(web3, taskData.intervals[1] + taskData.taskCreationBlockNumber, async () => {
-			if(tasks[taskID]["state"] == "selected") {
-			    try {
-				await incentiveLayer.timeout(taskID, {from: account})
-			    } catch(e) {
-				//handle error
-				console.error(e)
-			    }
-			}
-		    })
+    const solutionCommittedEvent = incentiveLayer.SolutionCommitted()
 
-		}
+    solutionCommittedEvent.watch(async (err, result) => {
+      if (result) {
+        const taskID = result.args.taskID.toNumber()
+        if (tasks[taskID]) {
+          let taskData = toTaskData(
+            await incentiveLayer.getTaskData.call(taskID)
+          )
 
-	    }
-	})
+          tasks[taskID]['state'] = 'solved'
 
-	const solutionCommittedEvent = incentiveLayer.SolutionCommitted()
+          //fire off timeout to wait for finalization
+          //should make this recursive to deal with delay from verification games
+          waitForBlock(
+            web3,
+            taskData.intervals[2] + taskData.taskCreationBlockNumber,
+            async () => {
+              if (tasks[taskID]['state'] == 'solved') {
+                try {
+                  const solution = toSolution(
+                    await incentiveLayer.getSolution.call(taskID)
+                  )
+                  solution['data'] = web3.utils.hexToBytes(taskData.taskData)
 
-	solutionCommittedEvent.watch(async (err, result) => {
-	    if (result) {
-		const taskID = result.args.taskID.toNumber()
-		if (tasks[taskID]) {
+                  if (solution.finalized) {
+                    fs.writeFile(
+                      'solutions/' + taskID + '.json',
+                      JSON.stringify(solution),
+                      err => {
+                        if (err) console.log(err)
+                      }
+                    )
+                    await incentiveLayer.unbondDeposit(taskID, {
+                      from: account
+                    })
+                    logger.log({
+                      level: 'info',
+                      message: `Task Giver Solution for ${taskID} is ${
+                        solution.solution
+                      }`
+                    })
+                  } else {
+                    // wait again
+                  }
+                } catch (e) {
+                  //handle error
+                  console.error(e)
+                }
+              }
+            }
+          )
+        }
+      }
+    })
 
-		    let taskData = toTaskData(await incentiveLayer.getTaskData.call(taskID))
-
-		    tasks[taskID]["state"] = "solved"
-		    
-		    //fire off timeout to wait for finalization
-		    //should make this recursive to deal with delay from verification games
-		    waitForBlock(web3, taskData.intervals[2] + taskData.taskCreationBlockNumber, async () => {
-			
-			if(tasks[taskID]["state"] == "solved") {
-			    try {
-
-				const solution = toSolution(await incentiveLayer.getSolution.call(taskID))
-				solution["data"] = web3.utils.hexToBytes(taskData.taskData)
-
-				if (solution.finalized) {
-				    fs.writeFile("solutions/" + taskID + ".json", JSON.stringify(solution), (err) => { if (err) console.log(err)})
-				    await incentiveLayer.unbondDeposit(taskID, {from: account})
-				    logger.log({
-					level: 'info',
-					message: `Task Giver Solution for ${taskID} is ${solution.solution}`
-				    })
-				    
-				} else {
-				    // wait again
-				}
-
-			    } catch(e) {
-				//handle error
-				console.error(e)
-			    }
-			}
-		    })
-		}
-	    }
-	})
-
-	return () => {
-	    try {
-		taskCreatedEvent.stopWatching()
-		solverSelectedEvent.stopWatching()
-		solutionCommittedEvent.stopWatching()
-	    } catch (e) {
-		//console.log("Events stopped watching ungracefully")
-	    }
-	}
-    },
-    
-    getTasks: () => {
-	return tasks
+    return () => {
+      try {
+        let emptyCallback = data => {
+          // empty callback required to prevent error in web3
+          // console.log('taskCreatedEvent.stopWatching callback:', data)
+        }
+        taskCreatedEvent.stopWatching(emptyCallback)
+        solverSelectedEvent.stopWatching(emptyCallback)
+        solutionCommittedEvent.stopWatching(emptyCallback)
+      } catch (e) {
+        logger.log({
+          level: 'error',
+          message: `${e.message}`
+        })
+      }
     }
+  },
+
+  getTasks: () => {
+    return tasks
+  }
 }
