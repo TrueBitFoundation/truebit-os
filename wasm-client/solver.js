@@ -27,7 +27,7 @@ let tasks = {}
 let games = {}
 
 module.exports = {
-    init: async (web3, account, logger) => {
+    init: async (web3, account, logger, mcFileSystem) => {
 	logger.log({
 	    level: 'info',
 	    message: `Solver initialized`
@@ -65,6 +65,8 @@ module.exports = {
 
 			buf = Buffer.from(wasmCode.substr(2), "hex")
 
+		    } else if(storageType == merkleComputer.StorageType.IPFS) {
+			console.log(storageAddress)
 		    }
 
 		    vm = await setupVM(

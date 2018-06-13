@@ -12,6 +12,11 @@ const logger = require('../os/logger')
 
 const merkleComputer = require('../wasm-client/webasm-solidity/merkle-computer')
 
+const host = "localhost"
+const ipfs = require('ipfs-api')(host, '5001', {protocol: 'http'})
+
+const fileSystem = merkleComputer.fileSystem(ipfs)
+
 let os
 
 let taskSubmitter
@@ -39,11 +44,11 @@ describe('Truebit OS WASM', async function() {
     	assert(os.solver)
     })
 
-    it('should have a verifier', () => {
-    	assert(os.verifier)
-    })
+    // it('should have a verifier', () => {
+    // 	assert(os.verifier)
+    // })
     
-    describe('Task lifecycle with challenge', async () => {
+    describe('Normal task lifecycle', async () => {
 	let killTaskGiver
 	let killSolver
 	let killVerifier
@@ -56,70 +61,72 @@ describe('Truebit OS WASM', async function() {
 	
 
 	before(async () => {
-	    taskSubmitter = require('../wasm-client/taskSubmitter')(os.web3, os.logger)
+	    taskSubmitter = require('../wasm-client/taskSubmitter')(os.web3, os.logger, fileSystem)
 	    
 	    killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0], os.logger)
 	    killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger)
-	    killVerifier = await os.verifier.init(os.web3, os.accounts[2], os.logger, true, 1)
 	    originalBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
 	})
 
 	after(() => {
 	    killTaskGiver()
 	    killSolver()
-	    killVerifier()
 	})
 
-	it('should upload task onchain', async () => {
+	it('should upload task data to ipfs', async () => {
+	    
 	    wastCode = fs.readFileSync(__dirname + "/../wasm-client/webasm-solidity/data/factorial.wast")
 
-	    storageAddress = await taskSubmitter.uploadOnchain(wastCode, {from: os.accounts[0], gas: 400000})
+	    fileName = "bundle/factorial.wast"
+
+	    bundleId = await taskSubmitter.uploadIPFS(
+		fileName,
+		wastCode,
+		os.accounts[0]
+	    )
 
 	})
 
 	it('should get initial state hash', async () => {
-	    
 	    let config = {
 		code_file: __dirname + "/../wasm-client/webasm-solidity/data/factorial.wast",
 		input_file: "",
 		actor: {},
-		files: [],
-		code_type: 0,//For some reason this wont work unless I set this
+		files: []
 	    }
 	    
 	    initStateHash = await taskSubmitter.getInitStateHash(config)
-
 	})
 
-	it('should make a simple bundle', async () => {
-	    bundleID = await taskSubmitter.makeSimpleBundle({
-		from: os.accounts[0],
-		gas: 200000,
-		initStateHash: initStateHash,
-		storageAddress: storageAddress
-	    })
-	})
+	// it('should make a simple bundle', async () => {
+	//     bundleID = await taskSubmitter.makeSimpleBundle({
+	// 	from: os.accounts[0],
+	// 	gas: 200000,
+	// 	initStateHash: initStateHash,
+	// 	storageAddress: storageAddress
+	//     })
+	// })
 	
-	it('should submit task', async () => {
+	// it('should submit task', async () => {
 
-	    let tx = await taskSubmitter.submitTask({
-		from: os.accounts[0],
-		minDeposit: os.web3.utils.toWei('1', 'ether'),
-		storageAddress: bundleID,
-		initStateHash: initStateHash,
-		codeType: merkleComputer.CodeType.WAST,
-		storageType: merkleComputer.StorageType.BLOCKCHAIN,
-		gas: 350000
-	    })
+	//     let tx = await taskSubmitter.submitTask({
+	// 	from: os.accounts[0],
+	// 	minDeposit: os.web3.utils.toWei('1', 'ether'),
+	// 	storageAddress: bundleID,
+	// 	initStateHash: initStateHash,
+	// 	codeType: merkleComputer.CodeType.WAST,
+	// 	storageType: merkleComputer.StorageType.BLOCKCHAIN,
+	// 	gas: 350000
+	//     })
 
-	    await timeout(30000)
-	    await mineBlocks(os.web3, 110)
-	    await timeout(3000)
+	//     await timeout(5000)
+	//     await mineBlocks(os.web3, 110)
+	//     await timeout(5000)
 	    
-	    let tasks = os.taskGiver.getTasks()
-	    //taskID = Object.keys(tasks)[0]
-	    assert(Object.keys(os.taskGiver.getTasks()))
-	})
+	//     let tasks = os.taskGiver.getTasks()
+	//     //taskID = Object.keys(tasks)[0]
+	//     assert(Object.keys(os.taskGiver.getTasks()))
+	// })
 
 	// it('should have a higher balance', async () => {
 

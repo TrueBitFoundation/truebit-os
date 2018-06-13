@@ -2,6 +2,7 @@ const depositsHelper = require('./depositsHelper')
 const fs = require('fs')
 const contract = require('./contractHelper')
 const merkleComputer = require(__dirname + '/webasm-solidity/merkle-computer')
+const merkleRoot = require('./util/merkleRoot')
 const assert = require('assert')
 
 const wasmClientConfig = JSON.parse(fs.readFileSync(__dirname + "/webasm-solidity/export/development.json"))
@@ -31,7 +32,7 @@ function verifyBundlePayloadFormat(bundlePayload) {
     assert(bundlePayload.initStateHash != undefined)
 }
 
-module.exports = (web3, logger) => {
+module.exports = (web3, logger, mcFileSystem) => {
 
     let contracts = setup(web3.currentProvider)
 
@@ -39,6 +40,36 @@ module.exports = (web3, logger) => {
     fileSystem = contracts[1]
 
     return {
+
+	uploadIPFS: async (fileName, dataBuf, from) => {
+	    assert(Buffer.isBuffer(dataBuf))
+
+	    let ipfsHash = (await mcFileSystem.upload(dataBuf, fileName))[0].hash
+	    
+	    let randomNum = Math.floor(Math.random()*Math.pow(2, 60))
+	    let size = dataBuf.byteLength
+	    let root = merkleRoot(web3, dataBuf)
+	    let id = await fileSystem.addIPFSFile.call(
+		fileName,
+		size,
+		ipfsHash,
+		root,
+		randomNum,
+		{from: from}
+	    )
+
+	    //returns file id
+	    await fileSystem.addIPFSFile.call(
+		fileName,
+		size,
+		ipfsHash,
+		root,
+		randomNum,
+		{from: from, gas: 200000}
+	    )
+
+	    return id
+	},
 
 	uploadOnchain: async (codeData, options) => {
 	    return merkleComputer.uploadOnchain(codeData, web3, options)

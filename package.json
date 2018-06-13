@@ -24,6 +24,7 @@
 						"clear": "^0.1.0",
 						"ethereumjs-util": "^5.1.5",
 						"figlet": "^1.2.0",
+						"ipfs-api": "^22.0.1",
 						"minimist": "^1.2.0",
 						"mocha": "^5.1.0",
 						"npm": "^6.1.0",
