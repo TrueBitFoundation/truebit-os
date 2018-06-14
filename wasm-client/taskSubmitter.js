@@ -9,8 +9,8 @@ const wasmClientConfig = JSON.parse(fs.readFileSync(__dirname + "/webasm-solidit
 
 function setup(httpProvider) {
     return (async () => {
-	incentiveLayer = await contract(httpProvider, wasmClientConfig['tasks'])
-	fileSystem = await contract(httpProvider, wasmClientConfig['filesystem'])
+	let incentiveLayer = await contract(httpProvider, wasmClientConfig['tasks'])
+	let fileSystem = await contract(httpProvider, wasmClientConfig['filesystem'])
 	return [incentiveLayer, fileSystem]
     })()
 }
@@ -32,24 +32,33 @@ function verifyBundlePayloadFormat(bundlePayload) {
     assert(bundlePayload.initStateHash != undefined)
 }
 
-module.exports = (web3, logger, mcFileSystem) => {
+module.exports = async (web3, logger, mcFileSystem) => {
 
-    let contracts = setup(web3.currentProvider)
+    let contracts = await setup(web3.currentProvider)
 
     incentiveLayer = contracts[0]
-    fileSystem = contracts[1]
+    tbFileSystem = contracts[1]
+
+    //tbFileSystem is the Truebit filesystem contract
+    //mcFileSystem is a module for ipfs helpers from merkleComputer module
 
     return {
 
 	uploadIPFS: async (fileName, dataBuf, from) => {
 	    assert(Buffer.isBuffer(dataBuf))
 
+	    let bundleID = await tbFileSystem.makeBundle.call(
+		Math.floor(Math.random()*Math.pow(2, 60)),
+		{from: from}
+	    )
+
 	    let ipfsHash = (await mcFileSystem.upload(dataBuf, fileName))[0].hash
 	    
 	    let randomNum = Math.floor(Math.random()*Math.pow(2, 60))
 	    let size = dataBuf.byteLength
 	    let root = merkleRoot(web3, dataBuf)
-	    let id = await fileSystem.addIPFSFile.call(
+
+	    let fileID = await tbFileSystem.addIPFSFile.call(
 		fileName,
 		size,
 		ipfsHash,
@@ -59,7 +68,7 @@ module.exports = (web3, logger, mcFileSystem) => {
 	    )
 
 	    //returns file id
-	    await fileSystem.addIPFSFile.call(
+	    await tbFileSystem.addIPFSFile(
 		fileName,
 		size,
 		ipfsHash,
@@ -68,7 +77,11 @@ module.exports = (web3, logger, mcFileSystem) => {
 		{from: from, gas: 200000}
 	    )
 
-	    return id
+	    await tbFileSystem.addToBundle(bundleID, fileID, {from: from})
+
+	    await tbFileSystem.finalizeBundleIPFS(bundleID, ipfsHash, root, {from: from, gas: 1500000})
+
+	    return bundleID
 	},
 
 	uploadOnchain: async (codeData, options) => {

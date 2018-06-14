@@ -57,15 +57,16 @@ describe('Truebit OS WASM', async function() {
 	
 	let originalBalance
 
-	let storageAddress, initStateHash
+	let storageAddress, initStateHash, bundleID
 	
 
 	before(async () => {
-	    taskSubmitter = require('../wasm-client/taskSubmitter')(os.web3, os.logger, fileSystem)
+	    taskSubmitter = await require('../wasm-client/taskSubmitter')(os.web3, os.logger, fileSystem)
 	    
 	    killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0], os.logger)
-	    killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger)
+	    killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger, fileSystem)
 	    originalBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
+
 	})
 
 	after(() => {
@@ -79,7 +80,7 @@ describe('Truebit OS WASM', async function() {
 
 	    fileName = "bundle/factorial.wast"
 
-	    bundleId = await taskSubmitter.uploadIPFS(
+	    bundleID = await taskSubmitter.uploadIPFS(
 		fileName,
 		wastCode,
 		os.accounts[0]
@@ -97,36 +98,27 @@ describe('Truebit OS WASM', async function() {
 	    
 	    initStateHash = await taskSubmitter.getInitStateHash(config)
 	})
-
-	// it('should make a simple bundle', async () => {
-	//     bundleID = await taskSubmitter.makeSimpleBundle({
-	// 	from: os.accounts[0],
-	// 	gas: 200000,
-	// 	initStateHash: initStateHash,
-	// 	storageAddress: storageAddress
-	//     })
-	// })
 	
-	// it('should submit task', async () => {
+	it('should submit task', async () => {
 
-	//     let tx = await taskSubmitter.submitTask({
-	// 	from: os.accounts[0],
-	// 	minDeposit: os.web3.utils.toWei('1', 'ether'),
-	// 	storageAddress: bundleID,
-	// 	initStateHash: initStateHash,
-	// 	codeType: merkleComputer.CodeType.WAST,
-	// 	storageType: merkleComputer.StorageType.BLOCKCHAIN,
-	// 	gas: 350000
-	//     })
+	    let tx = await taskSubmitter.submitTask({
+		from: os.accounts[0],
+		minDeposit: os.web3.utils.toWei('1', 'ether'),
+		storageAddress: bundleID,
+		initStateHash: initStateHash,
+		codeType: merkleComputer.CodeType.WAST,
+		storageType: merkleComputer.StorageType.IPFS,
+		gas: 350000
+	    })
 
-	//     await timeout(5000)
-	//     await mineBlocks(os.web3, 110)
-	//     await timeout(5000)
+	    await timeout(5000)
+	    await mineBlocks(os.web3, 110)
+	    await timeout(5000)
 	    
-	//     let tasks = os.taskGiver.getTasks()
-	//     //taskID = Object.keys(tasks)[0]
-	//     assert(Object.keys(os.taskGiver.getTasks()))
-	// })
+	    let tasks = os.taskGiver.getTasks()
+	    //taskID = Object.keys(tasks)[0]
+	    assert(Object.keys(os.taskGiver.getTasks()))
+	})
 
 	// it('should have a higher balance', async () => {
 
