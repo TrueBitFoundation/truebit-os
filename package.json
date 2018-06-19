@@ -5,7 +5,7 @@
     "main": "index.js",
     "scripts": {
 	"fixperms": "chmod 755 basic-client/install.sh basic-client/deploy.sh wasm-client/install.sh wasm-client/deploy.sh",
-	"setup": "./basic-client/install.sh && ./basic-client/deploy.sh && ./wasm-client/deploy.sh",
+	"setup": "./basic-client/install.sh && ./basic-client/deploy.sh && ./wasm-client/install.sh && ./wasm-client/deploy.sh",
 	"start": "node os/shell.js basic-client/config.json",
 	"deploy": "./basic-client/deploy.sh",
 	"test": "mocha",
