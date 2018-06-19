@@ -36,11 +36,11 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
     let contracts = await setup(web3.currentProvider)
 
+     //tbFileSystem is the Truebit filesystem contract
+    //mcFileSystem is a module for ipfs helpers from merkleComputer module
+
     incentiveLayer = contracts[0]
     tbFileSystem = contracts[1]
-
-    //tbFileSystem is the Truebit filesystem contract
-    //mcFileSystem is a module for ipfs helpers from merkleComputer module
 
     return {
 
@@ -78,11 +78,11 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
 	    await tbFileSystem.addToBundle(bundleID, fileID, {from: from})
 
-	    await tbFileSystem.finalizeBundleIPFS(bundleID, ipfsHash, root, {from: from, gas: 1500000})
+	    //await tbFileSystem.finalizeBundleIPFS(bundleID, ipfsHash, root, {from: from, gas: 1500000})
 
-	    let initHash = await tbFileSystem.getInitHash.call(bundleID)
+	    //let initHash = await tbFileSystem.getInitHash.call(bundleID)
 
-	    return [bundleID, initHash]
+	    return bundleID
 	},
 
 	uploadOnchain: async (codeData, options) => {

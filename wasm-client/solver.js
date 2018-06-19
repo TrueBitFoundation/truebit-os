@@ -75,7 +75,7 @@ module.exports = {
 			)
 			
 		    } else if(storageType == merkleComputer.StorageType.IPFS) {
-			let codeIPFSHash = await fileSystem.getIPFSCode.call(storageAddress)
+			//let codeIPFSHash = await fileSystem.getIPFSCode.call(storageAddress)
 
 			let files = await fileSystem.getFiles.call(storageAddress)
 			let ipfsFiles = []
@@ -83,17 +83,28 @@ module.exports = {
 			    let fileID = files[i]
 			    let hash = await fileSystem.getHash.call(fileID)
 			    let name = await fileSystem.getName.call(fileID)
+
 			    ipfsFiles.push(
 				{
 				    hash: hash,
 				    name: name,
-				    code: hash == codeIPFSHash,
+				    code: false,
 				    data: await mcFileSystem.download(hash, name)
 				}   
 			    )
 			}
 
-			console.log(ipfsFiles)
+			let codeData = ipfsFiles[0].data.content
+
+			vm = await setupVM(
+			    incentiveLayer,
+			    merkleComputer,
+			    taskID,
+			    codeData,
+			    result.args.ct.toNumber(),
+			    false
+			)
+			
 		    }
 
 		    assert(vm != undefined, "vm is undefined")

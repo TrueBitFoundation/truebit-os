@@ -19,7 +19,7 @@ module.exports = async (incentiveLayer, merkleComputer, taskID, wasmCodeBuffer, 
     
     let vmParameters = toVmParameters(await incentiveLayer.getVMParameters.call(taskID))
 
-    //TODO: Generalize config
+    //TODO: Allow for input files
     let config = {
 	code_file: filePath,
 	input_file: "",
