@@ -10,7 +10,9 @@ const fs = require('fs')
 
 const logger = require('../os/logger')
 
-const merkleComputer = require('../wasm-client/webasm-solidity/merkle-computer')
+const merkleComputer = require('../wasm-client/webasm-solidity/merkle-computer')()
+
+console.log(merkleComputer)
 
 let os
 
@@ -56,7 +58,7 @@ describe('Truebit OS WASM', async function() {
 	
 
 	before(async () => {
-	    taskSubmitter = require('../wasm-client/taskSubmitter')(os.web3, os.logger)
+	    taskSubmitter = await require('../wasm-client/taskSubmitter')(os.web3, os.logger)
 	    
 	    killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0], os.logger)
 	    killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger)

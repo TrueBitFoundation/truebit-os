@@ -7,7 +7,7 @@ const setupVM = require('./util/setupVM')
 const midpoint = require('./util/midpoint')
 const waitForBlock = require('./util/waitForBlock')
 
-const merkleComputer = require(__dirname+ "/webasm-solidity/merkle-computer")
+const merkleComputer = require(__dirname+ "/webasm-solidity/merkle-computer")()
 
 const wasmClientConfig = JSON.parse(fs.readFileSync(__dirname + "/webasm-solidity/export/development.json"))
 

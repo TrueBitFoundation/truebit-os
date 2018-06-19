@@ -1,7 +1,7 @@
 const depositsHelper = require('./depositsHelper')
 const fs = require('fs')
 const contract = require('./contractHelper')
-const merkleComputer = require(__dirname + '/webasm-solidity/merkle-computer')
+const merkleComputer = require(__dirname + '/webasm-solidity/merkle-computer')()
 const merkleRoot = require('./util/merkleRoot')
 const assert = require('assert')
 

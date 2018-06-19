@@ -10,7 +10,7 @@ const fs = require('fs')
 
 const logger = require('../os/logger')
 
-const merkleComputer = require('../wasm-client/webasm-solidity/merkle-computer')
+const merkleComputer = require('../wasm-client/webasm-solidity/merkle-computer')()
 
 const host = "localhost"
 const ipfs = require('ipfs-api')(host, '5001', {protocol: 'http'})
