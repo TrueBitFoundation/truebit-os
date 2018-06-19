@@ -80,23 +80,15 @@ describe('Truebit OS WASM', async function() {
 
 	    fileName = "bundle/factorial.wast"
 
-	    bundleID = await taskSubmitter.uploadIPFS(
+	    let result = await taskSubmitter.uploadIPFS(
 		fileName,
 		wastCode,
 		os.accounts[0]
 	    )
 
-	})
+	    bundleID = result[0]
+	    initStateHash = result[1]
 
-	it('should get initial state hash', async () => {
-	    let config = {
-		code_file: __dirname + "/../wasm-client/webasm-solidity/data/factorial.wast",
-		input_file: "",
-		actor: {},
-		files: []
-	    }
-	    
-	    initStateHash = await taskSubmitter.getInitStateHash(config)
 	})
 	
 	it('should submit task', async () => {

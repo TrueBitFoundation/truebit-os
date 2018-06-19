@@ -67,7 +67,6 @@ module.exports = async (web3, logger, mcFileSystem) => {
 		{from: from}
 	    )
 
-	    //returns file id
 	    await tbFileSystem.addIPFSFile(
 		fileName,
 		size,
@@ -81,7 +80,9 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
 	    await tbFileSystem.finalizeBundleIPFS(bundleID, ipfsHash, root, {from: from, gas: 1500000})
 
-	    return bundleID
+	    let initHash = await tbFileSystem.getInitHash.call(bundleID)
+
+	    return [bundleID, initHash]
 	},
 
 	uploadOnchain: async (codeData, options) => {

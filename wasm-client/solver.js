@@ -6,8 +6,8 @@ const toSolutionInfo = require('./util/toSolutionInfo')
 const midpoint = require('./util/midpoint')
 const toIndices = require('./util/toIndices')
 const waitForBlock = require('./util/waitForBlock')
-
 const setupVM = require('./util/setupVM')
+const assert = require('assert')
 
 const merkleComputer = require(__dirname+ "/webasm-solidity/merkle-computer")
 
@@ -65,18 +65,38 @@ module.exports = {
 
 			buf = Buffer.from(wasmCode.substr(2), "hex")
 
+			vm = await setupVM(
+			    incentiveLayer,
+			    merkleComputer,
+			    taskID,
+			    buf,
+			    result.args.ct.toNumber(),
+			    false
+			)
+			
 		    } else if(storageType == merkleComputer.StorageType.IPFS) {
-			console.log(storageAddress)
+			let codeIPFSHash = await fileSystem.getIPFSCode.call(storageAddress)
+
+			let files = await fileSystem.getFiles.call(storageAddress)
+			let ipfsFiles = []
+			for(let i = 0; i < files.length; i++) {
+			    let fileID = files[i]
+			    let hash = await fileSystem.getHash.call(fileID)
+			    let name = await fileSystem.getName.call(fileID)
+			    ipfsFiles.push(
+				{
+				    hash: hash,
+				    name: name,
+				    code: hash == codeIPFSHash,
+				    data: await mcFileSystem.download(hash, name)
+				}   
+			    )
+			}
+
+			console.log(ipfsFiles)
 		    }
 
-		    vm = await setupVM(
-			incentiveLayer,
-			merkleComputer,
-			taskID,
-			buf,
-			result.args.ct.toNumber(),
-			false
-		    )
+		    assert(vm != undefined, "vm is undefined")
 		    
 		    interpreterArgs = []
 		    solution = await vm.executeWasmTask(interpreterArgs)
