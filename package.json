@@ -8,6 +8,7 @@
     "setup": "./basic-client/install.sh && ./basic-client/deploy.sh && ./wasm-client/install.sh && ./wasm-client/deploy.sh",
     "start": "node ./cli/index.js basic-client/config.json",
     "deploy": "./basic-client/deploy.sh",
+    "deploy-wasm": "node ./wasm-client/webasm-solidity/deploy.js",
     "test": "mocha ./test/os.js ./test/cliLib.spec.js",
     "truebit": "node ./cli/index.js"
   },
@@ -30,7 +31,7 @@
     "npm": "^6.1.0",
     "truffle-contract": "^3.0.5",
     "vorpal": "^1.12.0",
-    "web3": "^1.0.0-beta2",
+    "web3": "^1.0.0-beta.34",
     "winston": "^3.0.0"
   }
 }
