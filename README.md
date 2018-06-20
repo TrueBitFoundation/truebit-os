@@ -18,7 +18,7 @@ If you want to talk to the developers working on this project feel free to say h
 ```bash
 npm i
 npm run setup
-npm run test
+npm run tests
 npm run truebit basic-client/config.json
 ```
 
@@ -44,7 +44,7 @@ The way that Truebit OS knows where to load the relevant modules is with a confi
 Once a user has created their config file they can start up the Truebit OS shell. Ex:
 
 ```bash
-npm run truebit
+npm run truebit basic-client/config.json
 ```
 
 ## Example
