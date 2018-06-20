@@ -12,8 +12,6 @@ const logger = require('../os/logger')
 
 const merkleComputer = require('../wasm-client/webasm-solidity/merkle-computer')()
 
-console.log(merkleComputer)
-
 let os
 
 let taskSubmitter

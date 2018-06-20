@@ -9,7 +9,8 @@
     "start": "node ./cli/index.js basic-client/config.json",
     "deploy": "./basic-client/deploy.sh",
     "deploy-wasm": "node ./wasm-client/webasm-solidity/deploy.js",
-    "test": "mocha ./test/os.js ./test/cliLib.spec.js",
+    "tests": "mocha ./test/os.js ./test/cliLib.spec.js",
+    "test": "mocha",
     "truebit": "node ./cli/index.js"
   },
   "keywords": [
