@@ -19,7 +19,7 @@ If you want to talk to the developers working on this project feel free to say h
 npm i
 npm run setup
 npm run test
-npm run truebit
+npm run truebit basic-client/config.json
 ```
 
 The `basic-client` directory houses an example project with the relevant modules to interface with the Truebit OS kernel. 
