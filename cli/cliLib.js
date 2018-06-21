@@ -15,11 +15,12 @@ module.exports.version = ({ os }) => {
   return version
 }
 
-/** initialize and await os and attache taskSubmitter  */
+/** initialize and await os and attach taskSubmitter  */
 module.exports.setup = configPath => {
   return (async () => {
     const os = await require('../os/kernel')(configPath)
-    os.taskSubmitter = require('../basic-client/taskSubmitter')(
+    let baseName = configPath.split("/")[0]
+    os.taskSubmitter = await require("../" + baseName + "/taskSubmitter")(
       os.web3,
       os.logger
     )
