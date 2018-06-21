@@ -18,33 +18,73 @@ function setup(httpProvider) {
 function verifyTaskFormat(task) {
     assert(task.from != undefined)
     assert(task.minDeposit != undefined)
-    assert(task.initStateHash != undefined)
     assert(task.codeType != undefined)
     assert(task.storageType != undefined)
-    assert(task.storageAddress != undefined)
-    assert(task.gas != undefined)
+    assert(task.reward != undefined)
 }
 
 function verifyBundlePayloadFormat(bundlePayload) {
     assert(bundlePayload.from != undefined)
     assert(bundlePayload.gas != undefined)
-    assert(bundlePayload.storageAddress != undefined)
-    assert(bundlePayload.initStateHash != undefined)
+    assert(bundlePayload.contractAddress != undefined)
+    assert(bundlePayload.initHash != undefined)
+}
+
+const typeTable = {
+    "WAST": merkleComputer.CodeType.WAST,
+    "WASM": merkleComputer.CodeType.WASM,
+    "BLOCKCHAIN": merkleComputer.StorageType.BLOCKCHAIN,
+    "IPFS": merkleComputer.StorageType.WASM
 }
 
 module.exports = async (web3, logger, mcFileSystem) => {
 
     let contracts = await setup(web3.currentProvider)
 
-     //tbFileSystem is the Truebit filesystem contract
+    //Two filesystems (which may be confusing)
+    //tbFileSystem is the Truebit filesystem contract
     //mcFileSystem is a module for ipfs helpers from merkleComputer module
 
     incentiveLayer = contracts[0]
     tbFileSystem = contracts[1]
 
-    return {
+    async function uploadOnchain(codeData, options) {
+	    return merkleComputer.uploadOnchain(codeData, web3, options)
+	}
 
-	uploadIPFS: async (fileName, dataBuf, from) => {
+	async function getInitHash(config) {
+	    let randomPath = process.cwd() + "/tmp.giver_" + Math.floor(Math.random()*Math.pow(2, 60)).toString(32)
+
+	    vm = merkleComputer.init(config, randomPath)
+
+	    let interpreterArgs = []
+
+	    let initHash = (await vm.initializeWasmTask(interpreterArgs)).hash
+	    return initHash
+	}
+
+	async function makeSimpleBundle(bundlePayload) {
+	    if(!bundlePayload.fileHash) {
+		bundlePayload["fileHash"] = "0x00"
+	    }
+
+	    verifyBundlePayloadFormat(bundlePayload)
+
+	    let randomNum = Math.floor(Math.random()*Math.pow(2, 60))
+
+	    let bundleID = await fileSystem.calcId.call(randomNum, {from: bundlePayload.from})
+	    let tx = await fileSystem.makeSimpleBundle(
+		randomNum,
+		bundlePayload.contractAddress,
+		bundlePayload.initHash,
+		bundlePayload.fileHash,
+		{from: bundlePayload.from, gas: bundlePayload.gas}
+	    )
+
+	    return bundleID
+	}
+
+	async function uploadIPFS(fileName, dataBuf, from) {
 	    assert(Buffer.isBuffer(dataBuf))
 
 	    let bundleID = await tbFileSystem.makeBundle.call(
@@ -83,56 +123,55 @@ module.exports = async (web3, logger, mcFileSystem) => {
 	    //let initHash = await tbFileSystem.getInitHash.call(bundleID)
 
 	    return bundleID
-	},
+	}
 
-	uploadOnchain: async (codeData, options) => {
-	    return merkleComputer.uploadOnchain(codeData, web3, options)
-	},
-
-	getInitStateHash: async (config) => {
-	    let randomPath = process.cwd() + "/tmp.giver_" + Math.floor(Math.random()*Math.pow(2, 60)).toString(32)
-
-	    vm = merkleComputer.init(config, randomPath)
-
-	    let interpreterArgs = []
-
-	    let initStateHash = (await vm.initializeWasmTask(interpreterArgs)).hash
-	    return initStateHash
-	},
-
-	makeSimpleBundle: async (bundlePayload) => {
-	    if(!bundlePayload.fileHash) {
-		bundlePayload["fileHash"] = "0x00"
-	    }
-
-	    verifyBundlePayloadFormat(bundlePayload)
-
-	    let randomNum = Math.floor(Math.random()*Math.pow(2, 60))
-
-	    let bundleID = await fileSystem.calcId.call(randomNum, {from: bundlePayload.from})
-	    let tx = await fileSystem.makeSimpleBundle(
-		randomNum,
-		bundlePayload.storageAddress,
-		bundlePayload.initStateHash,
-		bundlePayload.fileHash,
-		{from: bundlePayload.from, gas: bundlePayload.gas}
-	    )
-
-	    return bundleID
-	},
+    return {
 	
 	submitTask: async (task) => {
 
-	    verifyTaskFormat(task)
+	    //verifyTaskFormat(task)
+	    
+	    //get initial hash
+	    let config = {
+		code_file: process.cwd() + task.codeFile,
+		input_file: "",
+		actor: {},
+		files: []
+	    }
 
+	    if(task.storageType == "IPFS") {
+	    } else { //store file on blockchain
+		codeBuf = fs.readFileSync(process.cwd() + task.codeFile)
+		
+		let contractAddress = await uploadOnchain(codeBuf, {from: task.from, gas: 400000})
+
+		task["initHash"] = await getInitHash(config)
+
+		//register deployed contract with truebit filesystem
+		let bundleID = await makeSimpleBundle({
+		    from: task.from,
+		    gas: 200000,
+		    initHash: task.initHash,
+		    contractAddress: contractAddress
+		})
+
+		task["storageAddress"] = bundleID
+	    }
+
+	    //translate types
+	    task["codeType"] = typeTable[task.codeType]
+	    task["storageType"] = typeTable[task.storageType]
+
+	    //bond minimum deposit
+	    task["minDeposit"] = web3.utils.toWei(task.minDeposit, 'ether')
 	    await depositsHelper(web3, incentiveLayer, task.from, task.minDeposit)
 
 	    return await incentiveLayer.add(
-		task.initStateHash,
+		task.initHash,
 		task.codeType,
 		task.storageType,
 		task.storageAddress,
-		{from: task.from, gas: task.gas}
+		{from: task.from, gas: 350000}
 	    )
 	}
     }

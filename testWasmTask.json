@@ -1,0 +1,7 @@
+{
+    "minDeposit": "1",
+    "codeType": "WAST",
+    "storageType": "BLOCKCHAIN",
+    "codeFile": "/wasm-client/webasm-solidity/data/factorial.wast",
+    "reward": "0"
+}
