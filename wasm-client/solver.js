@@ -135,7 +135,6 @@ module.exports = {
 			    interpreterArgs: interpreterArgs
 			}
 			
-			
 		    } catch(e) {
 			//TODO: Add logging unsuccessful submission attempt
 			console.log(e)
@@ -174,7 +173,7 @@ module.exports = {
 			lowStep: lowStep,
 			highStep: highStep,
 			taskID: taskID
-		    }
+		    }		    
 		    
 		    await disputeResolutionLayer.initialize(
 			gameID,
