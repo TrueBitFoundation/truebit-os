@@ -74,43 +74,22 @@ describe('Truebit OS WASM', async function() {
 	    killSolver()
 	})
 
-	it('should upload task data to ipfs', async () => {
-	    
-	    wastCode = fs.readFileSync(__dirname + "/../wasm-client/webasm-solidity/data/factorial.wast")
-
-	    fileName = "bundle/factorial.wast"
-
-	    bundleID = await taskSubmitter.uploadIPFS(
-		fileName,
-		wastCode,
-		os.accounts[0]
-	    )
-
-	})
-
-	it('should get init hash', async () => {
-	    let config = {
-		code_file: __dirname + "/../wasm-client/webasm-solidity/data/factorial.wast",
-		input_file: "",
-		actor: {},
-		files: [],
-		code_type: 0,//For some reason this wont work unless I set this
-	    }
-	    
-	    initStateHash = await taskSubmitter.getInitStateHash(config)
-	})
-	
 	it('should submit task', async () => {
 
-	    let tx = await taskSubmitter.submitTask({
-		from: os.accounts[0],
-		minDeposit: os.web3.utils.toWei('1', 'ether'),
-		storageAddress: bundleID,
-		initStateHash: initStateHash,
-		codeType: merkleComputer.CodeType.WAST,
-		storageType: merkleComputer.StorageType.IPFS,
-		gas: 350000
-	    })
+	    let exampleTask = {
+		"minDeposit": "1",
+		"codeType": "WAST",
+		"storageType": "IPFS",
+		"codeFile": "/wasm-client/webasm-solidity/data/factorial.wast",
+		"reward": "0"
+	    }
+
+	    //simulate cli by adding from account and translate reward
+
+	    exampleTask["from"] = os.accounts[0]
+	    exampleTask["reward"] = os.web3.utils.toWei(exampleTask.reward, 'ether')
+
+	    await taskSubmitter.submitTask(exampleTask)
 
 	    await timeout(5000)
 	    await mineBlocks(os.web3, 110)
@@ -120,7 +99,7 @@ describe('Truebit OS WASM', async function() {
 	    //taskID = Object.keys(tasks)[0]
 	    assert(Object.keys(os.taskGiver.getTasks()))
 	})
-
+	
 	// it('should have a higher balance', async () => {
 
 	//     await mineBlocks(os.web3, 110)
