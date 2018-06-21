@@ -9,7 +9,7 @@ let killVerifier
 
 // setup is required before all other tests.
 before(async () => {
-  os = await cliLib.setup('./basic-client/config.json')
+  os = await cliLib.setup('basic-client/config.json')
 })
 
 after(() => {
