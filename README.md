@@ -17,34 +17,29 @@ If you want to talk to the developers working on this project feel free to say h
 ## Installation
 ```bash
 npm i
-npm run setup
-npm run tests
-npm run truebit basic-client/config.json
+npm run deploy-wasm
+npm run truebit wasm-client/config.json
 ```
 
-The `basic-client` directory houses an example project with the relevant modules to interface with the Truebit OS kernel. 
-These are `taskGiver.js`, `solver.js`, and `verifier.js`. Please note that any of these modules are optional and can be run independently of each other.
+# WASM Client
 
-The point of `basic-client` is to function as a template for anyone to base their interactive verification game project off of. Such a project can then be hosted on the Truebit OS platform.
-
-Currently it uses the `TaskExchange` contract for the incentive layer. The `BasicVerificationGame` as the dispute resolution layer. And the `SimpleAdderVM` for the computation layer. In order to run tasks with this setup you simply add a list of numbers you want summed by the SimpleAdderVM. It then creates a task on the `TaskExchange` contract which will be finalized after a specified number of blocks. In the case of a challenge to the task's solution, a verification game is created on the dispute resolution layer. In this case, this is handled by the `BasicVerificationGame` contract. The two contracts for the incentive layer and the dispute resolution layer don't have to be used, but they can be helpful to inherit from other smart contracts to build similar systems with custom features for a particular problem. 
+The `wasm-client` directory houses the primary Truebit client. It contains 4 relevant JS modules that wrap the internal details of the protocol for a user friendly experience. These modules are designed to interact with the Truebit OS kernel and shell. The four modules are taskGiver, taskSubmitter, solver, and verifier. These modules can be run independently from each other. With the exception of taskGiver and taskSubmitter being recommended to run together.
 
 ## Usage
-
 The way that Truebit OS knows where to load the relevant modules is with a config file. This is a simple JSON file with a couple fields, that tell the OS where to find the modules at. Here is the example config.json provided used for `basic-client`:
 ```javascript
 {
     "http-url": "http://localhost:8545",
-    "verifier": "../basic-client/verifier",
-    "solver": "../basic-client/solver",
-    "task-giver": "../basic-client/taskGiver"
+    "verifier": "../wasm-client/verifier",
+    "solver": "../wasm-client/solver",
+    "task-giver": "../wasm-client/taskGiver"
 }
 ```
 
-Once a user has created their config file they can start up the Truebit OS shell. Ex:
+Once a user has created their config file they can start up the Truebit OS shell to interact with the client. Ex:
 
 ```bash
-npm run truebit basic-client/config.json
+npm run truebit wasm-client/config.json
 ```
 
 ## Example
@@ -58,7 +53,7 @@ start task -a 0
 
 Now the process will be monitoring for tasks created by account 0.
 
-We can also start up a solver:
+We can also start up a solver with a different account:
 ```
 start solve -a 1
 ```
@@ -67,19 +62,31 @@ We've started up a solver with account 1 (this is to simulate different users, b
 
 Finally, we can submit our task:
 ```
-task -a 0 -t testTask.json
+task -a 0 -t testWasmTask.json
 ```
 
-We have specified to submit a task from account 0. And the data related to the task is located at testTask.json
+We have specified to submit a task from account 0. And the data related to the task is located at testWasmTask.json
 
 If you are running this on a development test net you will need to skip blocks to see the solution in the solutions directory.
 ```
-skip 65
+skip 120
 ```
 
-Now you should see a json file in solutions/ labelled with the task id.
+# Basic Client
 
-You can exit out of the shell and close the running processes with `quit`
+The `basic-client` directory houses an example project with the relevant modules to interface with the Truebit OS kernel.
+
+The point of `basic-client` is to function as a template for anyone to base their interactive verification game project off of. Such a project can then be hosted on the Truebit OS platform. It was originally used to prototype the features for this project, and is useful for educational purposes as it uses a simplified Computation Layer. If you are interested in diving into how the protocol's implementation works without having to understand the internals of WASM this is a good place to look. Basic client is also a good template for Truebit Lite mechanisms that use specific computation layers (for example Scrypt hashing) and can be implemented fully in Solidity. Since WASM is a general platform, this may not end up being used, however, some teams may want to use it for cost optimization or other purposes.
+
+## Usage
+
+```
+npm run truebit basic-client/config.json
+```
+
+Similar instructions above but make sure to use `testTask.json`.
+
+Now you should see a json file in solutions/ labelled with the task id.
 
 ### Logging
 
