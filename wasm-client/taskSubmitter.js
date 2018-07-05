@@ -4,6 +4,7 @@ const contract = require('./contractHelper')
 const merkleComputer = require(__dirname + '/webasm-solidity/merkle-computer')()
 const merkleRoot = require('./util/merkleRoot')
 const assert = require('assert')
+const path = require('path')
 
 const wasmClientConfig = JSON.parse(fs.readFileSync(__dirname + "/webasm-solidity/export/development.json"))
 
@@ -35,6 +36,15 @@ const typeTable = {
     "WASM": merkleComputer.CodeType.WASM,
     "BLOCKCHAIN": merkleComputer.StorageType.BLOCKCHAIN,
     "IPFS": merkleComputer.StorageType.IPFS
+}
+
+const readFile = (filepath) => {
+    return new Promise((resolve, reject) => {
+	fs.readFile(filepath, (err, res) => {
+	    if (err) reject(err)
+	    else resolve(res)
+	})
+    }) 
 }
 
 module.exports = async (web3, logger, mcFileSystem) => {
@@ -118,6 +128,59 @@ module.exports = async (web3, logger, mcFileSystem) => {
 	return [bundleID, initHash]
     }
 
+    async function uploadIPFSFiles(codeBuf, config, from) {
+	assert(Buffer.isBuffer(codeBuf))
+	
+	let bundleID = await tbFileSystem.makeBundle.call(
+	    Math.floor(Math.random()*Math.pow(2, 60)),
+	    {from: from}
+	)
+
+	for(let file in config.files) {
+	    let fileBuf = await readFile(file)
+
+	    let fileSize = fileBuf.byteLength
+	    let fileRoot = merkleComputer.merkleRoot(web3, fileBuf)
+	    let fileName = path.parse(file).base
+	    let fileNonce = Math.floor(Math.random()*Math.pow(2, 60))
+
+	    let fileIPFSHash = (await fileSystem.upload(fileBuf, "bundle/" + fileName))[0].hash
+
+	    let fileID = await tbFileSystem.addIPFSFile.call(
+		fileName,
+		fileSize,
+		fileIPFSHash,
+		fileRoot,
+		fileNonce,
+		{from: from}
+	    )
+
+	    await tbFileSystem.addIPFSFile(
+		fileName,
+		fileSize,
+		fileIPFSHash,
+		fileRoot,
+		fileNonce,
+		{from: from, gas: 200000}
+	    )
+	    
+	    await tbFileSystem.addToBundle(bundleID, fileID, {from: taskGiver})
+	}
+
+	
+	let ipfsHash = (await mcFileSystem.upload(codeBuf, "task.wast"))[0].hash
+	
+	let randomNum = Math.floor(Math.random()*Math.pow(2, 60))
+	let size = codeBuf.byteLength
+	let codeRoot = await getCodeRoot(config)
+
+	await tbFileSystem.finalizeBundleIPFS(bundleID, ipfsHash, codeRoot, {from: from, gas: 1500000})
+
+	let initHash = await tbFileSystem.getInitHash.call(bundleID)
+
+	return [bundleID, initHash]	
+    }
+
     return {
 	
 	submitTask: async (task) => {
@@ -147,10 +210,18 @@ module.exports = async (web3, logger, mcFileSystem) => {
 	    codeBuf = fs.readFileSync(process.cwd() + task.codeFile)
 
 	    if(task.storageType == "IPFS") {
-		let [bundleID, initHash] = await uploadIPFS(codeBuf, config, task.from)
+		if(task.files == []) {
+		    let [bundleID, initHash] = await uploadIPFS(codeBuf, config, task.from)
 
-		task["storageAddress"] = bundleID
-		task["initHash"] = initHash
+		    task["storageAddress"] = bundleID
+		    task["initHash"] = initHash
+		    
+		} else {
+		    let [bundleID, initHash] = await uploadIPFSFiles(codeBuf, config, task.from)
+		    task["storageAddress"] = bundleID
+		    task["initHash"] = initHash
+		}
+		
 		    
 	    } else { //store file on blockchain
 		
