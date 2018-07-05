@@ -124,13 +124,23 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
 	    //verifyTaskFormat(task)
 	    task["codeType"] = typeTable[task.codeType]
+
+	    if (!task.files) {
+		task["files"] = []
+	    }
+
+	    if (!task.inputFile) {
+		task["inputFile"] = ""
+	    } else {
+		task["inputFile"] = process.cwd() + task.inputFile
+	    }
 	    
 	    //get initial hash
 	    let config = {
 		code_file: process.cwd() + task.codeFile,
-		input_file: "",
+		input_file: task.inputFile,
 		actor: {},
-		files: [],
+		files: task.files,
 		code_type: task.codeType
 	    }
 
