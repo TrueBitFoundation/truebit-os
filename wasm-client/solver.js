@@ -9,7 +9,7 @@ const waitForBlock = require('./util/waitForBlock')
 const setupVM = require('./util/setupVM')
 const assert = require('assert')
 
-const merkleComputer = require(__dirname+ "/webasm-solidity/merkle-computer")()
+const merkleComputer = require(__dirname+ "/webasm-solidity/merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
 
 const wasmClientConfig = JSON.parse(fs.readFileSync(__dirname + "/webasm-solidity/export/development.json"))
 

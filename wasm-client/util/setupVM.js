@@ -12,8 +12,20 @@ module.exports = async (incentiveLayer, merkleComputer, taskID, wasmCodeBuffer, 
     
     let agentName = "solver"
     if(verifier) agentName = "verifier"
+
+    let randomPath = process.cwd() + "/tmp." + agentName + "_" + Math.floor(Math.random()*Math.pow(2, 60)).toString(32)
+
+    if (!fs.existsSync(randomPath)) fs.mkdirSync(randomPath)
     
-    let filePath = process.cwd() + "/temp/" + "tmp." + agentName + Math.floor(Math.random()*Math.pow(2, 60)).toString(32) + "WasmCode.wast"
+    let filePath
+
+    if (codeType == '0') {
+	filePath = randomPath + "/task.wast"
+    } else if (codeType == '1') {
+	filePath = randomPath + "/task.wasm"
+    } else {
+	throw "code type not recognized"
+    }
 
     await writeFile(filePath, wasmCodeBuffer)
     
@@ -28,8 +40,6 @@ module.exports = async (incentiveLayer, merkleComputer, taskID, wasmCodeBuffer, 
 	vm_parameters: vmParameters,
 	code_type: codeType
     }
-
-    let randomPath = process.cwd() + "/tmp." + agentName + "_" + Math.floor(Math.random()*Math.pow(2, 60)).toString(32)
 
     vm = merkleComputer.init(config, randomPath)
 
