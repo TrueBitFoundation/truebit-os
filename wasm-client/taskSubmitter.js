@@ -105,7 +105,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
 	return codeRoot
     }
 
-    async function uploadIPFS(codeBuf, config, from) {
+    async function uploadIPFS(codeBuf, config, from, path) {
 	assert(Buffer.isBuffer(codeBuf))
 
 	let bundleID = await tbFileSystem.makeBundle.call(
@@ -117,7 +117,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
 	
 	let randomNum = Math.floor(Math.random()*Math.pow(2, 60))
 	let size = codeBuf.byteLength
-	let codeRoot = await getCodeRoot(config)
+	let codeRoot = await getCodeRoot(config, path)
 
 	await tbFileSystem.finalizeBundleIPFS(bundleID, ipfsHash, codeRoot, {from: from, gas: 1500000})
 
@@ -126,7 +126,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
 	return [bundleID, initHash]
     }
 
-    async function uploadIPFSFiles(codeBuf, config, from) {
+    async function uploadIPFSFiles(codeBuf, config, from, path) {
 	assert(Buffer.isBuffer(codeBuf))
 	
 	let bundleID = await tbFileSystem.makeBundle.call(
@@ -170,7 +170,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
 	
 	let randomNum = Math.floor(Math.random()*Math.pow(2, 60))
 	let size = codeBuf.byteLength
-	let codeRoot = await getCodeRoot(config)
+	let codeRoot = await getCodeRoot(config, path)
 
 	await tbFileSystem.finalizeBundleIPFS(bundleID, ipfsHash, codeRoot, {from: from, gas: 1500000})
 
@@ -214,13 +214,13 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
 	    if(task.storageType == "IPFS") {
 		if(task.files == []) {
-		    let [bundleID, initHash] = await uploadIPFS(codeBuf, config, task.from)
+		    let [bundleID, initHash] = await uploadIPFS(codeBuf, config, task.from, randomPath)
 
 		    task["storageAddress"] = bundleID
 		    task["initHash"] = initHash
 		    
 		} else {
-		    let [bundleID, initHash] = await uploadIPFSFiles(codeBuf, config, task.from)
+		    let [bundleID, initHash] = await uploadIPFSFiles(codeBuf, config, task.from, randomPath)
 		    task["storageAddress"] = bundleID
 		    task["initHash"] = initHash
 		}
