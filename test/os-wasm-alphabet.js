@@ -83,7 +83,7 @@ describe('Truebit OS WASM', async function() {
 		"codeFile": "/wasm-client/webasm-solidity/data/reverse_alphabet.wasm",
 		"inputFile": "/wasm-client/webasm-solidity/data/alphabet.txt",
 		"reward": "0",
-		"files": ['alphabet.txt', 'reverse_alphabet.txt']
+		"files": ["/wasm-client/webasm-solidity/data/alphabet.txt", "/wasm-client/webasm-solidity/data/reverse_alphabet.txt"]
 	    }
 
 	    //simulate cli by adding from account and translate reward
