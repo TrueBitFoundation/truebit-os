@@ -75,10 +75,29 @@ module.exports = {
 			)
 			
 		    } else if(storageType == merkleComputer.StorageType.IPFS) {
+			// download code file
 			let codeIPFSHash = await fileSystem.getIPFSCode.call(storageAddress)
+			
 			let name = "task.wast"
 
 			let codeBuf = (await mcFileSystem.download(codeIPFSHash, name)).content
+
+			//download other files
+			let fileIDs = await fileSystem.getFiles.call(storageAddress)
+
+			let files = []
+
+			if (fileIDs.length > 0) {
+			    fileIDs.forEach(async (fileID) => {
+				let name = await fileSystem.getName.call(fileID)
+				let ipfsHash = await fileSystem.getHash.call(fileID)
+				let dataBuf = (await mcFileSystem.download(ipfsHash, name)).content
+				files.push({
+				    name: name,
+				    dataBuf: dataBuf
+				})				
+			    })
+			}
 			
 			vm = await setupVM(
 			    incentiveLayer,
@@ -86,7 +105,8 @@ module.exports = {
 			    taskID,
 			    codeBuf,
 			    result.args.ct.toNumber(),
-			    false
+			    false,
+			    files
 			)
 			
 		    }

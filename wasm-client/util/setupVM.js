@@ -8,7 +8,7 @@ function writeFile(fname, buf) {
 
 const toVmParameters = require('./toVmParameters')
 
-module.exports = async (incentiveLayer, merkleComputer, taskID, wasmCodeBuffer, codeType, verifier = true) => {
+module.exports = async (incentiveLayer, merkleComputer, taskID, wasmCodeBuffer, codeType, verifier = true, files = []) => {
     
     let agentName = "solver"
     if(verifier) agentName = "verifier"
@@ -31,12 +31,19 @@ module.exports = async (incentiveLayer, merkleComputer, taskID, wasmCodeBuffer, 
     
     let vmParameters = toVmParameters(await incentiveLayer.getVMParameters.call(taskID))
 
-    //TODO: Allow for input files
+    //write files to temp dir
+    let fileNames = []
+    if (files.length > 0) {
+	files.forEach(async (file) => {	    
+	    await writeFile(randomPath + "/" + file.name, file.dataBuf)
+	    fileNames.push(file.name)
+	})	
+    }
+
     let config = {
 	code_file: filePath,
-	input_file: "",
 	actor: solverConf,
-	files: [],
+	files: fileNames,
 	vm_parameters: vmParameters,
 	code_type: codeType
     }
