@@ -17,34 +17,35 @@ module.exports.version = ({ os }) => {
 
 /** initialize and await os and attach taskSubmitter  */
 module.exports.setup = configPath => {
-  return (async () => {
-    const os = await require('../os/kernel')(configPath)
-    let baseName = configPath.split("/")[0]
-    os.taskSubmitter = await require("../" + baseName + "/taskSubmitter")(
-      os.web3,
-      os.logger
-    )
-    os.logger.log({
-      level: 'info',
-      message: 'Truebit OS has been initialized with config at ' + configPath
-    })
-    return os
-  })()
+    return (async () => {
+	const os = await require('../os/kernel')(configPath)
+	let baseName = configPath.split("/")[0]
+	os.taskSubmitter = await require("../" + baseName + "/taskSubmitter")(
+	    os.web3,
+	    os.logger,
+	    os.fileSystem
+	)
+	os.logger.log({
+	    level: 'info',
+	    message: 'Truebit OS has been initialized with config at ' + configPath
+	})
+	return os
+    })()
 }
 
 /** initialize taskGiver with account address  */
 module.exports.initTaskGiver = ({ os, account }) => {
-  return os.taskGiver.init(os.web3, account, os.logger)
+    return os.taskGiver.init(os.web3, account, os.logger)
 }
 
 /** initialize solver with account address  */
 module.exports.initSolver = ({ os, account }) => {
-  return os.solver.init(os.web3, account, os.logger)
+    return os.solver.init(os.web3, account, os.logger, os.fileSystem)
 }
 
 /** initialize verifier with account address  */
 module.exports.initVerifier = ({ os, account }) => {
-  return os.verifier.init(os.web3, account, os.logger)
+    return os.verifier.init(os.web3, account, os.logger, os.fileSystem)
 }
 
 /** submit a task  */

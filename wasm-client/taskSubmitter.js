@@ -2,7 +2,6 @@ const depositsHelper = require('./depositsHelper')
 const fs = require('fs')
 const contract = require('./contractHelper')
 const merkleComputer = require(__dirname + '/webasm-solidity/merkle-computer')('./../wasm-client/ocaml-offchain/interpreter/wasm')
-const merkleRoot = require('./util/merkleRoot')
 const assert = require('assert')
 const path = require('path')
 
