@@ -30,7 +30,7 @@ let tasks = {}
 let games = {}
 
 module.exports = {
-    init: async (web3, account, logger, test = false, phase = 1) => {
+    init: async (web3, account, logger, mcFileSystem, test = false, phase = 1) => {
 	logger.log({
 	    level: 'info',
 	    message: `Verifier initialized`
@@ -49,8 +49,10 @@ module.exports = {
 
 		let taskInfo = toTaskInfo(await incentiveLayer.taskInfo.call(taskID))
 		let solutionInfo = toSolutionInfo(await incentiveLayer.solutionInfo.call(taskID))
+
+		let storageType = result.args.cs.toNumber()
 		
-		if(result.args.cs.toNumber() == merkleComputer.StorageType.BLOCKCHAIN) {
+		if(storageType == merkleComputer.StorageType.BLOCKCHAIN) {
 		    let wasmCode = await fileSystem.getCode.call(storageAddress)
 
 		    let buf = Buffer.from(wasmCode.substr(2), "hex")
