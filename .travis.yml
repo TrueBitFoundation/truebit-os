@@ -7,6 +7,9 @@ cache:
     - "node_modules"
 
 before_install:
+  - add-apt-repository ppa:ethereum/ethereum
+  - apt-get update
+  - apt-get install solc
   - npm i -g ganache-cli@6.1.0 truffle@4.1.8
   - ganache-cli &>/dev/null &
 
