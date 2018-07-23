@@ -349,7 +349,7 @@ module.exports = {
 			    proof.merkle.list,
 			    merkleComputer.getRoots(vm),
 			    merkleComputer.getPointers(vm),
-			    {from: account, gas: 400000}
+			    {from: account, gas: 500000}
 			)
 
 			//TODO
@@ -367,7 +367,7 @@ module.exports = {
     			    [m.reg1, m.reg2, m.reg3, m.ireg],
     			    merkleComputer.getRoots(vm),
     			    merkleComputer.getPointers(vm),
-    			    {from: account, gas: 400000}
+    			    {from: account, gas: 500000}
 			)			
 		    }
 		    
