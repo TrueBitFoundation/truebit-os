@@ -147,12 +147,14 @@ module.exports = async (web3, logger, mcFileSystem) => {
 	for(let i = 0; i < config.files.length; i++) {
 	    let filePath = config.files[i]
 	    let fileBuf = await readFile(process.cwd() + filePath)
-	    await writeFile(process.cwd() + filePath, fileBuf)
+	    
+	    let fileName = path.basename(filePath)
+	    newFiles.push(fileName)
+	    await writeFile(dirPath + "/" + fileName, fileBuf)
 
 	    let fileSize = fileBuf.byteLength
 	    let fileRoot = merkleComputer.merkleRoot(web3, fileBuf)
-	    let fileName = path.basename(filePath)
-	    newFiles.push(fileName)
+	    
 	    let fileNonce = Math.floor(Math.random()*Math.pow(2, 60))
 
 	    let fileIPFSHash = (await mcFileSystem.upload(fileBuf, "bundle/" + fileName))[0].hash
@@ -177,8 +179,6 @@ module.exports = async (web3, logger, mcFileSystem) => {
 	    
 	    await tbFileSystem.addToBundle(bundleID, fileID, {from: from})	    	    
 	}
-
-	console.log(newFiles)
 
 	config.files = newFiles
 	
