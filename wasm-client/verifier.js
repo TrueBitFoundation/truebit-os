@@ -82,15 +82,16 @@ module.exports = {
 		    let files = []
 
 		    if (fileIDs.length > 0) {
-			fileIDs.forEach(async (fileID) => {
+			for(let i = 0; i < fileIDs.length; i++) {
+			    let fileID = filesIDs[i]
 			    let name = await fileSystem.getName.call(fileID)
 			    let ipfsHash = await fileSystem.getHash.call(fileID)
 			    let dataBuf = (await mcFileSystem.download(ipfsHash, name)).content
 			    files.push({
 				name: name,
 				dataBuf: dataBuf
-			    })				
-			})
+			    })			    
+			}
 		    }
 		    
 		    vm = await setupVM(
