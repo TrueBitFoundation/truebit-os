@@ -115,6 +115,8 @@ module.exports = {
 		    
 		    interpreterArgs = []
 		    solution = await vm.executeWasmTask(interpreterArgs)
+
+		    //console.log(solution)
 		    
 		    try {
 			
