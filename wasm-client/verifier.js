@@ -83,7 +83,7 @@ module.exports = {
 
 		    if (fileIDs.length > 0) {
 			for(let i = 0; i < fileIDs.length; i++) {
-			    let fileID = filesIDs[i]
+			    let fileID = fileIDs[i]
 			    let name = await fileSystem.getName.call(fileID)
 			    let ipfsHash = await fileSystem.getHash.call(fileID)
 			    let dataBuf = (await mcFileSystem.download(ipfsHash, name)).content
