@@ -81,7 +81,6 @@ describe('Truebit OS WASM', async function() {
 		"codeType": "WASM",
 		"storageType": "IPFS",
 		"codeFile": "/wasm-client/webasm-solidity/data/reverse_alphabet.wasm",
-		"inputFile": "/wasm-client/webasm-solidity/data/alphabet.txt",
 		"reward": "0",
 		"files": ["/wasm-client/webasm-solidity/data/alphabet.txt", "/wasm-client/webasm-solidity/data/reverse_alphabet.txt"]
 	    }

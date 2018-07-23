@@ -144,7 +144,8 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
 	let newFiles = []
 
-	config.files.reverse().forEach(async (filePath) => {
+	for(let i = 0; i < config.files.length; i++) {
+	    let filePath = config.files[i]
 	    let fileBuf = await readFile(process.cwd() + filePath)
 	    await writeFile(process.cwd() + filePath, fileBuf)
 
@@ -174,11 +175,12 @@ module.exports = async (web3, logger, mcFileSystem) => {
 		{from: from, gas: 200000}
 	    )
 	    
-	    await tbFileSystem.addToBundle(bundleID, fileID, {from: from})
-	    
-	})
+	    await tbFileSystem.addToBundle(bundleID, fileID, {from: from})	    	    
+	}
 
-	config.files = newFiles.reverse()
+	console.log(newFiles)
+
+	config.files = newFiles
 	
 	let ipfsHash = (await mcFileSystem.upload(codeBuf, "task.wast"))[0].hash
 	
