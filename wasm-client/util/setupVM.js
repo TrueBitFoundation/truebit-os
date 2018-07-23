@@ -34,10 +34,11 @@ module.exports = async (incentiveLayer, merkleComputer, taskID, wasmCodeBuffer, 
     //write files to temp dir
     let fileNames = []
     if (files.length > 0) {
-	files.forEach(async (file) => {	    
+	for(let i = 0; i < files.length; i++) {
+	    let file = files[i]
 	    await writeFile(randomPath + "/" + file.name, file.dataBuf)
-	    fileNames.push(file.name)
-	})	
+	    fileNames.push(file.name)	    
+	}
     }
 
     let config = {
