@@ -16,7 +16,6 @@ before_install:
 install:
   - npm install
   - npm run setup
-  - ./wasm-client/webasm-solidity/scripts/compile.sh
   - npm run deploy-wasm
 
 script:
