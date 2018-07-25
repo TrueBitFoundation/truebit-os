@@ -12,8 +12,9 @@ git submodule init
 git submodule update
 
 sudo apt-get update
-sudo apt-get install -y wget gcc ocaml opam libzarith-ocaml-dev m4 pkg-config zlib1g-dev
-opam init https://opam.ocaml.org/1.2
+sudo apt-get install -y wget gcc libzarith-ocaml-dev m4 pkg-config zlib1g-dev
+wget https://raw.github.com/ocaml/opam/master/shell/opam_installer.sh -O - | sh -s /usr/local/bin/
+
 opam switch 4.06.1
 
 eval $(opam config env)
