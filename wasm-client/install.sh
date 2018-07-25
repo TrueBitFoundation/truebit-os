@@ -13,7 +13,7 @@ git submodule update
 
 sudo apt-get update
 sudo apt-get install -y wget gcc libzarith-ocaml-dev m4 pkg-config zlib1g-dev
-wget https://raw.github.com/ocaml/opam/master/shell/opam_installer.sh -O - | sh -s /usr/local/bin/
+sudo wget https://raw.github.com/ocaml/opam/master/shell/opam_installer.sh -O - | sh -s /usr/local/bin/
 
 opam switch 4.06.1
 
