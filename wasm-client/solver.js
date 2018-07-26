@@ -382,10 +382,11 @@ module.exports = {
 
 	return () => {
 	    try {
-		taskPostedEvent.stopWatching()
-		startChallengeEvent.stopWatching()
-		queriedEvent.stopWatching()
-		selectedPhasesEvent.stopWatching()
+		let empty = data => { }
+		taskPostedEvent.stopWatching(empty)
+		startChallengeEvent.stopWatching(empty)
+		queriedEvent.stopWatching(empty)
+		selectedPhaseEvent.stopWatching(empty)
 	    } catch(e) {
 	    }
 	}

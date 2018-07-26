@@ -240,10 +240,11 @@ module.exports = {
 
 	return () => {
 	    try {
-		solvedEvent.stopWatching()
-		startChallengeEvent.stopWatching()
-		reportedEvent.stopWatching()
-		postedPhasesEvent.stopWatching()
+		let empty = data => { console.log(data)}
+		solvedEvent.stopWatching(empty)
+		startChallengeEvent.stopWatching(empty)
+		reportedEvent.stopWatching(empty)
+		postedPhasesEvent.stopWatching(empty)
 	    } catch(e) {
 	    }
 	}
