@@ -9,7 +9,7 @@ const waitForBlock = require('./util/waitForBlock')
 const setupVM = require('./util/setupVM')
 const assert = require('assert')
 
-const merkleComputer = require(__dirname+ "/webasm-solidity/merkle-computer")()
+const merkleComputer = require(__dirname+ "/webasm-solidity/merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
 
 const wasmClientConfig = JSON.parse(fs.readFileSync(__dirname + "/webasm-solidity/export/development.json"))
 
@@ -75,10 +75,30 @@ module.exports = {
 			)
 			
 		    } else if(storageType == merkleComputer.StorageType.IPFS) {
+			// download code file
 			let codeIPFSHash = await fileSystem.getIPFSCode.call(storageAddress)
+			
 			let name = "task.wast"
 
 			let codeBuf = (await mcFileSystem.download(codeIPFSHash, name)).content
+
+			//download other files
+			let fileIDs = await fileSystem.getFiles.call(storageAddress)
+
+			let files = []
+
+			if (fileIDs.length > 0) {
+			    for(let i = 0; i < fileIDs.length; i++) {
+				let fileID = fileIDs[i]
+				let name = await fileSystem.getName.call(fileID)
+				let ipfsHash = await fileSystem.getHash.call(fileID)
+				let dataBuf = (await mcFileSystem.download(ipfsHash, name)).content
+				files.push({
+				    name: name,
+				    dataBuf: dataBuf
+				})				
+			    }
+			}
 			
 			vm = await setupVM(
 			    incentiveLayer,
@@ -86,7 +106,8 @@ module.exports = {
 			    taskID,
 			    codeBuf,
 			    result.args.ct.toNumber(),
-			    false
+			    false,
+			    files
 			)
 			
 		    }
@@ -95,6 +116,8 @@ module.exports = {
 		    
 		    interpreterArgs = []
 		    solution = await vm.executeWasmTask(interpreterArgs)
+
+		    //console.log(solution)
 		    
 		    try {
 			
@@ -326,7 +349,7 @@ module.exports = {
 			    proof.merkle.list,
 			    merkleComputer.getRoots(vm),
 			    merkleComputer.getPointers(vm),
-			    {from: account, gas: 400000}
+			    {from: account, gas: 500000}
 			)
 
 			//TODO
@@ -344,7 +367,7 @@ module.exports = {
     			    [m.reg1, m.reg2, m.reg3, m.ireg],
     			    merkleComputer.getRoots(vm),
     			    merkleComputer.getPointers(vm),
-    			    {from: account, gas: 400000}
+    			    {from: account, gas: 500000}
 			)			
 		    }
 		    
@@ -359,10 +382,11 @@ module.exports = {
 
 	return () => {
 	    try {
-		taskPostedEvent.stopWatching()
-		startChallengeEvent.stopWatching()
-		queriedEvent.stopWatching()
-		selectedPhasesEvent.stopWatching()
+		let empty = data => { }
+		taskPostedEvent.stopWatching(empty)
+		startChallengeEvent.stopWatching(empty)
+		queriedEvent.stopWatching(empty)
+		selectedPhaseEvent.stopWatching(empty)
 	    } catch(e) {
 	    }
 	}

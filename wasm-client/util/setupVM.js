@@ -8,28 +8,46 @@ function writeFile(fname, buf) {
 
 const toVmParameters = require('./toVmParameters')
 
-module.exports = async (incentiveLayer, merkleComputer, taskID, wasmCodeBuffer, codeType, verifier = true) => {
+module.exports = async (incentiveLayer, merkleComputer, taskID, wasmCodeBuffer, codeType, verifier = true, files = []) => {
     
     let agentName = "solver"
     if(verifier) agentName = "verifier"
+
+    let randomPath = process.cwd() + "/tmp." + agentName + "_" + Math.floor(Math.random()*Math.pow(2, 60)).toString(32)
+
+    if (!fs.existsSync(randomPath)) fs.mkdirSync(randomPath)
     
-    let filePath = process.cwd() + "/temp/" + "tmp." + agentName + Math.floor(Math.random()*Math.pow(2, 60)).toString(32) + "WasmCode.wast"
+    let filePath
+
+    if (codeType == '0') {
+	filePath = randomPath + "/task.wast"
+    } else if (codeType == '1') {
+	filePath = randomPath + "/task.wasm"
+    } else {
+	throw "code type not recognized"
+    }
 
     await writeFile(filePath, wasmCodeBuffer)
     
     let vmParameters = toVmParameters(await incentiveLayer.getVMParameters.call(taskID))
 
-    //TODO: Allow for input files
+    //write files to temp dir
+    let fileNames = []
+    if (files.length > 0) {
+	for(let i = 0; i < files.length; i++) {
+	    let file = files[i]
+	    await writeFile(randomPath + "/" + file.name, file.dataBuf)
+	    fileNames.push(file.name)	    
+	}
+    }
+
     let config = {
 	code_file: filePath,
-	input_file: "",
 	actor: solverConf,
-	files: [],
+	files: fileNames,
 	vm_parameters: vmParameters,
 	code_type: codeType
     }
-
-    let randomPath = process.cwd() + "/tmp." + agentName + "_" + Math.floor(Math.random()*Math.pow(2, 60)).toString(32)
 
     vm = merkleComputer.init(config, randomPath)
 

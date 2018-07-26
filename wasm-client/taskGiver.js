@@ -81,8 +81,9 @@ module.exports = {
 
 	return () => {
 	    try {
-		taskPostedEvent.stopWatching()
-		solvedEvent.stopWatching()
+		let empty = data => {}
+		taskPostedEvent.stopWatching(empty)
+		solvedEvent.stopWatching(empty)
 	    } catch (e) {
 	    }
 	}

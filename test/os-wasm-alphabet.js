@@ -12,6 +12,11 @@ const logger = require('../os/logger')
 
 const merkleComputer = require('../wasm-client/webasm-solidity/merkle-computer')()
 
+const host = "localhost"
+const ipfs = require('ipfs-api')(host, '5001', {protocol: 'http'})
+
+const fileSystem = merkleComputer.fileSystem(ipfs)
+
 let os
 
 let taskSubmitter
@@ -39,11 +44,11 @@ describe('Truebit OS WASM', async function() {
     	assert(os.solver)
     })
 
-    it('should have a verifier', () => {
-    	assert(os.verifier)
-    })
+    // it('should have a verifier', () => {
+    // 	assert(os.verifier)
+    // })
     
-    describe('Task lifecycle with challenge', async () => {
+    describe('Normal task lifecycle', async () => {
 	let killTaskGiver
 	let killSolver
 	let killVerifier
@@ -52,32 +57,32 @@ describe('Truebit OS WASM', async function() {
 	
 	let originalBalance
 
-	let storageAddress, initStateHash
+	let storageAddress, initStateHash, bundleID
 	
 
 	before(async () => {
-	    taskSubmitter = await require('../wasm-client/taskSubmitter')(os.web3, os.logger)
+	    taskSubmitter = await require('../wasm-client/taskSubmitter')(os.web3, os.logger, fileSystem)
 	    
 	    killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0], os.logger)
-	    killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger)
-	    killVerifier = await os.verifier.init(os.web3, os.accounts[2], os.logger, undefined, true, 1)
+	    killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger, fileSystem)
 	    originalBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
+
 	})
 
 	after(() => {
 	    killTaskGiver()
 	    killSolver()
-	    killVerifier()
 	})
 
 	it('should submit task', async () => {
 
 	    let exampleTask = {
 		"minDeposit": "1",
-		"codeType": "WAST",
-		"storageType": "BLOCKCHAIN",
-		"codeFile": "/wasm-client/webasm-solidity/data/factorial.wast",
-		"reward": "0"
+		"codeType": "WASM",
+		"storageType": "IPFS",
+		"codeFile": "/wasm-client/webasm-solidity/data/reverse_alphabet.wasm",
+		"reward": "0",
+		"files": ["/wasm-client/webasm-solidity/data/alphabet.txt", "/wasm-client/webasm-solidity/data/reverse_alphabet.txt"]
 	    }
 
 	    //simulate cli by adding from account and translate reward
@@ -87,7 +92,7 @@ describe('Truebit OS WASM', async function() {
 
 	    await taskSubmitter.submitTask(exampleTask)
 
-	    await timeout(40000)
+	    await timeout(5000)
 	    await mineBlocks(os.web3, 110)
 	    await timeout(5000)
 	    
@@ -95,7 +100,7 @@ describe('Truebit OS WASM', async function() {
 	    //taskID = Object.keys(tasks)[0]
 	    assert(Object.keys(os.taskGiver.getTasks()))
 	})
-
+	
 	// it('should have a higher balance', async () => {
 
 	//     await mineBlocks(os.web3, 110)

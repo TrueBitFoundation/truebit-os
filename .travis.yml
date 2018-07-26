@@ -1,18 +1,22 @@
 language: node_js
 node_js:
-  - "8"
+  - "9.4.0"
   
 cache:
   directories:
     - "node_modules"
 
 before_install:
+  - sudo add-apt-repository ppa:ethereum/ethereum -y
+  - sudo apt-get update
+  - sudo apt-get install solc
   - npm i -g ganache-cli@6.1.0 truffle@4.1.8
   - ganache-cli &>/dev/null &
 
 install:
   - npm install
   - npm run setup
+  - npm run deploy-wasm
 
 script:
   - NODE_ENV='production' npm run tests

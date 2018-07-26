@@ -7,7 +7,7 @@ const setupVM = require('./util/setupVM')
 const midpoint = require('./util/midpoint')
 const waitForBlock = require('./util/waitForBlock')
 
-const merkleComputer = require(__dirname+ "/webasm-solidity/merkle-computer")()
+const merkleComputer = require(__dirname+ "/webasm-solidity/merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
 
 const wasmClientConfig = JSON.parse(fs.readFileSync(__dirname + "/webasm-solidity/export/development.json"))
 
@@ -30,7 +30,7 @@ let tasks = {}
 let games = {}
 
 module.exports = {
-    init: async (web3, account, logger, test = false, phase = 1) => {
+    init: async (web3, account, logger, mcFileSystem, test = false, phase = 1) => {
 	logger.log({
 	    level: 'info',
 	    message: `Verifier initialized`
@@ -49,8 +49,10 @@ module.exports = {
 
 		let taskInfo = toTaskInfo(await incentiveLayer.taskInfo.call(taskID))
 		let solutionInfo = toSolutionInfo(await incentiveLayer.solutionInfo.call(taskID))
+
+		let storageType = result.args.cs.toNumber()
 		
-		if(result.args.cs.toNumber() == merkleComputer.StorageType.BLOCKCHAIN) {
+		if(storageType == merkleComputer.StorageType.BLOCKCHAIN) {
 		    let wasmCode = await fileSystem.getCode.call(storageAddress)
 
 		    let buf = Buffer.from(wasmCode.substr(2), "hex")
@@ -60,11 +62,50 @@ module.exports = {
 			merkleComputer,
 			taskID,
 			buf,
-			result.args.ct.toNumber()
+			result.args.ct.toNumber(),
+			true
 		    )
 		    
 		    let interpreterArgs = []
 		    solution = await vm.executeWasmTask(interpreterArgs)
+		} else if(storageType == merkleComputer.StorageType.IPFS) {
+		    // download code file
+		    let codeIPFSHash = await fileSystem.getIPFSCode.call(storageAddress)
+		    
+		    let name = "task.wast"
+
+		    let codeBuf = (await mcFileSystem.download(codeIPFSHash, name)).content
+
+		    //download other files
+		    let fileIDs = await fileSystem.getFiles.call(storageAddress)
+
+		    let files = []
+
+		    if (fileIDs.length > 0) {
+			for(let i = 0; i < fileIDs.length; i++) {
+			    let fileID = fileIDs[i]
+			    let name = await fileSystem.getName.call(fileID)
+			    let ipfsHash = await fileSystem.getHash.call(fileID)
+			    let dataBuf = (await mcFileSystem.download(ipfsHash, name)).content
+			    files.push({
+				name: name,
+				dataBuf: dataBuf
+			    })			    
+			}
+		    }
+		    
+		    vm = await setupVM(
+			incentiveLayer,
+			merkleComputer,
+			taskID,
+			codeBuf,
+			result.args.ct.toNumber(),
+			false,
+			files
+		    )
+		    let interpreterArgs = []
+		    solution = await vm.executeWasmTask(interpreterArgs)
+		    
 		}
 
 		if(solutionInfo.resultHash != solution.hash || test) {
@@ -199,10 +240,11 @@ module.exports = {
 
 	return () => {
 	    try {
-		solvedEvent.stopWatching()
-		startChallengeEvent.stopWatching()
-		reportedEvent.stopWatching()
-		postedPhasesEvent.stopWatching()
+		let empty = data => { }
+		solvedEvent.stopWatching(empty)
+		startChallengeEvent.stopWatching(empty)
+		reportedEvent.stopWatching(empty)
+		postedPhasesEvent.stopWatching(empty)
 	    } catch(e) {
 	    }
 	}

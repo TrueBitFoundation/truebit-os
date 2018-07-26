@@ -12,6 +12,17 @@ function requireHelper(cb) {
     }
 }
 
+function ipfsFileSystemHelper(config) {
+    if (config["ipfs"]) {
+	const ipfs = require('ipfs-api')(config.ipfs.host, config.ipfs.port, {protocol: config.ipfs.protocol})
+	const merkleComputer = require(config.ipfs.merkleComputer)()
+	const fileSystem = merkleComputer.fileSystem(ipfs)
+	return fileSystem
+    } else {
+	return undefined
+    }
+}
+
 module.exports = async (configPath) => {
     const config = JSON.parse(fs.readFileSync(configPath))
     const httpProvider = new Web3.providers.HttpProvider(config["http-url"])
@@ -24,7 +35,8 @@ module.exports = async (configPath) => {
 	verifier: requireHelper(() => { return require(config["verifier"]) }),
 	web3: web3,
 	accounts: accounts,
-	logger: logger
+	logger: logger,
+	fileSystem: ipfsFileSystemHelper(config),
     }
 
 }
