@@ -240,7 +240,7 @@ module.exports = {
 
 	return () => {
 	    try {
-		let empty = data => { console.log(data)}
+		let empty = data => { }
 		solvedEvent.stopWatching(empty)
 		startChallengeEvent.stopWatching(empty)
 		reportedEvent.stopWatching(empty)
