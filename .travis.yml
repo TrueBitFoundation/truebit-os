@@ -7,7 +7,7 @@ cache:
     - "node_modules"
 
 before_install:
-  - sudo add-apt-repository ppa:ethereum/ethereum
+  - sudo add-apt-repository ppa:ethereum/ethereum -y
   - sudo apt-get update
   - sudo apt-get install software-properties-common
   - sudo apt-get install solc
