@@ -21,7 +21,7 @@ before_install:
   - ipfs daemon &>/dev/null &
   - sleep 5
   # confirm ipfs is up
-  - curl https://localhost:5001/api/v0/id
+  - curl http://localhost:5001/api/v0/id
 
 install:
   - npm install
