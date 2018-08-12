@@ -1,6 +1,6 @@
-dist: trusty
-language: node_js
+dist: xenial
 sudo: required
+language: node_js
 node_js:
   - "9.4.0"
   
@@ -25,6 +25,7 @@ before_install:
   # confirm ipfs is up
   - curl http://localhost:5001/api/v0/id
   # install ocaml-offchain deps (maybe use the toolchain in the future...)
+
   - sudo apt-get install -y wget gcc ocaml opam libzarith-ocaml-dev m4 pkg-config zlib1g-dev
   - opam init -y
   - eval $(opam config env)
