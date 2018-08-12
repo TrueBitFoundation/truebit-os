@@ -9,10 +9,8 @@ cache:
     - "node_modules"
 
 before_install:
-  - sudo add-apt-repository ppa:ethereum/ethereum -y
   - sudo apt-get update
   - sudo apt-get install software-properties-common
-  - sudo apt-get install solc
   - npm i -g ganache-cli@6.1.0 truffle@4.1.8
   - ganache-cli &>/dev/null &
   # install IPFS
