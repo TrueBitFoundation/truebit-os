@@ -27,11 +27,13 @@ before_install:
   # install ocaml-offchain deps (maybe use the toolchain in the future...)
 
   - sudo apt-get install -y wget gcc ocaml opam libzarith-ocaml-dev m4 pkg-config zlib1g-dev
-  - opam init -y
+  - opam init -y --comp=4.05.0
   - eval $(opam config env)
-  - opam install cryptokit yojson
+  - opam update
+  - opam install -y cryptokit yojson
   - cd ./wasm-client/ocaml-offchain/interpreter
   - make
+  - cd ../../..
 
 install:
   - npm install
