@@ -22,7 +22,9 @@ before_install:
   - sleep 5
   # confirm ipfs is up
   - curl http://localhost:5001/api/v0/id
-  # install ocaml-offchain deps (maybe use the toolchain in the future...) 
+
+  # prepare ocaml-offchain
+
   - sudo apt-get install -y wget gcc ocaml opam libzarith-ocaml-dev m4 pkg-config zlib1g-dev
   - opam init -y --comp=4.05.0
   - eval $(opam config env)
@@ -31,6 +33,13 @@ before_install:
   - cd ./wasm-client/ocaml-offchain/interpreter
   - make
   - cd ../../..
+
+  # prepare webasm-solidity
+  - cd ./wasm-client/webasm-solidity
+  - npm i
+  - npm run compile
+  - npm run deploy
+  - cd ../..
 
 install:
   - npm install
