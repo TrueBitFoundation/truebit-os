@@ -20,7 +20,7 @@ before(async () => {
     os = await require('../os/kernel')("./wasm-client/config.json")
 })
 
-describe('Truebit OS WASM', async function() {
+describe('Truebit OS WASM Challenge', async function() {
     this.timeout(60000)
 
     it('should have a logger', () => {

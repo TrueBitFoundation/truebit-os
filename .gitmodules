@@ -10,3 +10,6 @@
 [submodule "wasm-client/webasm-solidity"]
 	path = wasm-client/webasm-solidity
 	url = https://github.com/TrueBitFoundation/webasm-solidity.git
+[submodule "wasm-client/incentive-layer"]
+	path = wasm-client/incentive-layer
+	url = git@github.com:TrueBitFoundation/incentive-layer.git

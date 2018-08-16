@@ -6,6 +6,7 @@ const assert = require('assert')
 const path = require('path')
 
 const wasmClientConfig = JSON.parse(fs.readFileSync(__dirname + "/webasm-solidity/export/development.json"))
+const incentiveLayerConfig = JSON.parse(fs.readFileSync(__dirname + "/incentive-layer/export/development.json"))
 
 function setup(httpProvider) {
     return (async () => {
