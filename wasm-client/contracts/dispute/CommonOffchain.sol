@@ -8,7 +8,7 @@ import "./Alu.sol";
 * @title
 * @author Sami Mäkelä
 */
-contract REPLACEME, ALU {
+contract CommonOffchain is Offchain, ALU {
     /**
     * @dev get a pointer for the place we want to perform a read from, based on the opcode
     *

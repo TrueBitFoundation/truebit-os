@@ -2,17 +2,17 @@
 
 cd contracts/
 
-mkdir -p build
+mkdir -p ../build
 
-sed 's/REPLACEME/CommonOffchain is Offchain/g' dispute/common.sol > dispute/common-offchain.sol
-sed 's/REPLACEME/CommonOnchain is Onchain/g' dispute/common.sol > dispute/common-onchain.sol
+sed 's/REPLACEME/CommonOffchain is Offchain/g' dispute/Common.sol > dispute/CommonOffchain.sol
+sed 's/REPLACEME/CommonOnchain is Onchain/g' dispute/Common.sol > dispute/CommonOnchain.sol
 
-solc --abi --optimize --overwrite --bin -o build dispute/fs.sol
-solc --abi --optimize --overwrite --bin -o build dispute/interactive.sol
-solc --abi --optimize --overwrite --bin -o build dispute/interpreter.sol
-solc --abi --optimize --overwrite --bin -o build dispute/judge.sol
-solc --abi --optimize --overwrite --bin -o build dispute/merkle.sol
+solc --abi --optimize --overwrite --bin -o ../build dispute/Filesystem.sol
+solc --abi --optimize --overwrite --bin -o ../build --allow-paths /interface/, dispute/Interactive.sol
+solc --abi --optimize --overwrite --bin -o ../build dispute/Interpreter.sol
+solc --abi --optimize --overwrite --bin -o ../build dispute/Judge.sol
+solc --abi --optimize --overwrite --bin -o ../build dispute/Merkle.sol
 
-solc --abi --optimize --overwrite --bin -o build incentive/IncentiveLayer.sol
+solc --abi --optimize --overwrite --bin -o ../build --allow-paths /interface,  incentive/IncentiveLayer.sol
 
 

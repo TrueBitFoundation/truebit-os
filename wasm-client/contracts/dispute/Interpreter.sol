@@ -1,6 +1,6 @@
 pragma solidity ^0.4.15;
 
-import "./common-offchain.sol";
+import "./CommonOffchain.sol";
 
 contract Interpreter is CommonOffchain {
     /**
@@ -77,7 +77,7 @@ contract Interpreter is CommonOffchain {
             performPhase();
             limit--;
         }
-        return (int64(vm_r.stack[0]), vm.pc, keccak256(vm_r.stack));
+        return (int64(vm_r.stack[0]), vm.pc, keccak256(abi.encodePacked(vm_r.stack)));
     }
 }
 

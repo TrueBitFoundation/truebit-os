@@ -1,6 +1,6 @@
 pragma solidity ^0.4.15;
 
-import "./common-onchain.sol";
+import "./CommonOnchain.sol";
 
 contract Judge is CommonOnchain {
 
@@ -104,7 +104,7 @@ contract Judge is CommonOnchain {
     }
 
     function calcIOHash(bytes32[10] roots) public pure returns (bytes32) {
-        return keccak256(roots[0], roots[7], roots[8], roots[9]);
+        return keccak256(abi.encodePacked(roots[0], roots[7], roots[8], roots[9]));
     }
 
 }

@@ -25,7 +25,12 @@ interface CustomJudge {
     function resolved(bytes32 id, bytes32 state, uint size) external returns (bool);
 }
 
-contract Interactive {
+import "./../interface/IGameMaker.sol";
+import "./../interface/IDisputeResolutionLayer.sol";
+
+contract Interactive is IGameMaker, IDisputeResolutionLayer {
+
+    enum Status { Uninitialized, Challenged, Unresolved, SolverWon, ChallengerWon }
 
     constructor(address addr) public {
         judge = JudgeInterface(addr);
@@ -48,7 +53,7 @@ contract Interactive {
         Custom
     }
 
-    struct Record {
+    struct Game {
         uint256 task_id;
     
         address prover;
@@ -76,6 +81,7 @@ contract Interactive {
         bytes32[13] result;
         
         State state;
+	Status status;
         
         // 
         CustomJudge judge;
@@ -84,7 +90,7 @@ contract Interactive {
         uint ex_size;
     }
 
-    mapping (bytes32 => Record) records;
+    mapping (bytes32 => Game) games;
     mapping (uint64 => CustomJudge) judges;
 
     // who should be able to 
@@ -94,29 +100,34 @@ contract Interactive {
 
     event StartChallenge(address p, address c, bytes32 s, bytes32 e, uint256 par, uint to, bytes32 uniq);
 
-    function make(uint task_id, address p, address c, bytes32 s, bytes32 e, uint256 par, uint to) public returns (bytes32) {
-        bytes32 uniq = keccak256(task_id, p, c, s, e, par, to);
-        Record storage r = records[uniq];
-        r.task_id = task_id;
-        r.prover = p;
-        r.challenger = c;
-        r.start_state = s;
-        r.end_state = e;
-        r.timeout = to;
-        r.clock = block.number;
-        r.next = r.prover;
-        r.idx1 = 0;
-        r.phase = 16;
-        r.size = par;
-        r.state = State.Started;
-        emit StartChallenge(p, c, s, e, r.size, to, uniq);
-        blocked[task_id] = r.clock + r.timeout;
-        return uniq;
+    function make(uint taskID, address solver, address verifier, bytes32 startStateHash, bytes32 endStateHash, uint256 size, uint timeout) external returns (bytes32) {
+        bytes32 gameID = keccak256(abi.encodePacked(taskID, solver, verifier, startStateHash, endStateHash, size, timeout));
+        Game storage g = games[gameID];
+        g.task_id = taskID;
+        g.prover = solver;
+        g.challenger = verifier;
+        g.start_state = startStateHash;
+        g.end_state = endStateHash;
+        g.timeout = timeout;
+        g.clock = block.number;
+        g.next = g.prover;
+        g.idx1 = 0;
+        g.phase = 16;
+        g.size = size;
+        g.state = State.Started;
+	g.status = Status.Challenged;	
+        emit StartChallenge(solver, verifier, startStateHash, endStateHash, g.size, timeout, gameID);
+        blocked[taskID] = g.clock + g.timeout;
+        return gameID;
+    }
+
+    function status(bytes32 gameID) external view returns(uint8) {
+	return uint8(games[gameID].status);
     }
     
     uint constant FINAL_STATE = 0xffffffffff;
     
-        struct Roots {
+    struct Roots {
         bytes32 code;
         bytes32 stack;
         bytes32 mem;
@@ -136,7 +147,7 @@ contract Interactive {
         uint memsize;
     }
     
-        VM vm;
+    VM vm;
     Roots vm_r;
 
     function ccStateHash(bytes32[10] roots, uint[4] pointers) public returns (bytes32) {
@@ -184,19 +195,17 @@ contract Interactive {
         arr[11] = bytes32(vm.stack_ptr);
         arr[12] = bytes32(vm.call_ptr);
         arr[13] = bytes32(vm.memsize);
-        return keccak256(arr);
+        return keccak256(abi.encodePacked(arr));
     }
     
-    function initialize(bytes32 id, bytes32[10] s_roots, uint[4] s_pointers, uint _steps,
-                                    bytes32[10] e_roots, uint[4] e_pointers) public returns (bytes32[10], uint[4], bytes32, bytes32) {
-        Record storage r = records[id];
-        require(msg.sender == r.next && r.state == State.Started);
+    function initialize(bytes32 gameID, bytes32[10] s_roots, uint[4] s_pointers, uint _steps, bytes32[10] e_roots, uint[4] e_pointers) public returns (bytes32[10], uint[4], bytes32, bytes32) {
+        Game storage g = games[gameID];
+        require(msg.sender == g.next && g.state == State.Started);
         // check first state here
-        // if (r.start_state != judge.calcIOHash(s_roots)) return false;
-        require (r.start_state == judge.calcIOHash(s_roots));
+        require (g.start_state == judge.calcIOHash(s_roots));
+	
         // then last one
-        // if (r.end_state != judge.calcIOHash(e_roots)) return false;
-        require (r.end_state == judge.calcIOHash(e_roots));
+        require (g.end_state == judge.calcIOHash(e_roots));
         
         // need to check that the start state is empty
         // stack
@@ -219,233 +228,225 @@ contract Interactive {
         require(e_pointers[0] == FINAL_STATE);
 
         // Now we can initialize
-        r.steps = _steps;
-        if (r.size > r.steps - 2) r.size = r.steps-2;
-        r.idx2 = r.steps-1;
-        r.proof.length = r.steps;
-        r.proof[r.steps-1] = judge.calcStateHash(e_roots, e_pointers);
-        r.proof[0] = judge.calcStateHash(s_roots, s_pointers);
-        r.state = State.Running;
+        g.steps = _steps;
+        if (g.size > g.steps - 2) g.size = g.steps-2;
+        g.idx2 = g.steps-1;
+        g.proof.length = g.steps;
+        g.proof[g.steps-1] = judge.calcStateHash(e_roots, e_pointers);
+        g.proof[0] = judge.calcStateHash(s_roots, s_pointers);
+        g.state = State.Running;
+	g.status = Status.Unresolved;
         // return true;
-        return (e_roots, e_pointers, keccak256(e_roots, e_pointers), ccStateHash(e_roots, e_pointers));
+        return (e_roots, e_pointers, keccak256(abi.encodePacked(e_roots, e_pointers)), ccStateHash(e_roots, e_pointers));
     }
     
-    function getDescription(bytes32 id) public view returns (bytes32 init, uint steps, bytes32 last) {
-        Record storage r = records[id];
-        return (r.proof[0], r.steps, r.proof[r.steps-1]);
+    function getDescription(bytes32 gameID) public view returns (bytes32 init, uint steps, bytes32 last) {
+        Game storage g = games[gameID];
+        return (g.proof[0], g.steps, g.proof[g.steps-1]);
     }
     
-    function getChallenger(bytes32 id) public view returns (address) {
-       return records[id].challenger;
+    function getChallenger(bytes32 gameID) public view returns (address) {
+       return games[gameID].challenger;
     }
     
-    function getProver(bytes32 id) public view returns (address) {
-       return records[id].prover;
+    function getProver(bytes32 gameID) public view returns (address) {
+       return games[gameID].prover;
     }
     
-    function getIndices(bytes32 id) public view returns (uint idx1, uint idx2) {
-        Record storage r = records[id];
-        return (r.idx1, r.idx2);
+    function getIndices(bytes32 gameID) public view returns (uint idx1, uint idx2) {
+        Game storage g = games[gameID];
+        return (g.idx1, g.idx2);
     }
     
-    function getTask(bytes32 id) public view returns (uint) {
-        Record storage r = records[id];
-        return r.task_id;
+    function getTask(bytes32 gameID) public view returns (uint) {
+        Game storage g = games[gameID];
+        return g.task_id;
     }
     
-    function deleteChallenge(bytes32 id) public {
-       delete records[id];
+    function deleteChallenge(bytes32 gameID) public {
+       delete games[gameID];
     }
 
-    function checkTimeout(bytes32 id) internal returns (bool) {
-        Record storage r = records[id];
-        if (r.state == State.Custom) return block.number >= r.judge.clock(r.sub_task) + r.timeout;
-        return block.number >= r.clock + r.timeout && r.state != State.Finished;
+    function checkTimeout(bytes32 gameID) internal returns (bool) {
+        Game storage g = games[gameID];
+        if (g.state == State.Custom) return block.number >= g.judge.clock(g.sub_task) + g.timeout;
+        return block.number >= g.clock + g.timeout && g.state != State.Finished;
    }
 
-    function gameOver(bytes32 id) public returns (bool) {
-        Record storage r = records[id];
-        if (!checkTimeout(id)) return false;
-        require(checkTimeout(id));
-        if (r.next == r.prover) {
-            r.winner = r.challenger;
-            rejected[r.task_id] = true;
+    function gameOver(bytes32 gameID) public returns (bool) {
+        Game storage g = games[gameID];
+        if (!checkTimeout(gameID)) return false;
+        require(checkTimeout(gameID));
+        if (g.next == g.prover) {
+            g.winner = g.challenger;
+	    g.status = Status.ChallengerWon;
+            rejected[g.task_id] = true;
         }
         else {
-            r.winner = r.prover;
-            blocked[r.task_id] = 0;
+            g.winner = g.prover;
+	    g.status = Status.SolverWon;
+            blocked[g.task_id] = 0;
         }
-        emit WinnerSelected(id);
-        r.state = State.Finished;
+        emit WinnerSelected(gameID);
+        g.state = State.Finished;
         return true;
     }
     
-    function clock(bytes32 id) public returns (uint) {
-        Record storage r = records[id];
-        if (r.sub_task != 0) return r.judge.clock(r.sub_task);
-        else return r.clock;
+    function clock(bytes32 gameID) public returns (uint) {
+        Game storage g = games[gameID];
+        if (g.sub_task != 0) return g.judge.clock(g.sub_task);
+        else return g.clock;
     }
     
-    function isRejected(uint id) public view returns (bool) {
-        return rejected[id];
+    function isRejected(uint gameID) public view returns (bool) {
+        return rejected[gameID];
     }
     
-    function blockedTime(uint id) public view returns (uint) {
-        return blocked[id] + 5;
+    function blockedTime(uint gameID) public view returns (uint) {
+        return blocked[gameID] + 5;
     }
 
-    function getIter(bytes32 id) internal view returns (uint it, uint i1, uint i2) {
-        Record storage r = records[id];
-        it = (r.idx2-r.idx1)/(r.size+1);
-        i1 = r.idx1;
-        i2 = r.idx2;
+    function getIter(bytes32 gameID) internal view returns (uint it, uint i1, uint i2) {
+        Game storage g = games[gameID];
+        it = (g.idx2-g.idx1)/(g.size+1);
+        i1 = g.idx1;
+        i2 = g.idx2;
     }
 
     event Reported(bytes32 id, uint idx1, uint idx2, bytes32[] arr);
 
-    function report(bytes32 id, uint i1, uint i2, bytes32[] arr) public returns (bool) {
-        Record storage r = records[id];
-        require(r.state == State.Running && arr.length == r.size && i1 == r.idx1 && i2 == r.idx2 &&
-                msg.sender == r.prover && r.prover == r.next);
-        r.clock = block.number;
-        blocked[r.task_id] = r.clock + r.timeout;
-        uint iter = (r.idx2-r.idx1)/(r.size+1);
+    function report(bytes32 gameID, uint i1, uint i2, bytes32[] arr) public returns (bool) {
+        Game storage g = games[gameID];
+        require(g.state == State.Running && arr.length == g.size && i1 == g.idx1 && i2 == g.idx2 && msg.sender == g.prover && g.prover == g.next);
+        g.clock = block.number;
+        blocked[g.task_id] = g.clock + g.timeout;
+        uint iter = (g.idx2-g.idx1)/(g.size+1);
         for (uint i = 0; i < arr.length; i++) {
-            r.proof[r.idx1+iter*(i+1)] = arr[i];
+            g.proof[g.idx1+iter*(i+1)] = arr[i];
         }
-        r.next = r.challenger;
-        emit Reported(id, i1, i2, arr);
+        g.next = g.challenger;
+        emit Reported(gameID, i1, i2, arr);
         return true;
     }
     
-    function getStateAt(bytes32 id, uint loc) public view returns (bytes32) {
-        return records[id].proof[loc];
+    function getStateAt(bytes32 gameID, uint loc) public view returns (bytes32) {
+        return games[gameID].proof[loc];
     }
     
     event Queried(bytes32 id, uint idx1, uint idx2);
 
-    function query(bytes32 id, uint i1, uint i2, uint num) public {
-        Record storage r = records[id];
-        require(r.state == State.Running && num <= r.size && i1 == r.idx1 && i2 == r.idx2 && msg.sender == r.challenger && r.challenger == r.next);
-        r.clock = block.number;
-        blocked[r.task_id] = r.clock + r.timeout;
-        uint iter = (r.idx2-r.idx1)/(r.size+1);
-        r.idx1 = r.idx1+iter*num;
+    function query(bytes32 gameID, uint i1, uint i2, uint num) public {
+        Game storage g = games[gameID];
+        require(g.state == State.Running && num <= g.size && i1 == g.idx1 && i2 == g.idx2 && msg.sender == g.challenger && g.challenger == g.next);
+        g.clock = block.number;
+        blocked[g.task_id] = g.clock + g.timeout;
+        uint iter = (g.idx2-g.idx1)/(g.size+1);
+        g.idx1 = g.idx1+iter*num;
         // If last segment was selected, do not change last index
-        if (num != r.size) r.idx2 = r.idx1+iter;
-        if (r.size > r.idx2-r.idx1-1) r.size = r.idx2-r.idx1-1;
+        if (num != g.size) g.idx2 = g.idx1+iter;
+        if (g.size > g.idx2-g.idx1-1) g.size = g.idx2-g.idx1-1;
         // size eventually becomes zero here
-        r.next = r.prover;
-        emit Queried(id, r.idx1, r.idx2);
-        if (r.size == 0) r.state = State.NeedPhases;
+        g.next = g.prover;
+        emit Queried(gameID, g.idx1, g.idx2);
+        if (g.size == 0) g.state = State.NeedPhases;
     }
 
-    function getStep(bytes32 id, uint idx) public view returns (bytes32) {
-        Record storage r = records[id];
-        return r.proof[idx];
+    function getStep(bytes32 gameID, uint idx) public view returns (bytes32) {
+        Game storage g = games[gameID];
+        return g.proof[idx];
     }
 
     event PostedPhases(bytes32 id, uint idx1, bytes32[13] arr);
 
-    function postPhases(bytes32 id, uint i1, bytes32[13] arr) public {
-        Record storage r = records[id];
-        require(r.state == State.NeedPhases && msg.sender == r.prover && r.next == r.prover && r.idx1 == i1);
-        require(r.proof[r.idx1] == arr[0] && r.proof[r.idx1+1] == arr[12] && arr[12] != bytes32(0));
-        r.clock = block.number;
-        r.state = State.PostedPhases;
-        blocked[r.task_id] = r.clock + r.timeout;
-        r.result = arr;
-        r.next = r.challenger;
-        emit PostedPhases(id, i1, arr);
+    function postPhases(bytes32 gameID, uint i1, bytes32[13] arr) public {
+        Game storage g = games[gameID];
+        require(g.state == State.NeedPhases && msg.sender == g.prover && g.next == g.prover && g.idx1 == i1);
+        require(g.proof[g.idx1] == arr[0] && g.proof[g.idx1+1] == arr[12] && arr[12] != bytes32(0));
+        g.clock = block.number;
+        g.state = State.PostedPhases;
+        blocked[g.task_id] = g.clock + g.timeout;
+        g.result = arr;
+        g.next = g.challenger;
+        emit PostedPhases(gameID, i1, arr);
     }
 
-    function getResult(bytes32 id)  public view returns (bytes32[13]) {
-        return records[id].result;
+    function getResult(bytes32 gameID)  public view returns (bytes32[13]) {
+        return games[gameID].result;
     }
     
     event SelectedPhase(bytes32 id, uint idx1, uint phase);
     
-    function selectPhase(bytes32 id, uint i1, bytes32 st, uint q) public {
-        Record storage r = records[id];
-        require(r.state == State.PostedPhases && msg.sender == r.challenger && r.idx1 == i1 && r.result[q] == st &&
-                r.next == r.challenger && q < 13);
-        r.clock = block.number;
-        blocked[r.task_id] = r.clock + r.timeout;
-        r.phase = q;
-        emit SelectedPhase(id, i1, q);
-        r.next = r.prover;
-        r.state = State.SelectedPhase;
+    function selectPhase(bytes32 gameID, uint i1, bytes32 st, uint q) public {
+        Game storage g = games[gameID];
+        require(g.state == State.PostedPhases && msg.sender == g.challenger && g.idx1 == i1 && g.result[q] == st && g.next == g.challenger && q < 13);
+        g.clock = block.number;
+        blocked[g.task_id] = g.clock + g.timeout;
+        g.phase = q;
+        emit SelectedPhase(gameID, i1, q);
+        g.next = g.prover;
+        g.state = State.SelectedPhase;
     }
     
-    function getState(bytes32 id) public view returns (State) {
-        return records[id].state;
+    function getState(bytes32 gameID) public view returns (State) {
+        return games[gameID].state;
     }
     
-    function getPhase(bytes32 id) public view returns (uint) {
-        return records[id].phase;
+    function getPhase(bytes32 gameID) public view returns (uint) {
+        return games[gameID].phase;
     }
     
-    function getWinner(bytes32 id) public view returns (address) {
-        return records[id].winner;
+    function getWinner(bytes32 gameID) public view returns (address) {
+        return games[gameID].winner;
     }
 
     event WinnerSelected(bytes32 id);
 
-    function callJudge(bytes32 id, uint i1, uint q,
-                        bytes32[] proof, bytes32[] proof2,
-                        bytes32 vm, bytes32 op, uint[4] regs,
-                        bytes32[10] roots, uint[4] pointers) public {
-        Record storage r = records[id];
-        require(r.state == State.SelectedPhase && r.phase == q && msg.sender == r.prover && r.idx1 == i1 && r.next == r.prover);
+    function callJudge(bytes32 gameID, uint i1, uint q, bytes32[] proof, bytes32[] proof2, bytes32 vmHash, bytes32 op, uint[4] regs, bytes32[10] roots, uint[4] pointers) public {
+        Game storage g = games[gameID];
+        require(g.state == State.SelectedPhase && g.phase == q && msg.sender == g.prover && g.idx1 == i1 && g.next == g.prover);
         // for custom judge, use another method
         // uint alu_hint = (uint(op)/2**(8*3))&0xff; require (q != 5 || alu_hint != 0xff);
         
-        judge.judge(r.result, r.phase, proof, proof2, vm, op, regs, roots, pointers);
-        emit WinnerSelected(id);
-        r.winner = r.prover;
-        blocked[r.task_id] = 0;
-        r.state = State.Finished;
+        judge.judge(g.result, g.phase, proof, proof2, vmHash, op, regs, roots, pointers);
+        emit WinnerSelected(gameID);
+        g.winner = g.prover;
+        blocked[g.task_id] = 0;
+        g.state = State.Finished;
     }
 
     event SubGoal(bytes32 id, uint64 judge, bytes32 init_data, uint init_size, bytes32 ret_data, uint ret_size);
 
-    function resolveCustom(bytes32 id) public returns (bool) {
-        Record storage r = records[id];
-        if (r.sub_task == 0 || !r.judge.resolved(r.sub_task, r.ex_state, r.ex_size)) return false;
-        emit WinnerSelected(id);
-        r.winner = r.prover;
-        blocked[r.task_id] = 0;
-        r.state = State.Finished;
+    function resolveCustom(bytes32 gameID) public returns (bool) {
+        Game storage g = games[gameID];
+        if (g.sub_task == 0 || !g.judge.resolved(g.sub_task, g.ex_state, g.ex_size)) return false;
+        emit WinnerSelected(gameID);
+        g.winner = g.prover;
+        blocked[g.task_id] = 0;
+        g.state = State.Finished;
         return true;
     }
 
     // some register should have the input size?
-    function callCustomJudge(bytes32 id, uint i1,
-                        bytes32 op, uint[4] regs,
-                        bytes32 custom_result, uint custom_size, bytes32[] custom_proof,
-                        bytes32[10] roots, uint[4] pointers) public {
+    function callCustomJudge(bytes32 gameID, uint i1, bytes32 op, uint[4] regs, bytes32 custom_result, uint custom_size, bytes32[] custom_proof, bytes32[10] roots, uint[4] pointers) public {
                         
-        Record storage r = records[id];
-        require(r.state == State.SelectedPhase && r.phase == 6 && msg.sender == r.prover && r.idx1 == i1 &&
-                r.next == r.prover);
+        Game storage g = games[gameID];
+        require(g.state == State.SelectedPhase && g.phase == 6 && msg.sender == g.prover && g.idx1 == i1 && g.next == g.prover);
 
         uint hint = (uint(op)/2**(8*5))&0xff;
         require (hint == 0x16);
 
-        r.judge = judges[uint64(regs[3])];
+        g.judge = judges[uint64(regs[3])];
 
         // uint256 init_size = regs[0] % 2 == 0 ? uint(custom_size_proof[0]) : uint(custom_size_proof[1]);
         bytes32 init_data = regs[0] % 2 == 0 ? custom_proof[0] : custom_proof[1];
 
-        r.sub_task = r.judge.init(init_data, regs[1], regs[2], r.prover, r.challenger);
-        r.ex_state = custom_result;
-        r.ex_size = custom_size;
-        judge.judgeCustom(r.result[5], r.result[6], custom_result, custom_size, op, regs, roots, pointers, custom_proof);
-        r.state = State.Custom;
+        g.sub_task = g.judge.init(init_data, regs[1], regs[2], g.prover, g.challenger);
+        g.ex_state = custom_result;
+        g.ex_size = custom_size;
+        judge.judgeCustom(g.result[5], g.result[6], custom_result, custom_size, op, regs, roots, pointers, custom_proof);
+        g.state = State.Custom;
         
-        emit SubGoal(id, uint64(regs[3]), init_data, regs[1], custom_result, custom_size);
-        
-        return;
+        emit SubGoal(gameID, uint64(regs[3]), init_data, regs[1], custom_result, custom_size);        
     }
 
     function checkFileProof(bytes32 state, bytes32[10] roots, uint[4] pointers, bytes32[] proof, uint loc) public returns (bool) {
@@ -459,5 +460,5 @@ contract Interactive {
     function calcStateHash(bytes32[10] roots, uint[4] pointers) public returns (bytes32) {
         return judge.calcStateHash(roots, pointers);
     }
-
+    
 }

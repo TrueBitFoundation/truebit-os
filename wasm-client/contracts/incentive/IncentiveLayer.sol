@@ -6,8 +6,8 @@ import "./TRU.sol";
 import "./ExchangeRateOracle.sol";
 import "./RewardsManager.sol";
 
-import "./IGameMaker.sol";
-import "./IDisputeResolutionLayer.sol";
+import "../interface/IGameMaker.sol";
+import "../interface/IDisputeResolutionLayer.sol";
 
 contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
 
