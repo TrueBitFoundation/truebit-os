@@ -1,6 +1,6 @@
 pragma solidity ^0.4.18;
 
-import "zeppelin-solidity/contracts/math/SafeMath.sol";
+import "../openzeppelin-solidity/SafeMath.sol";
 import "./TRU.sol";
 
 contract JackpotManager {

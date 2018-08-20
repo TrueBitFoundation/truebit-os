@@ -424,7 +424,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     function verificationGame(uint taskID, address solver, address challenger, bytes32 solutionHash) internal {
 	Task storage t = tasks[taskID];
 	uint size = 1;
-	bytes32 gameID = IGameMaker(disputeResolutionLayer).make(taskID, solver, challenger, t.initTaskHash, solutionHash, 1, TIMEOUT);
+	bytes32 gameID = IGameMaker(disputeResolutionLayer).make(taskID, solver, challenger, t.initTaskHash, solutionHash, size, TIMEOUT);
 	solutions[taskID].currentGame = gameID;
     }
 

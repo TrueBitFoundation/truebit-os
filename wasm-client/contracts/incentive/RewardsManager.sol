@@ -1,6 +1,6 @@
 pragma solidity^0.4.18;
 
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "../openzeppelin-solidity/SafeMath.sol";
 import "./TRU.sol";
 
 contract RewardsManager {
@@ -23,7 +23,7 @@ contract RewardsManager {
         token = TRU(_tru);
     }
 
-    function getTaskReward(uint taskID) public returns (uint) {
+    function getTaskReward(uint taskID) public view returns (uint) {
         return rewards[taskID];
     }
 
