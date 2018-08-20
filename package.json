@@ -6,7 +6,7 @@
   "scripts": {
     "fixperms": "chmod 755 wasm-client/install.sh wasm-client/deploy.sh wasm-client/compile.sh",
     "setup": "./wasm-client/install.sh ./wasm-client/compile.sh",
-    "deploy": "./wasm-client/deploy.sh",
+    "deploy": "node wasm-client/deploy.js",
     "test": "mocha",
     "truebit": "node ./cli/index.js"
   },
