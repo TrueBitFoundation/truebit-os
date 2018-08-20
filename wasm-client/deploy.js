@@ -14,7 +14,7 @@ function getArtifacts(name) {
 async function deployContract(name, options = {}, args = []) {
     let artifacts = getArtifacts(name)
     let contract = new web3.eth.Contract(artifacts.abi)
-    await contract
+    return await contract
 	.deploy({data: "0x"+artifacts.bin, arguments: args})
 	.send(options)
 }
@@ -44,9 +44,35 @@ async function getNetwork() {
     return networkName
 }
 
+function exportContract(contract) {
+    return {
+	address: contract._address,
+	abi: contract._jsonInterface
+    }
+}
+
 async function deploy() {
     let accounts = await web3.eth.getAccounts()
-    let filesystem = deployContract('Filesystem', {from: accounts[0], gas: 3500000})    
+    let filesystem = await deployContract('Filesystem', {from: accounts[0], gas: 3500000})
+    let judge = await deployContract('Judge', {from: accounts[0], gas: 4600000})
+    let merkle = await deployContract('Merkle', {from: accounts[0], gas: 1000000})
+    
+    let interactive = await deployContract('Interactive', {from: accounts[0], gas: 3500000}, [judge._address])
+    await interactive.methods.registerJudge(1, merkle._address).send({from: accounts[0]})
+
+    let tru = await deployContract('TRU', {from: accounts[0], gas: 1000000})
+    let exchangeRateOracle = await deployContract('ExchangeRateOracle', {from: accounts[0], gas: 1000000})
+    let incentiveLayer = await deployContract('IncentiveLayer', {from: accounts[0], gas: 3200000}, [tru._address, exchangeRateOracle._address, interactive._address])
+
+    fs.writeFileSync('./wasm-client/contracts.json', JSON.stringify({
+	fileystem: exportContract(filesystem),
+	judge: exportContract(judge),
+	merkle: exportContract(merkle),
+	interactive: exportContract(interactive),
+	tru: exportContract(tru),
+	exchangeRateOracle: exportContract(exchangeRateOracle),
+	incentiveLayer: exportContract(incentiveLayer)
+    }))
 }
 
 deploy()

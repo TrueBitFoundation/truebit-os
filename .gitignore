@@ -7,3 +7,4 @@ combined.log.json
 tmp.*
 
 wasm-client/build
+wasm-client/contracts.json

@@ -10,4 +10,3 @@
 	"merkleComputer": "../wasm-client/webasm-solidity/merkle-computer/"
     }
 }
-    
