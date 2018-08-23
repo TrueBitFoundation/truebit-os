@@ -15,7 +15,7 @@ async function deployContract(name, options = {}, args = []) {
     let artifacts = getArtifacts(name)
     let contract = new web3.eth.Contract(artifacts.abi)
     return await contract
-	.deploy({data: "0x"+artifacts.bin, arguments: args})
+	.deploy({data: "0x" + artifacts.bin, arguments: args})
 	.send(options)
 }
 

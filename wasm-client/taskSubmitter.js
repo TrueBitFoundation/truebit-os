@@ -8,11 +8,13 @@ const path = require('path')
 const wasmClientConfig = JSON.parse(fs.readFileSync(__dirname + "/webasm-solidity/export/development.json"))
 const incentiveLayerConfig = JSON.parse(fs.readFileSync(__dirname + "/incentive-layer/export/development.json"))
 
+const contractsConfig = JSON.parse(fs.readFileSync(__dirname + "contracts.json"))
+
 function setup(httpProvider) {
     return (async () => {
-	let incentiveLayer = await contract(httpProvider, wasmClientConfig['tasks'])
-	let fileSystem = await contract(httpProvider, wasmClientConfig['filesystem'])
-	return [incentiveLayer, fileSystem]
+	let incentiveLayer = await contract(httpProvider, contractsConfig['incentiveLayer'])
+	let filesystem = await contract(httpProvider, contractsConfig['filesystem'])
+	return [incentiveLayer, filesystem]
     })()
 }
 
@@ -267,13 +269,15 @@ module.exports = async (web3, logger, mcFileSystem) => {
 	    task["minDeposit"] = web3.utils.toWei(task.minDeposit, 'ether')
 	    await depositsHelper(web3, incentiveLayer, task.from, task.minDeposit)
 
-	    return await incentiveLayer.add(
+	    return await incentiveLayer.createTask(
 		task.initHash,
 		task.codeType,
 		task.storageType,
 		task.storageAddress,
-		{from: task.from, gas: 350000}
+		1, //TODO: set maxDifficulty 
+		1  //TODO: set Reward
 	    )
+
 	}
     }
 }

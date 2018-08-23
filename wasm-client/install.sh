@@ -1,13 +1,7 @@
-cd wasm-client/webasm-solidity/
 
-git submodule init
-git submodule update
-npm install
-npm run compile
+# This script installs the offchain interpreter
 
-cd ..
-
-cd ocaml-offchain
+cd wasm-client/ocaml-offchain
 git submodule init
 git submodule update
 

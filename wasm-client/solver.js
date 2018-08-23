@@ -11,13 +11,13 @@ const assert = require('assert')
 
 const merkleComputer = require(__dirname+ "/webasm-solidity/merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
 
-const wasmClientConfig = JSON.parse(fs.readFileSync(__dirname + "/webasm-solidity/export/development.json"))
+const contractsConfig = JSON.parse(fs.readFileSync(__dirname + "/contracts.json"))
 
 function setup(httpProvider) {
     return (async () => {
-	incentiveLayer = await contract(httpProvider, wasmClientConfig['tasks'])
-	fileSystem = await contract(httpProvider, wasmClientConfig['filesystem'])
-	disputeResolutionLayer = await contract(httpProvider, wasmClientConfig['interactive'])
+	incentiveLayer = await contract(httpProvider, contractsConfig['incentiveLayer'])
+	fileSystem = await contract(httpProvider, contractsConfig['filesystem'])
+	disputeResolutionLayer = await contract(httpProvider, contractsConfig['interactive'])
 	return [incentiveLayer, fileSystem, disputeResolutionLayer]
     })()
 }
@@ -35,23 +35,50 @@ module.exports = {
 
 	let [incentiveLayer, fileSystem, disputeResolutionLayer] = await setup(web3.currentProvider)
 
-	const taskPostedEvent = incentiveLayer.Posted()
+	const taskCreatedEvent = incentiveLayer.TaskCreated()
 
-	taskPostedEvent.watch(async (err, result) => {
+	taskCreatedEvent.watch(async (err, result) => {
 	    if (result) {
 		let taskID = result.args.id
-		
 		let minDeposit = result.args.deposit.toNumber()		
 
-		let storageType = result.args.cs.toNumber()
-		let storageAddress = result.args.stor
-		let initStateHash = result.args.hash
+		let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))		
 
-		let solution, vm, interpreterArgs
+		let storageType = taskInfo.codeStorage
+		let storageAddress = taskInfo.storageAddress
+		let initTaskHash = taskInfo.initTaskHash
 
 		let solutionInfo = toSolutionInfo(await incentiveLayer.solutionInfo.call(taskID))
 
 		if (solutionInfo.solver == '0x0000000000000000000000000000000000000000') {
+		    //TODO: Add more selection filters for solvers
+
+		    let secret = Math.floor(Math.random() * Math.floor(100))
+
+		    incentiveLayer.registerForTask(taskID, web3.utils.soliditySha3(secret))
+
+		    tasks[taskID].secret = secret
+		    
+		}
+	    }
+	})
+
+	const solverSelectedEvent = incentiveLayer.SolverSelected()
+	solverSelectedEvent.watch(async (err, result) => {
+	    if (result) {
+		let taskID = result.args.taskID
+		let solver = result.args.solver
+
+		if (account.toLowerCase() == solver) {
+
+		    if (!tasks[taskID]) {
+			//TODO: Need to read secret from persistence or else task is lost
+			let taskInfo = toTaskInfo(incentiveLayer.getTaskInfo.call(taskID))
+			tasks[taskID].taskInfo = taskInfo
+		    }
+
+		    let solution, vm, interpreterArgs
+
 		    await depositsHelper(web3, incentiveLayer, account, minDeposit)
 		    logger.log({
 			level: 'info',
@@ -70,7 +97,7 @@ module.exports = {
 			    merkleComputer,
 			    taskID,
 			    buf,
-			    result.args.ct.toNumber(),
+			    tasks[taskID].taskInfo.codeType,
 			    false
 			)
 			
@@ -105,7 +132,7 @@ module.exports = {
 			    merkleComputer,
 			    taskID,
 			    codeBuf,
-			    result.args.ct.toNumber(),
+			    tasks[taskID].taskInfo.codeType,
 			    false,
 			    files
 			)
@@ -120,32 +147,46 @@ module.exports = {
 		    //console.log(solution)
 		    
 		    try {
-			
-			await incentiveLayer.solveIO(
-			    taskID,
-			    solution.vm.code,
-			    solution.vm.input_size,
-			    solution.vm.input_name,
-			    solution.vm.input_data,
-			    {from: account, gas: 200000}
-			)
 
+			if (Math.round(Math.random())) {
+			    await incentiveLayer.commitSolution(taskID, realSolution, fakeSolution)
+			    tasks[taskID].realSolution = 0
+			} else {
+			    await incentiveLayer.commitSolution(taskID, fakeSolution, realSolution)
+			    tasks[taskID].realSolution = 1
+			}
+			
 			logger.log({
 			    level: 'info',
 			    message: `Submitted solution for task ${taskID} successfully`
 			})
-			
 
-			tasks[taskID] = {
-			    solution: solution,
-			    vm: vm,
-			    interpreterArgs: interpreterArgs
-			}
-			
+			tasks[taskID]["solution"] = solution
+			tasks[taskID]["vm"] = vm
+			tasks[taskID]["interpreterArgs"] = interpreterArgs
+						
 		    } catch(e) {
 			//TODO: Add logging unsuccessful submission attempt
 			console.log(e)
 		    }
+		}
+		
+		
+	    }
+	})
+
+	const taskStateChanged = incentiveLayer.TaskStateChange()
+	taskStateChangedEvent.watch(async (err, result) => {
+	    if (result) {
+		let taskID = result.args.taskID.toNumber()
+		if (tasks[taskID] && result.args.state.toNumber() == 4) {
+
+		    if(tasks[taskID].realSolution == 0) {
+			await incentiveLayer.revealSolution(taskID, true, tasks[taskID].secret)
+		    } else {
+			await incentiveLayer.revealSolution(taskID, false, tasks[taskID].secret)
+		    }
+		    
 		}
 	    }
 	})

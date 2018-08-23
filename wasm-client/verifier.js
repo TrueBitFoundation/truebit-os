@@ -9,13 +9,13 @@ const waitForBlock = require('./util/waitForBlock')
 
 const merkleComputer = require(__dirname+ "/webasm-solidity/merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
 
-const wasmClientConfig = JSON.parse(fs.readFileSync(__dirname + "/webasm-solidity/export/development.json"))
+const contractsConfig = JSON.parse(fs.readFileSync(__dirname + "/contracts.json"))
 
 function setup(httpProvider) {
     return (async () => {
-	incentiveLayer = await contract(httpProvider, wasmClientConfig['tasks'])
-	fileSystem = await contract(httpProvider, wasmClientConfig['filesystem'])
-	disputeResolutionLayer = await contract(httpProvider, wasmClientConfig['interactive'])
+	incentiveLayer = await contract(httpProvider, contractsConfig['incentiveLayer'])
+	fileSystem = await contract(httpProvider, contractsConfig['filesystem'])
+	disputeResolutionLayer = await contract(httpProvider, contractsConfig['interactive'])
 	return [incentiveLayer, fileSystem, disputeResolutionLayer]
     })()
 }
@@ -39,16 +39,19 @@ module.exports = {
 	let [incentiveLayer, fileSystem, disputeResolutionLayer] = await setup(web3.currentProvider)
 
 	//Solution committed event
-	const solvedEvent = incentiveLayer.Solved()
+	const solutionsCommittedEvent = incentiveLayer.SolutionsCommitted()
 
-	solvedEvent.watch(async (err, result) => {
+	solutionsCommittedEvent.watch(async (err, result) => {
 	    if (result) {
-		let taskID = result.args.id.toNumber()
-		let storageAddress = result.args.stor
+		
+		let taskID = result.args.taskID.toNumber()
+		let storageAddress = result.args.storageAddress
 		let minDeposit = result.args.deposit.toNumber()
 
 		let taskInfo = toTaskInfo(await incentiveLayer.taskInfo.call(taskID))
 		let solutionInfo = toSolutionInfo(await incentiveLayer.solutionInfo.call(taskID))
+
+		//TODO: Check both solutions
 
 		let storageType = result.args.cs.toNumber()
 		
@@ -62,7 +65,7 @@ module.exports = {
 			merkleComputer,
 			taskID,
 			buf,
-			result.args.ct.toNumber(),
+			result.args.codeType.toNumber(),
 			true
 		    )
 		    
@@ -99,7 +102,7 @@ module.exports = {
 			merkleComputer,
 			taskID,
 			codeBuf,
-			result.args.ct.toNumber(),
+			result.args.codeType.toNumber(),
 			false,
 			files
 		    )

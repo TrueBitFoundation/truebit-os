@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cd contracts/
+cd wasm-client/contracts/
 
 mkdir -p ../build
 
