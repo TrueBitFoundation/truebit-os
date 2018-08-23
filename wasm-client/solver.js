@@ -9,14 +9,14 @@ const waitForBlock = require('./util/waitForBlock')
 const setupVM = require('./util/setupVM')
 const assert = require('assert')
 
-const merkleComputer = require(__dirname+ "/webasm-solidity/merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
+const merkleComputer = require("./merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
 
 const contractsConfig = JSON.parse(fs.readFileSync(__dirname + "/contracts.json"))
 
 function setup(httpProvider) {
     return (async () => {
 	incentiveLayer = await contract(httpProvider, contractsConfig['incentiveLayer'])
-	fileSystem = await contract(httpProvider, contractsConfig['filesystem'])
+	fileSystem = await contract(httpProvider, contractsConfig['fileSystem'])
 	disputeResolutionLayer = await contract(httpProvider, contractsConfig['interactive'])
 	return [incentiveLayer, fileSystem, disputeResolutionLayer]
     })()
@@ -175,7 +175,7 @@ module.exports = {
 	    }
 	})
 
-	const taskStateChanged = incentiveLayer.TaskStateChange()
+	const taskStateChangedEvent = incentiveLayer.TaskStateChange()
 	taskStateChangedEvent.watch(async (err, result) => {
 	    if (result) {
 		let taskID = result.args.taskID.toNumber()

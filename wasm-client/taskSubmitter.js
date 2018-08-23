@@ -1,20 +1,17 @@
 const depositsHelper = require('./depositsHelper')
 const fs = require('fs')
 const contract = require('./contractHelper')
-const merkleComputer = require(__dirname + '/webasm-solidity/merkle-computer')('./../wasm-client/ocaml-offchain/interpreter/wasm')
+const merkleComputer = require('./merkle-computer')('./../wasm-client/ocaml-offchain/interpreter/wasm')
 const assert = require('assert')
 const path = require('path')
 
-const wasmClientConfig = JSON.parse(fs.readFileSync(__dirname + "/webasm-solidity/export/development.json"))
-const incentiveLayerConfig = JSON.parse(fs.readFileSync(__dirname + "/incentive-layer/export/development.json"))
-
-const contractsConfig = JSON.parse(fs.readFileSync(__dirname + "contracts.json"))
+const contractsConfig = JSON.parse(fs.readFileSync(__dirname + "/contracts.json"))
 
 function setup(httpProvider) {
     return (async () => {
 	let incentiveLayer = await contract(httpProvider, contractsConfig['incentiveLayer'])
-	let filesystem = await contract(httpProvider, contractsConfig['filesystem'])
-	return [incentiveLayer, filesystem]
+	let fileSystem = await contract(httpProvider, contractsConfig['fileSystem'])
+	return [incentiveLayer, fileSystem]
     })()
 }
 
@@ -251,10 +248,12 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
 		task["initHash"] = await getInitHash(config, randomPath)
 
+		
+
 		//register deployed contract with truebit filesystem
 		let bundleID = await makeSimpleBundle({
 		    from: task.from,
-		    gas: 200000,
+		    gas: 350000,
 		    initHash: task.initHash,
 		    contractAddress: contractAddress
 		})
@@ -268,6 +267,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
 	    //bond minimum deposit
 	    task["minDeposit"] = web3.utils.toWei(task.minDeposit, 'ether')
 	    await depositsHelper(web3, incentiveLayer, task.from, task.minDeposit)
+	    console.log("Made deposit")
 
 	    return await incentiveLayer.createTask(
 		task.initHash,
@@ -275,8 +275,11 @@ module.exports = async (web3, logger, mcFileSystem) => {
 		task.storageType,
 		task.storageAddress,
 		1, //TODO: set maxDifficulty 
-		1  //TODO: set Reward
+		1,  //TODO: set Reward
+		{gas: 1000000}
 	    )
+
+	    console.log("Created task")
 
 	}
     }

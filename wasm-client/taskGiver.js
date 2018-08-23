@@ -27,7 +27,7 @@ module.exports = {
 	let incentiveLayer = await setup(web3.currentProvider)
 
 	//Task creation event
-	const taskPostedEvent = incentiveLayer.TaskCreated()
+	const taskCreatedEvent = incentiveLayer.TaskCreated()
 
 	taskCreatedEvent.watch(async (err, result) => {
 	    if (result) {

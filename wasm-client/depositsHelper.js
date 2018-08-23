@@ -10,7 +10,7 @@ module.exports = async (web3, incentiveLayer, account, minDeposit) => {
 		let difference = currentDeposit - minDeposit
 
 		if(difference < 0) {
-			await incentiveLayer.makeDeposit({from: account, value: difference * -1})
+		    await incentiveLayer.makeDeposit(difference * -1, {from: account})
 		}
 	}
 }

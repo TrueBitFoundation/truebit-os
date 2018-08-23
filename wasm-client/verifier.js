@@ -38,6 +38,8 @@ module.exports = {
 
 	let [incentiveLayer, fileSystem, disputeResolutionLayer] = await setup(web3.currentProvider)
 
+	//INCENTIVE
+
 	//Solution committed event
 	const solutionsCommittedEvent = incentiveLayer.SolutionsCommitted()
 
@@ -129,6 +131,8 @@ module.exports = {
 		}
 	    }
 	})
+
+	// DISPUTE
 
 	const startChallengeEvent = disputeResolutionLayer.StartChallenge()
 

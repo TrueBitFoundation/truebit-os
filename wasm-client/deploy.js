@@ -53,7 +53,7 @@ function exportContract(contract) {
 
 async function deploy() {
     let accounts = await web3.eth.getAccounts()
-    let filesystem = await deployContract('Filesystem', {from: accounts[0], gas: 3500000})
+    let fileSystem = await deployContract('Filesystem', {from: accounts[0], gas: 3500000})
     let judge = await deployContract('Judge', {from: accounts[0], gas: 4600000})
     let merkle = await deployContract('Merkle', {from: accounts[0], gas: 1000000})
     
@@ -65,7 +65,7 @@ async function deploy() {
     let incentiveLayer = await deployContract('IncentiveLayer', {from: accounts[0], gas: 3200000}, [tru._address, exchangeRateOracle._address, interactive._address])
 
     fs.writeFileSync('./wasm-client/contracts.json', JSON.stringify({
-	fileystem: exportContract(filesystem),
+	fileSystem: exportContract(fileSystem),
 	judge: exportContract(judge),
 	merkle: exportContract(merkle),
 	interactive: exportContract(interactive),
