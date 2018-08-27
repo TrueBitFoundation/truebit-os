@@ -145,14 +145,17 @@ module.exports = {
 		    solution = await vm.executeWasmTask(interpreterArgs)
 
 		    //console.log(solution)
+
+		    let realSolution = solution
+		    let fakeSolution = web3.utils.soliditySha3(Math.random())
 		    
 		    try {
 
 			if (Math.round(Math.random())) {
-			    await incentiveLayer.commitSolution(taskID, realSolution, fakeSolution)
+			    await incentiveLayer.commitSolution(taskID, realSolution, fakeSolution, {from: solver})
 			    tasks[taskID].realSolution = 0
 			} else {
-			    await incentiveLayer.commitSolution(taskID, fakeSolution, realSolution)
+			    await incentiveLayer.commitSolution(taskID, fakeSolution, realSolution, {from: solver})
 			    tasks[taskID].realSolution = 1
 			}
 			
