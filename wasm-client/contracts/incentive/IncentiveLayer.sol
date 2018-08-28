@@ -263,6 +263,12 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         return id;
     }
 
+    function requireFile(bytes32 id, bytes32 hash, StorageType st) public {
+        Task storage t = tasks[id];
+        require (!t.requiredCommitted && msg.sender == t.owner);
+        t.uploads.push(RequiredFile(hash, st, 0));
+    }
+    
     function commitRequiredFiles(bytes32 id) public {
         Task storage t = tasks[id];
         require (msg.sender == t.owner);
