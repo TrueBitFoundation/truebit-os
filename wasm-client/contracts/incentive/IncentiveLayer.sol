@@ -447,7 +447,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         bondDeposit(taskID, msg.sender, t.minDeposit);
         if (solution == 0) { // Intent determines which solution the verifier is betting is deemed incorrect
             solutions[taskID].solution0Challengers.push(msg.sender);
-        } else if (solution == 1) {
+        } else {
             solutions[taskID].solution1Challengers.push(msg.sender);
         }
         uint position = solutions[taskID].allChallengers.length;
