@@ -6,12 +6,13 @@ import "./TRU.sol";
 contract RewardsManager {
     using SafeMath for uint;
 
-    mapping(uint => uint) public rewards;
+    mapping(bytes32 => uint) public rewards;
+    mapping(bytes32 => uint) public taxes;
     address public owner;
     TRU public token;
 
-    event RewardDeposit(uint indexed task, address who, uint amount);
-    event RewardClaimed(uint indexed task, address who, uint amount);
+    event RewardDeposit(bytes32 indexed task, address who, uint amount, uint tax);
+    event RewardClaimed(bytes32 indexed task, address who, uint amount, uint tax);
     
     modifier onlyOwner() {
         require(msg.sender == owner);
@@ -23,26 +24,31 @@ contract RewardsManager {
         token = TRU(_tru);
     }
 
-    function getTaskReward(uint taskID) public view returns (uint) {
+    function getTaskReward(bytes32 taskID) public view returns (uint) {
         return rewards[taskID];
     }
 
-    function depositReward(uint taskID, uint reward) public returns (bool) {
-        require(token.allowance(msg.sender, address(this)) >= reward);
-        token.transferFrom(msg.sender, address(this), reward);
+    function depositReward(bytes32 taskID, uint reward, uint tax) public returns (bool) {
+        require(token.allowance(msg.sender, address(this)) >= reward + tax);
+        token.transferFrom(msg.sender, address(this), reward + tax);
     
         rewards[taskID] = rewards[taskID].add(reward);
-        emit RewardDeposit(taskID, msg.sender, reward);
+        taxes[taskID] = rewards[taskID].add(tax);
+        emit RewardDeposit(taskID, msg.sender, reward, tax);
         return true; 
     }
 
-    function payReward(uint taskID, address to) internal returns (bool) {
+    function payReward(bytes32 taskID, address to) internal returns (bool) {
         require(rewards[taskID] > 0);
         uint payout = rewards[taskID];
         rewards[taskID] = 0;
-        
+
+        uint tax = taxes[taskID];
+        taxes[taskID] = 0;
+        token.burn(tax);
+
         token.transfer(to, payout);
-        emit RewardClaimed(taskID, to, payout);
+        emit RewardClaimed(taskID, to, payout, tax);
         return true;
     } 
 

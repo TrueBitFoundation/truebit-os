@@ -38,8 +38,8 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
 
     JudgeInterface judge;
 
-    mapping (uint => uint) blocked;
-    mapping (uint => bool) rejected;
+    mapping (bytes32 => uint) blocked;
+    mapping (bytes32 => bool) rejected;
 
     enum State {
         Started,
@@ -54,7 +54,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
     }
 
     struct Game {
-        uint256 task_id;
+        bytes32 task_id;
     
         address prover;
         address challenger;
@@ -81,7 +81,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         bytes32[13] result;
         
         State state;
-	Status status;
+        Status status;
         
         // 
         CustomJudge judge;
@@ -100,7 +100,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
 
     event StartChallenge(address p, address c, bytes32 s, bytes32 e, uint256 par, uint to, bytes32 uniq);
 
-    function make(uint taskID, address solver, address verifier, bytes32 startStateHash, bytes32 endStateHash, uint256 size, uint timeout) external returns (bytes32) {
+    function make(bytes32 taskID, address solver, address verifier, bytes32 startStateHash, bytes32 endStateHash, uint256 size, uint timeout) external returns (bytes32) {
         bytes32 gameID = keccak256(abi.encodePacked(taskID, solver, verifier, startStateHash, endStateHash, size, timeout));
         Game storage g = games[gameID];
         g.task_id = taskID;
@@ -115,7 +115,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         g.phase = 16;
         g.size = size;
         g.state = State.Started;
-	g.status = Status.Challenged;	
+        g.status = Status.Challenged;	
         emit StartChallenge(solver, verifier, startStateHash, endStateHash, g.size, timeout, gameID);
         blocked[taskID] = g.clock + g.timeout;
         return gameID;
@@ -258,7 +258,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         return (g.idx1, g.idx2);
     }
     
-    function getTask(bytes32 gameID) public view returns (uint) {
+    function getTask(bytes32 gameID) public view returns (bytes32) {
         Game storage g = games[gameID];
         return g.task_id;
     }
@@ -298,11 +298,11 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         else return g.clock;
     }
     
-    function isRejected(uint gameID) public view returns (bool) {
+    function isRejected(bytes32 gameID) public view returns (bool) {
         return rejected[gameID];
     }
     
-    function blockedTime(uint gameID) public view returns (uint) {
+    function blockedTime(bytes32 gameID) public view returns (uint) {
         return blocked[gameID] + 5;
     }
 

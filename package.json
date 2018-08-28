@@ -4,9 +4,9 @@
   "description": "Client software for interacting with the Truebit system",
   "main": "index.js",
   "scripts": {
-    "fixperms": "chmod 755 wasm-client/install.sh wasm-client/deploy.sh wasm-client/compile.sh",
+    "fixperms": "chmod 755 wasm-client/install.sh wasm-client/compile.sh",
     "install": "./wasm-client/install.sh",
-    "compile": "./wasm-client/compile.sh",      
+    "compile": "./wasm-client/compile.sh",
     "deploy": "node wasm-client/deploy.js",
     "distribute": "node wasm-client/distributeTokens.js",
     "test": "mocha",
