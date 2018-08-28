@@ -211,11 +211,12 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         Task storage t = tasks[id];
         t.owner = msg.sender;
         t.minDeposit = minDeposit;
-        depositReward(id, reward);
         t.reward = reward;
 //        deposits[msg.sender] = deposits[msg.sender].sub(reward);
 
         t.tax = minDeposit * taxMultiplier;
+        depositReward(id, reward, t.tax);
+        
         t.initTaskHash = initTaskHash;
 //        t.taskCreationBlockNumber = block.number;
         t.initialReward = minDeposit;
@@ -305,8 +306,10 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         t.state = State.SolverSelected;
 
         // Burn task giver's taxes now that someone has claimed the task
+        /*
         deposits[t.owner] = deposits[t.owner].sub(t.tax);
         token.burn(t.tax);
+        */
 
         emit SolverSelected(taskID, msg.sender, t.initTaskHash, t.minDeposit, t.randomBitsHash);
         return true;

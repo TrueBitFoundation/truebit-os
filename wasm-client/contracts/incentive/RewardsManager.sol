@@ -11,8 +11,8 @@ contract RewardsManager {
     address public owner;
     TRU public token;
 
-    event RewardDeposit(bytes32 indexed task, address who, uint amount);
-    event RewardClaimed(bytes32 indexed task, address who, uint amount);
+    event RewardDeposit(bytes32 indexed task, address who, uint amount, uint tax);
+    event RewardClaimed(bytes32 indexed task, address who, uint amount, uint tax);
     
     modifier onlyOwner() {
         require(msg.sender == owner);
@@ -28,12 +28,13 @@ contract RewardsManager {
         return rewards[taskID];
     }
 
-    function depositReward(bytes32 taskID, uint reward) public returns (bool) {
-        require(token.allowance(msg.sender, address(this)) >= reward);
-        token.transferFrom(msg.sender, address(this), reward);
+    function depositReward(bytes32 taskID, uint reward, uint tax) public returns (bool) {
+        require(token.allowance(msg.sender, address(this)) >= reward + tax);
+        token.transferFrom(msg.sender, address(this), reward + tax);
     
         rewards[taskID] = rewards[taskID].add(reward);
-        emit RewardDeposit(taskID, msg.sender, reward);
+        taxes[taskID] = rewards[taskID].add(tax);
+        emit RewardDeposit(taskID, msg.sender, reward, tax);
         return true; 
     }
 
@@ -41,9 +42,13 @@ contract RewardsManager {
         require(rewards[taskID] > 0);
         uint payout = rewards[taskID];
         rewards[taskID] = 0;
-        
+
+        uint tax = taxes[taskID];
+        taxes[taskID] = 0;
+        token.burn(tax);
+
         token.transfer(to, payout);
-        emit RewardClaimed(taskID, to, payout);
+        emit RewardClaimed(taskID, to, payout, tax);
         return true;
     } 
 
