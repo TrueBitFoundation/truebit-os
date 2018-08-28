@@ -73,6 +73,7 @@ module.exports = {
 		    
 		    let interpreterArgs = []
 		    solution = await vm.executeWasmTask(interpreterArgs)
+		    
 		} else if(storageType == merkleComputer.StorageType.IPFS) {
 		    // download code file
 		    let codeIPFSHash = await fileSystem.getIPFSCode.call(storageAddress)
@@ -112,17 +113,20 @@ module.exports = {
 		    solution = await vm.executeWasmTask(interpreterArgs)
 		    
 		}
-
+		
+		//TODO: Check solution.hash against the two solutions for solutionInfo
 		if(solutionInfo.resultHash != solution.hash || test) {
 
 		    await depositsHelper(web3, incentiveLayer, account, minDeposit) 
 		    
 		    await incentiveLayer.challenge(taskID, {from: account, gas: 350000})
+		    
 		    tasks[taskID] = {
 			solverSolutionHash: solutionInfo.resultHash,
 			solutionHash: solution.hash,
 			vm: vm
 		    }
+		    
 		    logger.log({
 			level: 'info',
 			message: `Challenged solution for task ${taskID}`

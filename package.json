@@ -6,7 +6,7 @@
   "scripts": {
     "fixperms": "chmod 755 wasm-client/install.sh wasm-client/deploy.sh wasm-client/compile.sh",
     "install": "./wasm-client/install.sh",
-    "compile": "./wasm-client/compile.sh",      
+    "compile": "./wasm-client/compile.sh",
     "deploy": "node wasm-client/deploy.js",
     "distribute": "node wasm-client/distributeTokens.js",
     "test": "mocha",
@@ -26,7 +26,6 @@
     "ethereumjs-util": "^5.2.0",
     "figlet": "^1.2.0",
     "ipfs-api": "^14.3.7",
-    "minimist": "^1.2.0",
     "mocha": "^5.2.0",
     "npm": "^6.1.0",
     "truffle-contract": "^3.0.5",
