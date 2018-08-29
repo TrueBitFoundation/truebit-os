@@ -418,6 +418,12 @@ module.exports = {
             if (await incentiveLayer.endRevealPeriod.call(taskID)) {
                 await incentiveLayer.endRevealPeriod(taskID, {from:account ,gas:100000})
             }
+            if (await incentiveLayer.canRunVerificationGame.call(taskID)) {
+                await incentiveLayer.runVerificationGame(taskID, {from:account ,gas:100000})
+            }
+            if (await incentiveLayer.canFinalizeTask.call(taskID)) {
+                await incentiveLayer.finalizeTask(taskID, {from:account ,gas:100000})
+            }
         }
         
         let ival = setInterval(() => task_list.forEach(handleTimeouts), 5000)
