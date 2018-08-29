@@ -44,11 +44,14 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     event SolverSelected(bytes32 indexed taskID, address solver, bytes32 taskData, uint minDeposit, bytes32 randomBitsHash);
     event SolutionsCommitted(bytes32 taskID, uint minDeposit, CodeType codeType, StorageType storageType, string storageAddress);
     event SolutionRevealed(bytes32 taskID, uint randomBits);
-    event TaskStateChange(bytes32 taskID, uint state);
+    // event TaskStateChange(bytes32 taskID, uint state);
     event VerificationCommitted(address verifier, uint jackpotID, uint solutionID, uint index);
     event SolverDepositBurned(address solver, bytes32 taskID);
     event VerificationGame(address indexed solver, uint currentChallenger); 
     event PayReward(address indexed solver, uint reward);
+
+    event EndRevealPeriod(bytes32 taskID);
+    event EndChallengePeriod(bytes32 taskID);
 
     enum State { TaskInitialized, SolverSelected, SolutionCommitted, ChallengesAccepted, IntentsRevealed, SolutionRevealed, TaskFinalized, TaskTimeout }
     enum Status { Uninitialized, Challenged, Unresolved, SolverWon, ChallengerWon }//For dispute resolution
@@ -416,20 +419,20 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
 
     function endChallengePeriod(bytes32 taskID) public returns (bool) {
         Task storage t = tasks[taskID];
-        require(t.state == State.SolutionCommitted);
-        require(t.challengePeriod + TIMEOUT < block.number);
+        if (t.state != State.SolutionCommitted || !(t.challengePeriod + TIMEOUT < block.number)) return false;
         
         t.state = State.ChallengesAccepted;
+        emit EndChallengePeriod(taskID);
 
         return true;
     }
 
     function endRevealPeriod(bytes32 taskID) public returns (bool) {
         Task storage t = tasks[taskID];
-        require(t.state == State.ChallengesAccepted);
-        require(t.lastBlock + TIMEOUT < block.number);
+        if (t.state != State.ChallengesAccepted || t.lastBlock + TIMEOUT < block.number) 
         
         t.state = State.IntentsRevealed;
+        emit EndRevealPeriod(taskID);
 
         return true;
     }
