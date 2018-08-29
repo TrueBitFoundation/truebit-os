@@ -62,7 +62,7 @@ async function deploy() {
 
     let tru = await deployContract('TRU', {from: accounts[0], gas: 1000000})
     let exchangeRateOracle = await deployContract('ExchangeRateOracle', {from: accounts[0], gas: 1000000})
-    let incentiveLayer = await deployContract('IncentiveLayer', {from: accounts[0], gas: 3200000}, [tru._address, exchangeRateOracle._address, interactive._address])
+    let incentiveLayer = await deployContract('IncentiveLayer', {from: accounts[0], gas: 4200000}, [tru._address, exchangeRateOracle._address, interactive._address, fileSystem._address])
 
     fs.writeFileSync('./wasm-client/contracts.json', JSON.stringify({
 	fileSystem: exportContract(fileSystem),
