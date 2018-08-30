@@ -42,7 +42,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     event BondedDepositMovedToJackpot(bytes32 taskID, address account, uint amount);
     event TaskCreated(bytes32 taskID, uint minDeposit, uint blockNumber, uint reward, uint tax, CodeType codeType, StorageType storageType, string storageAddress);
     event SolverSelected(bytes32 indexed taskID, address solver, bytes32 taskData, uint minDeposit, bytes32 randomBitsHash);
-    event SolutionsCommitted(bytes32 taskID, uint minDeposit, CodeType codeType, StorageType storageType, string storageAddress);
+    event SolutionsCommitted(bytes32 taskID, uint minDeposit, CodeType codeType, StorageType storageType, string storageAddress, bytes32 solutionHash0, bytes32 solutionHash1);
     event SolutionRevealed(bytes32 taskID, uint randomBits);
     // event TaskStateChange(bytes32 taskID, uint state);
     event VerificationCommitted(address verifier, uint jackpotID, uint solutionID, uint index);
@@ -367,7 +367,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         t.state = State.SolutionCommitted;
         t.lastBlock = block.number;
         t.challengePeriod = block.number; // Start of challenge period
-        emit SolutionsCommitted(taskID, t.minDeposit, t.codeType, t.storageType, t.storageAddress);
+        emit SolutionsCommitted(taskID, t.minDeposit, t.codeType, t.storageType, t.storageAddress, solutionHash0, solutionHash1);
         return true;
     }
 
@@ -441,8 +441,8 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     // @param taskID – the task id.
     // @param intent – submit 0 to challenge solution0, 1 to challenge solution1, anything else challenges both
     // @return – boolean
-    function revealIntent(bytes32 taskID, uint intent) public returns (bool) {
-        uint cblock = challenges[keccak256(abi.encodePacked(taskID, intent, msg.sender))];
+    function revealIntent(bytes32 taskID, bytes32 solution0, bytes32 solution1, uint intent) public returns (bool) {
+        uint cblock = challenges[keccak256(abi.encodePacked(taskID, intent, msg.sender, solution0, solution1))];
         Task storage t = tasks[taskID];
         require(t.state == State.ChallengesAccepted);
         require(t.challengePeriod < cblock && t.challengePeriod + TIMEOUT >= cblock);

@@ -54,9 +54,9 @@ module.exports = {
 
         addEvent(incentiveLayer.TaskCreated(), async (result) => {
             let taskID = result.args.id
-            let minDeposit = result.args.deposit.toNumber()		
+            let minDeposit = result.args.deposit.toNumber()
 
-            let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))		
+            let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))
 
             let storageType = taskInfo.codeStorage
             let storageAddress = taskInfo.storageAddress
@@ -413,16 +413,16 @@ module.exports = {
         
         async function handleTimeouts(taskID) {
             if (await incentiveLayer.endChallengePeriod.call(taskID)) {
-                await incentiveLayer.endChallengePeriod(taskID, {from:account ,gas:100000})
+                await incentiveLayer.endChallengePeriod(taskID, {from:account, gas:100000})
             }
             if (await incentiveLayer.endRevealPeriod.call(taskID)) {
-                await incentiveLayer.endRevealPeriod(taskID, {from:account ,gas:100000})
+                await incentiveLayer.endRevealPeriod(taskID, {from:account, gas:100000})
             }
             if (await incentiveLayer.canRunVerificationGame.call(taskID)) {
-                await incentiveLayer.runVerificationGame(taskID, {from:account ,gas:100000})
+                await incentiveLayer.runVerificationGame(taskID, {from:account, gas:100000})
             }
             if (await incentiveLayer.canFinalizeTask.call(taskID)) {
-                await incentiveLayer.finalizeTask(taskID, {from:account ,gas:100000})
+                await incentiveLayer.finalizeTask(taskID, {from:account, gas:100000})
             }
         }
         

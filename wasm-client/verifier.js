@@ -37,39 +37,47 @@ module.exports = {
 	})
 
 	let [incentiveLayer, fileSystem, disputeResolutionLayer] = await setup(web3.currentProvider)
+    
+    const clean_list = []
+
+    function addEvent(ev, handler) {
+        clean_list.push(ev)
+        ev.watch(async (err, result) => {
+            if (result) handler(result)
+        })
+    }
 
 	//INCENTIVE
 
 	//Solution committed event
-	const solutionsCommittedEvent = incentiveLayer.SolutionsCommitted()
-
-	solutionsCommittedEvent.watch(async (err, result) => {
-	    if (result) {
-		
-		let taskID = result.args.taskID.toNumber()
+	addEvent(incentiveLayer.SolutionsCommitted(), async result => {
+		let taskID = result.args.taskID
 		let storageAddress = result.args.storageAddress
 		let minDeposit = result.args.deposit.toNumber()
+		let solverHash0 = result.args.solutionHash0
+		let solverHash1 = result.args.solutionHash1
 
-		let taskInfo = toTaskInfo(await incentiveLayer.taskInfo.call(taskID))
-		let solutionInfo = toSolutionInfo(await incentiveLayer.solutionInfo.call(taskID))
+		// let taskInfo = toTaskInfo(await incentiveLayer.taskInfo.call(taskID))
+		// let solutionInfo = toSolutionInfo(await incentiveLayer.solutionInfo.call(taskID))
 
 		//TODO: Check both solutions
 
 		let storageType = result.args.cs.toNumber()
+        let vm, solution
 		
 		if(storageType == merkleComputer.StorageType.BLOCKCHAIN) {
 		    let wasmCode = await fileSystem.getCode.call(storageAddress)
 
 		    let buf = Buffer.from(wasmCode.substr(2), "hex")
 
-		    vm = await setupVM(
-			incentiveLayer,
-			merkleComputer,
-			taskID,
-			buf,
-			result.args.codeType.toNumber(),
-			true
-		    )
+            vm = await setupVM(
+                incentiveLayer,
+                merkleComputer,
+                taskID,
+                buf,
+                result.args.codeType.toNumber(),
+                true
+            )
 		    
 		    let interpreterArgs = []
 		    solution = await vm.executeWasmTask(interpreterArgs)
@@ -86,58 +94,73 @@ module.exports = {
 
 		    let files = []
 
-		    if (fileIDs.length > 0) {
-			for(let i = 0; i < fileIDs.length; i++) {
-			    let fileID = fileIDs[i]
-			    let name = await fileSystem.getName.call(fileID)
-			    let ipfsHash = await fileSystem.getHash.call(fileID)
-			    let dataBuf = (await mcFileSystem.download(ipfsHash, name)).content
-			    files.push({
-				name: name,
-				dataBuf: dataBuf
-			    })			    
-			}
-		    }
+            if (fileIDs.length > 0) {
+                for(let i = 0; i < fileIDs.length; i++) {
+                    let fileID = fileIDs[i]
+                    let name = await fileSystem.getName.call(fileID)
+                    let ipfsHash = await fileSystem.getHash.call(fileID)
+                    let dataBuf = (await mcFileSystem.download(ipfsHash, name)).content
+                    files.push({
+                        name: name,
+                        dataBuf: dataBuf
+                    })			    
+                }
+            }
 		    
-		    vm = await setupVM(
-			incentiveLayer,
-			merkleComputer,
-			taskID,
-			codeBuf,
-			result.args.codeType.toNumber(),
-			false,
-			files
-		    )
+            vm = await setupVM(
+                incentiveLayer,
+                merkleComputer,
+                taskID,
+                codeBuf,
+                result.args.codeType.toNumber(),
+                false,
+                files
+            )
 		    let interpreterArgs = []
 		    solution = await vm.executeWasmTask(interpreterArgs)
-		    
 		}
 
-		if(solutionInfo.resultHash != solution.hash || test) {
-
+        tasks[taskID] = {
+            solverHash0: solverHash0,
+            solverHash1: solverHash1,
+            solutionHash: solution.hash,
+            vm: vm
+        }
+		if (solverHash0 != solution.hash) {
 		    await depositsHelper(web3, incentiveLayer, account, minDeposit) 
-		    
-		    await incentiveLayer.challenge(taskID, {from: account, gas: 350000})
-		    tasks[taskID] = {
-			solverSolutionHash: solutionInfo.resultHash,
-			solutionHash: solution.hash,
-			vm: vm
-		    }
-		    logger.log({
-			level: 'info',
-			message: `Challenged solution for task ${taskID}`
-		    })
-		    
+            let intent = makeRandom(31) + "00"
+            tasks[taskID].intent0 = "0x" + intent
+            let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2) 
+            await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), {from: account, gas: 350000})
+            logger.log({
+                level: 'info',
+                message: `Challenged solution for task ${taskID}`
+            })
 		}
-	    }
+		if (solverHash1 != solution.hash) {
+		    await depositsHelper(web3, incentiveLayer, account, minDeposit) 
+            let intent = makeRandom(31) + "01"
+            tasks[taskID].intent1 = "0x" + intent
+            let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2) 
+            await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), {from: account, gas: 350000})
+            logger.log({
+                level: 'info',
+                message: `Challenged solution for task ${taskID}`
+            })
+		}
+        
 	})
+
+	addEvent(incentiveLayer.EndChallengePeriod(), async result => {
+        let taskID = result.args.taskID
+        let taskData = tasks[taskID]
+        if (taskData.intent0) await incentiveLayer.revealIntent(taskId, taskData.solverHash0, taskData.solverHash1, taskData.intent0, {from: account, gas:100000})
+        if (taskData.intent1) await incentiveLayer.revealIntent(taskId, taskData.solverHash0, taskData.solverHash1, taskData.intent1, {from: account, gas:100000})
+    })
 
 	// DISPUTE
 
-	const startChallengeEvent = disputeResolutionLayer.StartChallenge()
-
-	startChallengeEvent.watch(async (err, result) => {
-	    if(result) {
+	addEvent(disputeResolutionLayer.StartChallenge(), async result => {
 		let challenger = result.args.c
 
 		if (challenger.toLowerCase() == account.toLowerCase()) {
@@ -145,18 +168,14 @@ module.exports = {
 
 		    let taskID = (await disputeResolutionLayer.getTask.call(gameID)).toNumber()
 
-		    games[gameID] = {
-			prover: result.args.prover,
-			taskID: taskID
-		    }
+            games[gameID] = {
+                prover: result.args.prover,
+                taskID: taskID
+            }
 		}		
-	    }
 	})
 
-	const reportedEvent = disputeResolutionLayer.Reported()
-
-	reportedEvent.watch(async (err, result) => {
-	    if (result) {
+    addEvent(disputeResolutionLayer.Reported(), async result => {
 		let gameID = result.args.id
 
 		if (games[gameID]) {
@@ -166,93 +185,86 @@ module.exports = {
 		    let taskID = games[gameID].taskID
 
 		    logger.log({
-			level: 'info',
-			message: `Report received game: ${gameID} low: ${lowStep} high: ${highStep}`
-		    })
-		    
-		    let stepNumber = midpoint(lowStep, highStep)
+                level: 'info',
+                message: `Report received game: ${gameID} low: ${lowStep} high: ${highStep}`
+            })
 
-		    let reportedStateHash = await disputeResolutionLayer.getStateAt.call(gameID, stepNumber)
+            let stepNumber = midpoint(lowStep, highStep)
 
-		    let stateHash = await tasks[taskID].vm.getLocation(stepNumber, tasks[taskID].interpreterArgs)
+            let reportedStateHash = await disputeResolutionLayer.getStateAt.call(gameID, stepNumber)
 
-		    let num = reportedStateHash == stateHash ? 1 : 0
+            let stateHash = await tasks[taskID].vm.getLocation(stepNumber, tasks[taskID].interpreterArgs)
 
-		    await disputeResolutionLayer.query(
-			gameID,
-			lowStep,
-			highStep,
-			num,
-			{from: account}
-		    )
+            let num = reportedStateHash == stateHash ? 1 : 0
 
-		    let currentBlockNumber = await web3.eth.getBlockNumber()
-		    waitForBlock(web3, currentBlockNumber + 105, async () => {
-			if(await disputeResolutionLayer.gameOver.call(gameID)) {
-			    await disputeResolutionLayer.gameOver(gameID, {from: account})
-			}
+            await disputeResolutionLayer.query(
+                gameID,
+                lowStep,
+                highStep,
+                num,
+                {from: account}
+            )
+
+            let currentBlockNumber = await web3.eth.getBlockNumber()
+            waitForBlock(web3, currentBlockNumber + 105, async () => {
+                if(await disputeResolutionLayer.gameOver.call(gameID)) {
+                    await disputeResolutionLayer.gameOver(gameID, {from: account})
+                }
 		    })
 		    
 		    
 		}
-	    }
 	})
 
-	const postedPhasesEvent = disputeResolutionLayer.PostedPhases()
-
-	postedPhasesEvent.watch(async (err, result) => {
-	    if (result) {
+	addEvent(disputeResolutionLayer.PostedPhases(), async result => {
 		let gameID = result.args.id
 
 		if (games[gameID]) {
 
-		    logger.log({
-			level: 'info',
-			message: `Phases posted for game: ${gameID}`
-		    })
-		    
-		    let lowStep = result.args.idx1
-		    let phases = result.args.arr
+            logger.log({
+                level: 'info',
+                message: `Phases posted for game: ${gameID}`
+            })
 
-		    let taskID = games[gameID].taskID
+            let lowStep = result.args.idx1
+            let phases = result.args.arr
 
-		    if (test) {
-			await disputeResolutionLayer.selectPhase(gameID, lowStep, phases[phase], phase, {from: account}) 
-		    } else {
-			let states = (await tasks[taskID].vm.getStep(lowStep, tasks[taskID].interpreterArgs)).states
+            let taskID = games[gameID].taskID
 
-			for(let i = 0; i < phases.length; i++) {
-			    if (states[i] != phases[i]) {
-				await disputeResolutionLayer.selectPhase(
-				    gameID,
-				    lowStep,
-				    phases[i],
-				    i,
-				    {from: account}
-				) 				
-			    }
-			}
+            if (test) {
+                await disputeResolutionLayer.selectPhase(gameID, lowStep, phases[phase], phase, {from: account}) 
+            } else {
+                let states = (await tasks[taskID].vm.getStep(lowStep, tasks[taskID].interpreterArgs)).states
+
+                for(let i = 0; i < phases.length; i++) {
+                    if (states[i] != phases[i]) {
+                        await disputeResolutionLayer.selectPhase(
+                            gameID,
+                            lowStep,
+                            phases[i],
+                            i,
+                            {from: account}
+                        ) 				
+                    }
+                }
 		    }
 		    
-		    let currentBlockNumber = await web3.eth.getBlockNumber()
-		    waitForBlock(web3, currentBlockNumber + 105, async () => {
-			if(await disputeResolutionLayer.gameOver.call(gameID)) {
-			    await disputeResolutionLayer.gameOver(gameID, {from: account})
-			}
-		    })
+            let currentBlockNumber = await web3.eth.getBlockNumber()
+            waitForBlock(web3, currentBlockNumber + 105, async () => {
+                if(await disputeResolutionLayer.gameOver.call(gameID)) {
+                    await disputeResolutionLayer.gameOver(gameID, {from: account})
+                }
+            })
 		    
-		}
 	    }
 	})
 
 	return () => {
-	    try {
-		let empty = data => { }
-		solvedEvent.stopWatching(empty)
-		startChallengeEvent.stopWatching(empty)
-		reportedEvent.stopWatching(empty)
-		postedPhasesEvent.stopWatching(empty)
-	    } catch(e) {
+        try {
+            let empty = data => { }
+            clean_list.forEach(ev => ev.stopWatching(empty))
+        }
+        catch(e) {
 	    }
 	}
     }
