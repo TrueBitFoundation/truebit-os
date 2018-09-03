@@ -185,7 +185,7 @@ module.exports = {
 
         })
 
-        addEvent(incentiveLayer.IntentsRevealed(), async (result) => {
+        addEvent(incentiveLayer.EndRevealPeriod(), async (result) => {
             let taskID = result.args.taskID.toNumber()
             if (tasks[taskID]) {
                 let vm = tasks[taskID].solution.vm

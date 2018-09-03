@@ -112,6 +112,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     ExchangeRateOracle oracle;
     address disputeResolutionLayer; //using address type because in some cases it is IGameMaker, and others IDisputeResolutionLayer
     Filesystem fs;
+    TRU tru;
 
     constructor (address _TRU, address _exchangeRateOracle, address _disputeResolutionLayer, address fs_addr) 
         DepositsManager(_TRU) 
@@ -122,6 +123,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         disputeResolutionLayer = _disputeResolutionLayer;
         oracle = ExchangeRateOracle(_exchangeRateOracle);
         fs = Filesystem(fs_addr);
+        tru = TRU(_TRU);
     }
 
     // @dev - private method to check if the denoted amount of blocks have been mined (time has passed).
@@ -134,6 +136,10 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         return block.number.sub(t.taskCreationBlockNumber) >= TIMEOUT;
     }
     */
+    
+    function getBalance(address addr) public view returns (uint) {
+        return tru.balanceOf(addr);
+    }
 
     // @dev – locks up part of the a user's deposit into a task.
     // @param taskID – the task id.
@@ -205,8 +211,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         // Get minDeposit required by task
         uint minDeposit = oracle.getMinDeposit(maxDifficulty);
         require(minDeposit > 0);
-//        require(deposits[msg.sender] >= (reward + (minDeposit * taxMultiplier)));
-        require(deposits[msg.sender] >= (minDeposit * taxMultiplier));
+        
         
         bytes32 id = keccak256(abi.encodePacked(initTaskHash, codeType, storageType, storageAddress, maxDifficulty, reward, numTasks));
         numTasks.add(1);
@@ -215,19 +220,22 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         t.owner = msg.sender;
         t.minDeposit = minDeposit;
         t.reward = reward;
-//        deposits[msg.sender] = deposits[msg.sender].sub(reward);
 
         t.tax = minDeposit * taxMultiplier;
+        
+        require(deposits[msg.sender] >= reward + t.tax);
+        deposits[msg.sender] = deposits[msg.sender].sub(reward + t.tax);
+    
         depositReward(id, reward, t.tax);
         
         t.initTaskHash = initTaskHash;
-//        t.taskCreationBlockNumber = block.number;
         t.initialReward = minDeposit;
         t.codeType = codeType;
         t.storageType = storageType;
         t.storageAddress = storageAddress;
         
         t.lastBlock = block.number;
+        return id;
     }
 
     // @dev – taskGiver creates tasks to be solved.
@@ -238,16 +246,9 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     // @return – boolean
     function createTask(bytes32 initTaskHash, CodeType codeType, StorageType storageType, string storageAddress, uint maxDifficulty, uint reward) public returns (bytes32) {
         bytes32 id = createTaskAux(initTaskHash, codeType, storageType, storageAddress, maxDifficulty, reward);
-        defaultParameters(id);
-	    commitRequiredFiles(id);
-        // LOOK AT: May be some problem if tax amount is also not bonded
-        // but still submitted through makeDeposit. For example,
-        // if the task giver decides to bond the deposit and the
-
-        // tax can not be collected. Perhaps another bonding
-        // structure to escrow the taxes.
-        log0(keccak256(abi.encodePacked(msg.sender))); // possible bug if log is after event
-
+        // defaultParameters(id);
+	    // commitRequiredFiles(id);
+        
         return id;
     }
 

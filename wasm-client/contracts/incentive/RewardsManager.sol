@@ -28,10 +28,10 @@ contract RewardsManager {
         return rewards[taskID];
     }
 
-    function depositReward(bytes32 taskID, uint reward, uint tax) public returns (bool) {
-        require(token.allowance(msg.sender, address(this)) >= reward + tax);
-        token.transferFrom(msg.sender, address(this), reward + tax);
-    
+    function depositReward(bytes32 taskID, uint reward, uint tax) internal returns (bool) {
+        // require(token.allowance(msg.sender, address(this)) >= reward + tax);
+        // token.transferFrom(msg.sender, address(this), reward + tax);
+
         rewards[taskID] = rewards[taskID].add(reward);
         taxes[taskID] = rewards[taskID].add(tax);
         emit RewardDeposit(taskID, msg.sender, reward, tax);
