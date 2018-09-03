@@ -64,10 +64,6 @@ async function deploy() {
     let exchangeRateOracle = await deployContract('ExchangeRateOracle', {from: accounts[0], gas: 1000000})
     let incentiveLayer = await deployContract('IncentiveLayer', {from: accounts[0], gas: 5200000}, [tru._address, exchangeRateOracle._address, interactive._address, fileSystem._address])
     
-    accounts.forEach(async addr => {
-        await tru.methods.mint(addr, "100000000000000000000000").send({from:accounts[0], gas: 100000})
-    })
-
     fs.writeFileSync('./wasm-client/contracts.json', JSON.stringify({
         fileSystem: exportContract(fileSystem),
         judge: exportContract(judge),
@@ -77,6 +73,12 @@ async function deploy() {
         exchangeRateOracle: exportContract(exchangeRateOracle),
         incentiveLayer: exportContract(incentiveLayer)
     }))
+    
+    // Mint tokens for testing
+    accounts.forEach(addr => {
+        tru.methods.mint(addr, "100000000000000000000000").send({from:accounts[0], gas: 100000})
+    })
+
 }
 
 deploy()

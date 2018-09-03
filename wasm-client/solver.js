@@ -107,8 +107,8 @@ module.exports = {
                 })
 
                 let buf
-                var storageType = taskInfo.storageType
-                var storageAddress = taskInfo.storageAddress
+                let storageType = taskInfo.storageType
+                let storageAddress = taskInfo.storageAddress
                 
                 if(storageType == merkleComputer.StorageType.BLOCKCHAIN) {
 
