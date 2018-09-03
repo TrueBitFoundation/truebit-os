@@ -10,7 +10,7 @@ const fs = require('fs')
 
 const logger = require('../os/logger')
 
-const merkleComputer = require('../wasm-client/webasm-solidity/merkle-computer')()
+const merkleComputer = require('../wasm-client/merkle-computer')()
 
 let os
 
@@ -76,7 +76,7 @@ describe('Truebit OS WASM Challenge', async function() {
 		"minDeposit": "1",
 		"codeType": "WAST",
 		"storageType": "BLOCKCHAIN",
-		"codeFile": "/wasm-client/webasm-solidity/data/factorial.wast",
+		"codeFile": "/data/factorial.wast",
 		"reward": "0"
 	    }
 

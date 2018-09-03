@@ -42,13 +42,16 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     event BondedDepositMovedToJackpot(bytes32 taskID, address account, uint amount);
     event TaskCreated(bytes32 taskID, uint minDeposit, uint blockNumber, uint reward, uint tax, CodeType codeType, StorageType storageType, string storageAddress);
     event SolverSelected(bytes32 indexed taskID, address solver, bytes32 taskData, uint minDeposit, bytes32 randomBitsHash);
-    event SolutionsCommitted(bytes32 taskID, uint minDeposit, CodeType codeType, StorageType storageType, string storageAddress);
+    event SolutionsCommitted(bytes32 taskID, uint minDeposit, CodeType codeType, StorageType storageType, string storageAddress, bytes32 solutionHash0, bytes32 solutionHash1);
     event SolutionRevealed(bytes32 taskID, uint randomBits);
-    event TaskStateChange(bytes32 taskID, uint state);
+    // event TaskStateChange(bytes32 taskID, uint state);
     event VerificationCommitted(address verifier, uint jackpotID, uint solutionID, uint index);
     event SolverDepositBurned(address solver, bytes32 taskID);
     event VerificationGame(address indexed solver, uint currentChallenger); 
     event PayReward(address indexed solver, uint reward);
+
+    event EndRevealPeriod(bytes32 taskID);
+    event EndChallengePeriod(bytes32 taskID);
 
     enum State { TaskInitialized, SolverSelected, SolutionCommitted, ChallengesAccepted, IntentsRevealed, SolutionRevealed, TaskFinalized, TaskTimeout }
     enum Status { Uninitialized, Challenged, Unresolved, SolverWon, ChallengerWon }//For dispute resolution
@@ -109,6 +112,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     ExchangeRateOracle oracle;
     address disputeResolutionLayer; //using address type because in some cases it is IGameMaker, and others IDisputeResolutionLayer
     Filesystem fs;
+    TRU tru;
 
     constructor (address _TRU, address _exchangeRateOracle, address _disputeResolutionLayer, address fs_addr) 
         DepositsManager(_TRU) 
@@ -119,6 +123,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         disputeResolutionLayer = _disputeResolutionLayer;
         oracle = ExchangeRateOracle(_exchangeRateOracle);
         fs = Filesystem(fs_addr);
+        tru = TRU(_TRU);
     }
 
     // @dev - private method to check if the denoted amount of blocks have been mined (time has passed).
@@ -131,6 +136,10 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         return block.number.sub(t.taskCreationBlockNumber) >= TIMEOUT;
     }
     */
+    
+    function getBalance(address addr) public view returns (uint) {
+        return tru.balanceOf(addr);
+    }
 
     // @dev – locks up part of the a user's deposit into a task.
     // @param taskID – the task id.
@@ -202,8 +211,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         // Get minDeposit required by task
         uint minDeposit = oracle.getMinDeposit(maxDifficulty);
         require(minDeposit > 0);
-//        require(deposits[msg.sender] >= (reward + (minDeposit * taxMultiplier)));
-        require(deposits[msg.sender] >= (minDeposit * taxMultiplier));
+        
         
         bytes32 id = keccak256(abi.encodePacked(initTaskHash, codeType, storageType, storageAddress, maxDifficulty, reward, numTasks));
         numTasks.add(1);
@@ -212,19 +220,22 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         t.owner = msg.sender;
         t.minDeposit = minDeposit;
         t.reward = reward;
-//        deposits[msg.sender] = deposits[msg.sender].sub(reward);
 
         t.tax = minDeposit * taxMultiplier;
+        
+        require(deposits[msg.sender] >= reward + t.tax);
+        deposits[msg.sender] = deposits[msg.sender].sub(reward + t.tax);
+    
         depositReward(id, reward, t.tax);
         
         t.initTaskHash = initTaskHash;
-//        t.taskCreationBlockNumber = block.number;
         t.initialReward = minDeposit;
         t.codeType = codeType;
         t.storageType = storageType;
         t.storageAddress = storageAddress;
         
         t.lastBlock = block.number;
+        return id;
     }
 
     // @dev – taskGiver creates tasks to be solved.
@@ -237,14 +248,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         bytes32 id = createTaskAux(initTaskHash, codeType, storageType, storageAddress, maxDifficulty, reward);
         defaultParameters(id);
 	    commitRequiredFiles(id);
-        // LOOK AT: May be some problem if tax amount is also not bonded
-        // but still submitted through makeDeposit. For example,
-        // if the task giver decides to bond the deposit and the
-
-        // tax can not be collected. Perhaps another bonding
-        // structure to escrow the taxes.
-        log0(keccak256(abi.encodePacked(msg.sender))); // possible bug if log is after event
-
+        
         return id;
     }
 
@@ -258,8 +262,6 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         param.tableSize = table;
         param.callSize = call;
         
-        log0(keccak256(abi.encodePacked(msg.sender))); // possible bug if log is after event
-
         return id;
     }
 
@@ -364,7 +366,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         t.state = State.SolutionCommitted;
         t.lastBlock = block.number;
         t.challengePeriod = block.number; // Start of challenge period
-        emit SolutionsCommitted(taskID, t.minDeposit, t.codeType, t.storageType, t.storageAddress);
+        emit SolutionsCommitted(taskID, t.minDeposit, t.codeType, t.storageType, t.storageAddress, solutionHash0, solutionHash1);
         return true;
     }
 
@@ -416,20 +418,22 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
 
     function endChallengePeriod(bytes32 taskID) public returns (bool) {
         Task storage t = tasks[taskID];
-        require(t.state == State.SolutionCommitted);
-        require(t.challengePeriod + TIMEOUT < block.number);
+        if (t.state != State.SolutionCommitted || !(t.challengePeriod + TIMEOUT < block.number)) return false;
         
         t.state = State.ChallengesAccepted;
+        emit EndChallengePeriod(taskID);
+        t.lastBlock = block.number;
 
         return true;
     }
 
     function endRevealPeriod(bytes32 taskID) public returns (bool) {
         Task storage t = tasks[taskID];
-        require(t.state == State.ChallengesAccepted);
-        require(t.lastBlock + TIMEOUT < block.number);
+        if (t.state != State.ChallengesAccepted || !(t.lastBlock + TIMEOUT < block.number)) return false;
         
         t.state = State.IntentsRevealed;
+        emit EndRevealPeriod(taskID);
+        t.lastBlock = block.number;
 
         return true;
     }
@@ -438,8 +442,8 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     // @param taskID – the task id.
     // @param intent – submit 0 to challenge solution0, 1 to challenge solution1, anything else challenges both
     // @return – boolean
-    function revealIntent(bytes32 taskID, uint intent) public returns (bool) {
-        uint cblock = challenges[keccak256(abi.encodePacked(taskID, intent, msg.sender))];
+    function revealIntent(bytes32 taskID, bytes32 solution0, bytes32 solution1, uint intent) public returns (bool) {
+        uint cblock = challenges[keccak256(abi.encodePacked(taskID, intent, msg.sender, solution0, solution1))];
         Task storage t = tasks[taskID];
         require(t.state == State.ChallengesAccepted);
         require(t.challengePeriod < cblock && t.challengePeriod + TIMEOUT >= cblock);
@@ -480,6 +484,9 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         
         require(keccak256(abi.encodePacked(codeHash, sizeHash, nameHash, dataHash)) == intended);
         
+        if (s.solution0Correct) s.solution1Challengers.length = 0;
+        else s.solution0Challengers.length = 0;
+
         if (isForcedError(originalRandomBits)) { // this if statement will make this function tricky to test
             rewardJackpot(taskID);
             t.finalityCode = 2;
@@ -505,17 +512,29 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     }
 
     // verifier should be responsible for calling this first
+    function canRunVerificationGame(bytes32 taskID) public view returns (bool) {
+        Task storage t = tasks[taskID];
+        Solution storage s = solutions[taskID];
+        if (t.state != State.SolutionRevealed) return false;
+        if (s.solution0Challengers.length + s.solution1Challengers.length == 0) return false;
+        return (s.currentGame == 0 || IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon));
+    }
+    
     function runVerificationGame(bytes32 taskID) public {
         Task storage t = tasks[taskID];
-        require(t.state == State.SolutionRevealed);
         Solution storage s = solutions[taskID];
-        if (s.solution0Correct) {
-            verificationGame(taskID, t.selectedSolver, s.solution0Challengers[s.currentChallenger], s.solutionHash0);
-        } else {
-            verificationGame(taskID, t.selectedSolver, s.solution1Challengers[s.currentChallenger], s.solutionHash1);
+        
+        require(t.state == State.SolutionRevealed);
+        require(s.currentGame == 0 || IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon));
+        
+        if (s.solution0Challengers.length > 0) {
+            verificationGame(taskID, t.selectedSolver, s.solution0Challengers[s.solution0Challengers.length-1], s.solutionHash0);
+            s.solution0Challengers.length -= 1;
+        } else if (s.solution1Challengers.length > 0) {
+            verificationGame(taskID, t.selectedSolver, s.solution1Challengers[s.solution0Challengers.length-1], s.solutionHash1);
+            s.solution1Challengers.length -= 1;
         }
-        s.currentChallenger = s.currentChallenger + 1;
-        emit VerificationGame(t.selectedSolver, s.currentChallenger);
+        // emit VerificationGame(t.selectedSolver, s.currentChallenger);
         t.lastBlock = block.number;
     }
 
@@ -562,11 +581,10 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     function finalizeTask(bytes32 taskID) public {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
-
-        require(s.currentChallenger >= s.solution0Challengers.length
-		|| s.currentChallenger >= s.solution1Challengers.length
-		&& IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon));
         
+        require(t.state == State.SolutionRevealed);
+        require(s.solution0Challengers.length + s.solution1Challengers.length == 0 && (s.currentGame == 0 || IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon)));
+
         bytes32[] memory files = new bytes32[](t.uploads.length);
         for (uint i = 0; i < t.uploads.length; i++) {
            require(t.uploads[i].fileId != 0);
@@ -577,6 +595,21 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         t.finalityCode = 1; // Task has been completed
 
         payReward(taskID, t.selectedSolver);
+    }
+
+    function canFinalizeTask(bytes32 taskID) public view returns (bool) {
+        Task storage t = tasks[taskID];
+        Solution storage s = solutions[taskID];
+        
+        if (t.state != State.SolutionRevealed) return false;
+
+        if (!(s.solution0Challengers.length + s.solution1Challengers.length == 0 && (s.currentGame == 0 || IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon)))) return false;
+
+        for (uint i = 0; i < t.uploads.length; i++) {
+           if (t.uploads[i].fileId == 0) return false;
+        }
+        
+        return true;
     }
 
     function getTaskFinality(bytes32 taskID) public view returns (uint) {

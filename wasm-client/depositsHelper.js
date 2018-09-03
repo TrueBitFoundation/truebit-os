@@ -1,5 +1,5 @@
-module.exports = async (web3, incentiveLayer, account, minDeposit) => {
-	let currentBalance = await web3.eth.getBalance(account)
+module.exports = async (web3, incentiveLayer, tru, account, minDeposit) => {
+	let currentBalance = (await tru.balanceOf.call(account)).toNumber()
 	let currentDeposit = (await incentiveLayer.getDeposit.call(account)).toNumber()
 
 	let totalAssets = currentBalance + currentDeposit
@@ -7,10 +7,12 @@ module.exports = async (web3, incentiveLayer, account, minDeposit) => {
 	if (totalAssets < minDeposit) {
 		throw 'current account balance + current deposit is less than minimum deposit specified'
 	} else {
-		let difference = currentDeposit - minDeposit
+		let difference = minDeposit - currentDeposit
 
-		if(difference < 0) {
-		    await incentiveLayer.makeDeposit(difference * -1, {from: account})
+		if(difference > 0) {
+            console.log("allowance", difference, incentiveLayer.address)
+		    await tru.approve(incentiveLayer.address, difference, {from: account})
+		    await incentiveLayer.makeDeposit(difference, {from: account})
 		}
 	}
 }

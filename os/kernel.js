@@ -6,9 +6,10 @@ const logger = require('./logger')
 
 function requireHelper(cb) {
     try {
-	return cb()
+        return cb()
     } catch (e) {
-	return undefined
+        console.log(e)
+        return undefined
     }
 }
 
