@@ -17,8 +17,9 @@ function setup(httpProvider) {
     return (async () => {
         incentiveLayer = await contract(httpProvider, contractsConfig['incentiveLayer'])
         fileSystem = await contract(httpProvider, contractsConfig['fileSystem'])
+        tru = await contract(httpProvider, contractsConfig['tru'])
         disputeResolutionLayer = await contract(httpProvider, contractsConfig['interactive'])
-        return [incentiveLayer, fileSystem, disputeResolutionLayer]
+        return [incentiveLayer, fileSystem, disputeResolutionLayer, tru]
     })()
 }
 
@@ -41,7 +42,7 @@ module.exports = {
             message: `Solver initialized`
         })
 
-        let [incentiveLayer, fileSystem, disputeResolutionLayer] = await setup(web3.currentProvider)
+        let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3.currentProvider)
         
         const clean_list = []
         
@@ -53,23 +54,32 @@ module.exports = {
         }
 
         addEvent(incentiveLayer.TaskCreated(), async (result) => {
-            let taskID = result.args.id
-            let minDeposit = result.args.deposit.toNumber()
+            console.log("Got new task")
+            let taskID = result.args.taskID
+            let minDeposit = result.args.minDeposit.toNumber()
 
+            console.log("get info", taskID, minDeposit)
             let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))
 
             let storageType = taskInfo.codeStorage
             let storageAddress = taskInfo.storageAddress
             let initTaskHash = taskInfo.initTaskHash
 
-            let solutionInfo = toSolutionInfo(await incentiveLayer.solutionInfo.call(taskID))
+            console.log("solution info", taskInfo)
+            let solutionInfo = toSolutionInfo(await incentiveLayer.getSolutionInfo.call(taskID))
 
+            console.log("got solution info", solutionInfo)
+            
             if (solutionInfo.solver == '0x0000000000000000000000000000000000000000') {
                 //TODO: Add more selection filters for solvers
 
                 let secret = Math.floor(Math.random() * Math.pow(2,32))
 
-                incentiveLayer.registerForTask(taskID, web3.utils.soliditySha3(secret))
+                await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
+                
+                incentiveLayer.registerForTask(taskID, web3.utils.soliditySha3(secret), {from: account, gas: 500000})
+                
+                tasks[taskID] = {minDeposit: minDeposit}
 
                 tasks[taskID].secret = secret
             }
@@ -78,24 +88,28 @@ module.exports = {
         addEvent(incentiveLayer.SolverSelected(), async (result) => {
             let taskID = result.args.taskID
             let solver = result.args.solver
+            
+            console.log("Solver was selected")
 
             if (account.toLowerCase() == solver.toLowerCase()) {
 
                 //TODO: Need to read secret from persistence or else task is lost
-                let taskInfo = toTaskInfo(incentiveLayer.getTaskInfo.call(taskID))
+                let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))
                 tasks[taskID].taskInfo = taskInfo
 
                 task_list.push(taskID)
 
                 let solution, vm, interpreterArgs
 
-                await depositsHelper(web3, incentiveLayer, account, minDeposit)
                 logger.log({
                     level: 'info',
                     message: `Solving task ${taskID}`
                 })
 
                 let buf
+                var storageType = taskInfo.storageType
+                var storageAddress = taskInfo.storageAddress
+                
                 if(storageType == merkleComputer.StorageType.BLOCKCHAIN) {
 
                     let wasmCode = await fileSystem.getCode.call(storageAddress)
@@ -155,7 +169,7 @@ module.exports = {
                 solution = await vm.executeWasmTask(interpreterArgs)
                 tasks[taskID].solution = solution
 
-                //console.log(solution)
+                console.log("Committing solution", solution)
 
                 let random_hash = "0x" + makeRandom(32)
 
@@ -165,7 +179,7 @@ module.exports = {
                     let s1 = b ? solution.hash : random_hash
                     let s2 = b ? random_hash : solution.hash
 
-                    await incentiveLayer.commitSolution(taskID, s1, s2)
+                    await incentiveLayer.commitSolution(taskID, s1, s2, {from: account, gas: 1000000})
 
                     logger.log({
                         level: 'info',
@@ -186,10 +200,11 @@ module.exports = {
         })
 
         addEvent(incentiveLayer.EndRevealPeriod(), async (result) => {
-            let taskID = result.args.taskID.toNumber()
+            let taskID = result.args.taskID
+            console.log("Revealing solution")
             if (tasks[taskID]) {
                 let vm = tasks[taskID].solution.vm
-                await incentiveLayer.revealSolution(taskID, tasks[taskID].secret, vm.code, vm.input_size, vm.input_name, vm.input_data)
+                await incentiveLayer.revealSolution(taskID, tasks[taskID].secret, vm.code, vm.input_size, vm.input_name, vm.input_data, {from: account, gas: 1000000})
             }
         })
 
@@ -198,7 +213,7 @@ module.exports = {
             let gameID = result.args.uniq
             if (solver.toLowerCase() == account.toLowerCase()) {
 
-                let taskID = (await disputeResolutionLayer.getTask.call(gameID)).toNumber()
+                let taskID = await disputeResolutionLayer.getTask.call(gameID)
 
                 logger.log({
                     level: 'info',
@@ -399,7 +414,7 @@ module.exports = {
                         [m.reg1, m.reg2, m.reg3, m.ireg],
                         merkleComputer.getRoots(vm),
                         merkleComputer.getPointers(vm),
-                        {from: account, gas: 500000}
+                        {from: account, gas: 5000000}
                     )			
                 }
 
@@ -412,21 +427,26 @@ module.exports = {
         })
         
         async function handleTimeouts(taskID) {
+            console.log("Handling timeout")
             if (await incentiveLayer.endChallengePeriod.call(taskID)) {
+                console.log("Ending challenge period")
                 await incentiveLayer.endChallengePeriod(taskID, {from:account, gas:100000})
             }
             if (await incentiveLayer.endRevealPeriod.call(taskID)) {
+                console.log("Ending reveal period")
                 await incentiveLayer.endRevealPeriod(taskID, {from:account, gas:100000})
             }
             if (await incentiveLayer.canRunVerificationGame.call(taskID)) {
+                console.log("Start new verification game")
                 await incentiveLayer.runVerificationGame(taskID, {from:account, gas:100000})
             }
             if (await incentiveLayer.canFinalizeTask.call(taskID)) {
+                console.log("Finalizing task")
                 await incentiveLayer.finalizeTask(taskID, {from:account, gas:100000})
             }
         }
         
-        let ival = setInterval(() => task_list.forEach(handleTimeouts), 5000)
+        let ival = setInterval(() => task_list.forEach(handleTimeouts), 1000)
 
         return () => {
             try {

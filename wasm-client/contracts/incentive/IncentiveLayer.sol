@@ -246,8 +246,8 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     // @return – boolean
     function createTask(bytes32 initTaskHash, CodeType codeType, StorageType storageType, string storageAddress, uint maxDifficulty, uint reward) public returns (bytes32) {
         bytes32 id = createTaskAux(initTaskHash, codeType, storageType, storageAddress, maxDifficulty, reward);
-        // defaultParameters(id);
-	    // commitRequiredFiles(id);
+        defaultParameters(id);
+	    commitRequiredFiles(id);
         
         return id;
     }
@@ -262,8 +262,6 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         param.tableSize = table;
         param.callSize = call;
         
-        log0(keccak256(abi.encodePacked(msg.sender))); // possible bug if log is after event
-
         return id;
     }
 
@@ -424,16 +422,18 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         
         t.state = State.ChallengesAccepted;
         emit EndChallengePeriod(taskID);
+        t.lastBlock = block.number;
 
         return true;
     }
 
     function endRevealPeriod(bytes32 taskID) public returns (bool) {
         Task storage t = tasks[taskID];
-        if (t.state != State.ChallengesAccepted || t.lastBlock + TIMEOUT < block.number) 
+        if (t.state != State.ChallengesAccepted || !(t.lastBlock + TIMEOUT < block.number)) return false;
         
         t.state = State.IntentsRevealed;
         emit EndRevealPeriod(taskID);
+        t.lastBlock = block.number;
 
         return true;
     }
@@ -516,6 +516,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
         if (t.state != State.SolutionRevealed) return false;
+        if (s.solution0Challengers.length + s.solution1Challengers.length == 0) return false;
         return (s.currentGame == 0 || IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon));
     }
     
@@ -580,7 +581,8 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     function finalizeTask(bytes32 taskID) public {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
-
+        
+        require(t.state == State.SolutionRevealed);
         require(s.solution0Challengers.length + s.solution1Challengers.length == 0 && (s.currentGame == 0 || IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon)));
 
         bytes32[] memory files = new bytes32[](t.uploads.length);
@@ -598,6 +600,8 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     function canFinalizeTask(bytes32 taskID) public view returns (bool) {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
+        
+        if (t.state != State.SolutionRevealed) return false;
 
         if (!(s.solution0Challengers.length + s.solution1Challengers.length == 0 && (s.currentGame == 0 || IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon)))) return false;
 
