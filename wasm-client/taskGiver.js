@@ -32,7 +32,7 @@ module.exports = {
 	taskCreatedEvent.watch(async (err, result) => {
 	    if (result) {
 		if (account.toLowerCase() == result.args.giver) {		    
-		    let taskID = result.args.id.toNumber()
+		    let taskID = result.args.taskID
 		    let taskInfo = toTaskInfo(await incentiveLayer.taskInfo.call(taskID))
 		    tasks[taskID] = taskInfo
 
@@ -64,7 +64,7 @@ module.exports = {
 
 	solvedEvent.watch(async (err, result) => {
 	    if (result) {
-		let taskID = result.args.id.toNumber()
+		let taskID = result.args.taskID
 
 		if (tasks[taskID]) {
 
@@ -92,7 +92,8 @@ module.exports = {
 	return () => {
 	    try {
 		let empty = data => {}
-		taskPostedEvent.stopWatching(empty)
+        solverSelectedEvent.stopWatching(empty)
+		taskCreatedEvent.stopWatching(empty)
 		solvedEvent.stopWatching(empty)
 	    } catch (e) {
 	    }

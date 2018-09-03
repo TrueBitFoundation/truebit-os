@@ -10,7 +10,7 @@ const fs = require('fs')
 
 const logger = require('../os/logger')
 
-const merkleComputer = require('../wasm-client/webasm-solidity/merkle-computer')()
+const merkleComputer = require('../wasm-client/merkle-computer')()
 
 const host = "localhost"
 const ipfs = require('ipfs-api')(host, '5001', {protocol: 'http'})
@@ -80,7 +80,7 @@ describe('Truebit OS WASM IPFS', async function() {
 		"minDeposit": "1",
 		"codeType": "WAST",
 		"storageType": "IPFS",
-		"codeFile": "/wasm-client/webasm-solidity/data/factorial.wast",
+		"codeFile": "/data/factorial.wast",
 		"reward": "0"
 	    }
 
