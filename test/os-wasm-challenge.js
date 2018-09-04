@@ -87,7 +87,9 @@ describe('Truebit OS WASM Challenge', async function() {
 
 	    await taskSubmitter.submitTask(exampleTask)
 
-	    await timeout(40000)
+	    await timeout(20000)
+	    await mineBlocks(os.web3, 110)
+	    await timeout(5000)
 	    await mineBlocks(os.web3, 110)
 	    await timeout(5000)
 	    

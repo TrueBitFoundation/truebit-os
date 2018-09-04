@@ -13,15 +13,24 @@ const contractsConfig = JSON.parse(fs.readFileSync(__dirname + "/contracts.json"
 
 function setup(httpProvider) {
     return (async () => {
-        incentiveLayer = await contract(httpProvider, contractsConfig['incentiveLayer'])
-        fileSystem = await contract(httpProvider, contractsConfig['fileSystem'])
-        disputeResolutionLayer = await contract(httpProvider, contractsConfig['interactive'])
-        return [incentiveLayer, fileSystem, disputeResolutionLayer]
+        let incentiveLayer = await contract(httpProvider, contractsConfig['incentiveLayer'])
+        let fileSystem = await contract(httpProvider, contractsConfig['fileSystem'])
+        let disputeResolutionLayer = await contract(httpProvider, contractsConfig['interactive'])
+        let tru = await contract(httpProvider, contractsConfig['tru'])
+        return [incentiveLayer, fileSystem, disputeResolutionLayer, tru]
     })()
 }
 
 function writeFile(fname, buf) {
     return new Promise(function (cont,err) { fs.writeFile(fname, buf, function (err, res) { cont() }) })
+}
+
+function makeRandom(n) {
+    let res = ""
+    for (let i = 0; i < n*2; i++) {
+        res += Math.floor(Math.random()*16).toString(16)
+    }
+    return res
 }
 
 const solverConf = { error: false, error_location: 0, stop_early: -1, deposit: 1 }
@@ -36,7 +45,7 @@ module.exports = {
 	    message: `Verifier initialized`
 	})
 
-	let [incentiveLayer, fileSystem, disputeResolutionLayer] = await setup(web3.currentProvider)
+	let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3.currentProvider)
     
     const clean_list = []
 
@@ -51,18 +60,17 @@ module.exports = {
 
 	//Solution committed event
 	addEvent(incentiveLayer.SolutionsCommitted(), async result => {
+        console.log("Solution posted")
 		let taskID = result.args.taskID
 		let storageAddress = result.args.storageAddress
-		let minDeposit = result.args.deposit.toNumber()
+		let minDeposit = result.args.minDeposit.toNumber()
 		let solverHash0 = result.args.solutionHash0
 		let solverHash1 = result.args.solutionHash1
 
 		// let taskInfo = toTaskInfo(await incentiveLayer.taskInfo.call(taskID))
 		// let solutionInfo = toSolutionInfo(await incentiveLayer.solutionInfo.call(taskID))
 
-		//TODO: Check both solutions
-
-		let storageType = result.args.cs.toNumber()
+		let storageType = result.args.storageType.toNumber()
         let vm, solution
 		
 		if(storageType == merkleComputer.StorageType.BLOCKCHAIN) {
@@ -119,6 +127,8 @@ module.exports = {
 		    let interpreterArgs = []
 		    solution = await vm.executeWasmTask(interpreterArgs)
 		}
+        
+        console.log("Loaded files")
 
         tasks[taskID] = {
             solverHash0: solverHash0,
@@ -127,7 +137,8 @@ module.exports = {
             vm: vm
         }
 		if (solverHash0 != solution.hash) {
-		    await depositsHelper(web3, incentiveLayer, account, minDeposit) 
+            console.log("Checking deposit")
+		    await depositsHelper(web3, incentiveLayer, tru, account, minDeposit) 
             let intent = makeRandom(31) + "00"
             tasks[taskID].intent0 = "0x" + intent
             let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2) 
@@ -138,7 +149,7 @@ module.exports = {
             })
 		}
 		if (solverHash1 != solution.hash) {
-		    await depositsHelper(web3, incentiveLayer, account, minDeposit) 
+		    await depositsHelper(web3, incentiveLayer, tru, account, minDeposit) 
             let intent = makeRandom(31) + "01"
             tasks[taskID].intent1 = "0x" + intent
             let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2) 
@@ -154,8 +165,9 @@ module.exports = {
 	addEvent(incentiveLayer.EndChallengePeriod(), async result => {
         let taskID = result.args.taskID
         let taskData = tasks[taskID]
-        if (taskData.intent0) await incentiveLayer.revealIntent(taskId, taskData.solverHash0, taskData.solverHash1, taskData.intent0, {from: account, gas:100000})
-        if (taskData.intent1) await incentiveLayer.revealIntent(taskId, taskData.solverHash0, taskData.solverHash1, taskData.intent1, {from: account, gas:100000})
+        if (!taskData) return
+        if (taskData.intent0) await incentiveLayer.revealIntent(taskID, taskData.solverHash0, taskData.solverHash1, taskData.intent0, {from: account, gas:1000000})
+        if (taskData.intent1) await incentiveLayer.revealIntent(taskID, taskData.solverHash0, taskData.solverHash1, taskData.intent1, {from: account, gas:1000000})
     })
 
 	// DISPUTE
