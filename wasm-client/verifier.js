@@ -92,17 +92,17 @@ module.exports = {
 		    solution = await vm.executeWasmTask(interpreterArgs)
 		    
 		} else if(storageType == merkleComputer.StorageType.IPFS) {
-		    // download code file
-		    let codeIPFSHash = await fileSystem.getIPFSCode.call(storageAddress)
-		    
-		    let name = "task.wast"
+            // download code file
+            let codeIPFSHash = await fileSystem.getIPFSCode.call(storageAddress)
 
-		    let codeBuf = (await mcFileSystem.download(codeIPFSHash, name)).content
+            let name = "task.wast"
 
-		    //download other files
-		    let fileIDs = await fileSystem.getFiles.call(storageAddress)
+            let codeBuf = (await mcFileSystem.download(codeIPFSHash, name)).content
 
-		    let files = []
+            //download other files
+            let fileIDs = await fileSystem.getFiles.call(storageAddress)
+
+            let files = []
 
             if (fileIDs.length > 0) {
                 for(let i = 0; i < fileIDs.length; i++) {
@@ -116,7 +116,7 @@ module.exports = {
                     })			    
                 }
             }
-		    
+
             vm = await setupVM(
                 incentiveLayer,
                 merkleComputer,
@@ -126,22 +126,20 @@ module.exports = {
                 false,
                 files
             )
-		    let interpreterArgs = []
-		    solution = await vm.executeWasmTask(interpreterArgs)
-		}
-        
+            let interpreterArgs = []
+            solution = await vm.executeWasmTask(interpreterArgs)
+        }
+
         console.log("Loaded files")
 
-<<<<<<< HEAD
         tasks[taskID] = {
             solverHash0: solverHash0,
             solverHash1: solverHash1,
             solutionHash: solution.hash,
             vm: vm
         }
-		if ((solverHash0 != solution.hash) ^ test) {
-            console.log("Checking deposit")
-		    await depositsHelper(web3, incentiveLayer, tru, account, minDeposit) 
+        if ((solverHash0 != solution.hash) ^ test) {
+            await depositsHelper(web3, incentiveLayer, tru, account, minDeposit) 
             let intent = makeRandom(31) + "00"
             tasks[taskID].intent0 = "0x" + intent
             let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2) 
@@ -150,9 +148,9 @@ module.exports = {
                 level: 'info',
                 message: `Challenged solution for task ${taskID}`
             })
-		}
-		if ((solverHash1 != solution.hash) ^ test) {
-		    await depositsHelper(web3, incentiveLayer, tru, account, minDeposit) 
+        }
+        if ((solverHash1 != solution.hash) ^ test) {
+            await depositsHelper(web3, incentiveLayer, tru, account, minDeposit) 
             let intent = makeRandom(31) + "01"
             tasks[taskID].intent1 = "0x" + intent
             let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2) 
@@ -161,41 +159,8 @@ module.exports = {
                 level: 'info',
                 message: `Challenged solution for task ${taskID}`
             })
-		}
-        
-=======
-            tasks[taskID] = {
-		solverHash0: solverHash0,
-		solverHash1: solverHash1,
-		solutionHash: solution.hash,
-		vm: vm
-            }
-	    
-	    if (solverHash0 != solution.hash) {
-		await depositsHelper(web3, incentiveLayer, account, minDeposit) 
-		let intent = makeRandom(31) + "00"
-		tasks[taskID].intent0 = "0x" + intent
-		let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2) 
-		await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), {from: account, gas: 350000})
-		logger.log({
-                    level: 'info',
-                    message: `Challenged solution for task ${taskID}`
-		})
-	    }
-	    
-	    if (solverHash1 != solution.hash) {
-		await depositsHelper(web3, incentiveLayer, account, minDeposit) 
-		let intent = makeRandom(31) + "01"
-		tasks[taskID].intent1 = "0x" + intent
-		let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2) 
-		await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), {from: account, gas: 350000})
-		logger.log({
-                    level: 'info',
-                    message: `Challenged solution for task ${taskID}`
-		})
-	    }
-            
->>>>>>> bbf0f7d0655b379b0752fc884b395f52ab2b98de
+        }
+
 	})
 
 	addEvent(incentiveLayer.EndChallengePeriod(), async result => {

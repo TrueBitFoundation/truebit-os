@@ -44,9 +44,9 @@ before_install:
 #  - cd ../..
 
 install:
-  - npm install
   - npm run fixperms
-  - npm run install
+  - npm install
+#  - npm run install
   - npm run compile
   - npm run deploy
 
