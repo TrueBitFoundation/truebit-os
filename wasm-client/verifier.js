@@ -90,6 +90,7 @@ module.exports = {
 		    
 		    let interpreterArgs = []
 		    solution = await vm.executeWasmTask(interpreterArgs)
+		    
 		} else if(storageType == merkleComputer.StorageType.IPFS) {
 		    // download code file
 		    let codeIPFSHash = await fileSystem.getIPFSCode.call(storageAddress)
@@ -131,6 +132,7 @@ module.exports = {
         
         console.log("Loaded files")
 
+<<<<<<< HEAD
         tasks[taskID] = {
             solverHash0: solverHash0,
             solverHash1: solverHash1,
@@ -161,6 +163,39 @@ module.exports = {
             })
 		}
         
+=======
+            tasks[taskID] = {
+		solverHash0: solverHash0,
+		solverHash1: solverHash1,
+		solutionHash: solution.hash,
+		vm: vm
+            }
+	    
+	    if (solverHash0 != solution.hash) {
+		await depositsHelper(web3, incentiveLayer, account, minDeposit) 
+		let intent = makeRandom(31) + "00"
+		tasks[taskID].intent0 = "0x" + intent
+		let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2) 
+		await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), {from: account, gas: 350000})
+		logger.log({
+                    level: 'info',
+                    message: `Challenged solution for task ${taskID}`
+		})
+	    }
+	    
+	    if (solverHash1 != solution.hash) {
+		await depositsHelper(web3, incentiveLayer, account, minDeposit) 
+		let intent = makeRandom(31) + "01"
+		tasks[taskID].intent1 = "0x" + intent
+		let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2) 
+		await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), {from: account, gas: 350000})
+		logger.log({
+                    level: 'info',
+                    message: `Challenged solution for task ${taskID}`
+		})
+	    }
+            
+>>>>>>> bbf0f7d0655b379b0752fc884b395f52ab2b98de
 	})
 
 	addEvent(incentiveLayer.EndChallengePeriod(), async result => {
