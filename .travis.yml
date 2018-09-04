@@ -27,27 +27,27 @@ before_install:
   - curl http://localhost:5001/api/v0/id
 
   # Install ocaml-offchain
-  - sudo apt-get install -y wget gcc ocaml opam libzarith-ocaml-dev m4 pkg-config zlib1g-dev
-  - opam init -y --comp=4.05.0
-  - eval $(opam config env)
-  - opam update
-  - opam install -y cryptokit yojson
-  - cd ./wasm-client/ocaml-offchain/interpreter
-  - make
-  - cd ../../..
+#  - sudo apt-get install -y wget gcc ocaml opam libzarith-ocaml-dev m4 pkg-config zlib1g-dev
+#  - opam init -y --comp=4.05.0
+#  - eval $(opam config env)
+#  - opam update
+#  - opam install -y cryptokit yojson
+#  - cd ./wasm-client/ocaml-offchain/interpreter
+#  - make
+#  - cd ../../..
 
   # Install webasm-solidity
-  - cd ./wasm-client/webasm-solidity
-  - npm i
-  - npm run compile
-  - npm run deploy
-  - cd ../..
+#  - cd ./wasm-client/webasm-solidity
+#  - npm i
+#  - npm run compile
+#  - npm run deploy
+#  - cd ../..
 
 install:
   - npm install
   - npm run setup
+  - npm run compile
   - npm run deploy
-  - npm run deploy-wasm
 
 script:
   - NODE_ENV='production' npm run test
