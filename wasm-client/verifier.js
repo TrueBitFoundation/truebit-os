@@ -48,6 +48,7 @@ module.exports = {
 	let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3.currentProvider)
     
     const clean_list = []
+    let game_list = []
 
     function addEvent(ev, handler) {
         clean_list.push(ev)
@@ -136,7 +137,7 @@ module.exports = {
             solutionHash: solution.hash,
             vm: vm
         }
-		if (solverHash0 != solution.hash) {
+		if ((solverHash0 != solution.hash) ^ test) {
             console.log("Checking deposit")
 		    await depositsHelper(web3, incentiveLayer, tru, account, minDeposit) 
             let intent = makeRandom(31) + "00"
@@ -148,7 +149,7 @@ module.exports = {
                 message: `Challenged solution for task ${taskID}`
             })
 		}
-		if (solverHash1 != solution.hash) {
+		if ((solverHash1 != solution.hash) ^ test) {
 		    await depositsHelper(web3, incentiveLayer, tru, account, minDeposit) 
             let intent = makeRandom(31) + "01"
             tasks[taskID].intent1 = "0x" + intent
@@ -166,8 +167,14 @@ module.exports = {
         let taskID = result.args.taskID
         let taskData = tasks[taskID]
         if (!taskData) return
-        if (taskData.intent0) await incentiveLayer.revealIntent(taskID, taskData.solverHash0, taskData.solverHash1, taskData.intent0, {from: account, gas:1000000})
-        if (taskData.intent1) await incentiveLayer.revealIntent(taskID, taskData.solverHash0, taskData.solverHash1, taskData.intent1, {from: account, gas:1000000})
+        if (taskData.intent0) {
+            console.log("Revealing intent")
+            await incentiveLayer.revealIntent(taskID, taskData.solverHash0, taskData.solverHash1, taskData.intent0, {from: account, gas:1000000})
+        }
+        if (taskData.intent1) {
+            console.log("Revealing intent")
+            await incentiveLayer.revealIntent(taskID, taskData.solverHash0, taskData.solverHash1, taskData.intent1, {from: account, gas:1000000})
+        }
     })
 
 	// DISPUTE
@@ -177,8 +184,10 @@ module.exports = {
 
 		if (challenger.toLowerCase() == account.toLowerCase()) {
 		    let gameID = result.args.uniq
+            
+            game_list.push(gameID)
 
-		    let taskID = (await disputeResolutionLayer.getTask.call(gameID)).toNumber()
+		    let taskID = await disputeResolutionLayer.getTask.call(gameID)
 
             games[gameID] = {
                 prover: result.args.prover,
@@ -216,6 +225,8 @@ module.exports = {
                 num,
                 {from: account}
             )
+            
+            /*
 
             let currentBlockNumber = await web3.eth.getBlockNumber()
             waitForBlock(web3, currentBlockNumber + 105, async () => {
@@ -224,7 +235,7 @@ module.exports = {
                 }
 		    })
 		    
-		    
+		    */
 		}
 	})
 
@@ -260,23 +271,37 @@ module.exports = {
                     }
                 }
 		    }
-		    
+		    /*
             let currentBlockNumber = await web3.eth.getBlockNumber()
             waitForBlock(web3, currentBlockNumber + 105, async () => {
                 if(await disputeResolutionLayer.gameOver.call(gameID)) {
                     await disputeResolutionLayer.gameOver(gameID, {from: account})
                 }
             })
+            */
 		    
 	    }
 	})
+    
+    async function handleGameTimeouts(gameID) {
+        if (await disputeResolutionLayer.gameOver.call(gameID)) {
+            console.log("Calling game over")
+            await disputeResolutionLayer.gameOver(gameID, {from: account})
+        }
+    }
+        
+    let ival = setInterval(() => {
+            game_list.forEach(handleGameTimeouts)
+    }, 1000)
 
 	return () => {
         try {
             let empty = data => { }
+            clearInterval(ival)
             clean_list.forEach(ev => ev.stopWatching(empty))
         }
         catch(e) {
+            console.log("Umm")
 	    }
 	}
     }
