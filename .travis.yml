@@ -45,7 +45,8 @@ before_install:
 
 install:
   - npm install
-  - npm run setup
+  - npm run fixperms
+  - npm run install
   - npm run compile
   - npm run deploy
 
