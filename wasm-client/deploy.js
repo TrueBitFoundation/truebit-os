@@ -74,11 +74,10 @@ async function deploy() {
         incentiveLayer: exportContract(incentiveLayer)
     }))
 
-    //TODO: Figure what to do for main net
-
+    // Set exchange rate oracle for testing, main net should come from external data source (dex, oraclize, etc..)
     const TRUperUSD = 2000
     await exchangeRateOracle.methods.updateExchangeRate(TRUperUSD).send({from: accounts[0]})
-    
+
     // Mint tokens for testing
     accounts.forEach(addr => {
         tru.methods.mint(addr, "100000000000000000000000").send({from:accounts[0], gas: 100000})

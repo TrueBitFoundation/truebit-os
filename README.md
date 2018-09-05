@@ -21,7 +21,6 @@ An ethereum client running on port 8545, and an ipfs daemon at port 5001.
 npm run fixperms
 npm run install
 npm run deploy
-npm run distribute
 npm run truebit wasm-client/config.json
 ```
 
