@@ -37,7 +37,7 @@ function getLeaf(lst, loc) {
     return res
 }
 
-exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer) {
+exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer, account) {
     
     async function loadMixedCode(fileid) {
         var hash = await fileSystem.getIPFSCode.call(fileid)

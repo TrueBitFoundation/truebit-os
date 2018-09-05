@@ -48,7 +48,7 @@ module.exports = {
             })
         }
         
-        let helpers = fsHelpers.init(fileSystem, web3, mcFileSystem, logger, incentiveLayer)
+        let helpers = fsHelpers.init(fileSystem, web3, mcFileSystem, logger, incentiveLayer, account)
 
         addEvent(incentiveLayer.TaskCreated(), async (result) => {
             console.log("Got new task")
@@ -105,8 +105,6 @@ module.exports = {
 
                 let vm = await helpers.setupVMWithFS(taskInfo)
                 
-                console.log(vm)
-
                 assert(vm != undefined, "vm is undefined")
 
                 let interpreterArgs = []
@@ -404,7 +402,7 @@ module.exports = {
             }
             if (await incentiveLayer.canFinalizeTask.call(taskID)) {
                 console.log("Finalizing task")
-                await incentiveLayer.finalizeTask(taskID, {from:account, gas:100000})
+                await incentiveLayer.finalizeTask(taskID, {from:account, gas:1000000})
             }
         }
         

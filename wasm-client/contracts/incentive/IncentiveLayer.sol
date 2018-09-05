@@ -10,6 +10,10 @@ import "./RewardsManager.sol";
 import "../interface/IGameMaker.sol";
 import "../interface/IDisputeResolutionLayer.sol";
 
+interface Callback {
+    function solved(bytes32 id, bytes32[] files) external;
+}
+
 contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
 
     uint private numTasks = 0;
@@ -126,17 +130,6 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         tru = TRU(_TRU);
     }
 
-    // @dev - private method to check if the denoted amount of blocks have been mined (time has passed).
-    // @param taskID - the task id.
-    // @param numBlocks - the difficulty weight for the task
-    // @return - boolean
-    /*
-    function stateChangeTimeoutReached(bytes32 taskID) private view returns (bool) {
-        Task storage t = tasks[taskID];
-        return block.number.sub(t.taskCreationBlockNumber) >= TIMEOUT;
-    }
-    */
-    
     function getBalance(address addr) public view returns (uint) {
         return tru.balanceOf(addr);
     }
@@ -593,6 +586,25 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         t.finalityCode = 1; // Task has been completed
 
         payReward(taskID, t.selectedSolver);
+        if (!t.owner.call(abi.encodeWithSignature("solved(bytes32,bytes32[])", taskID, files))) {
+        }
+        // Callback(t.owner).solved(taskID, files);
+    }
+    
+    function isFinalized(bytes32 taskID) public view returns (bool) {
+        Task storage t = tasks[taskID];
+        return (t.state == State.TaskFinalized);
+    }
+    
+    function finalizedCallback(bytes32 taskID) public returns (bool) {
+        Task storage t = tasks[taskID];
+        require (t.state == State.TaskFinalized);
+        bytes32[] memory files = new bytes32[](t.uploads.length);
+        for (uint i = 0; i < t.uploads.length; i++) {
+           files[i] = t.uploads[i].fileId;
+        }
+
+        Callback(t.owner).solved(taskID, files);
     }
 
     function canFinalizeTask(bytes32 taskID) public view returns (bool) {
