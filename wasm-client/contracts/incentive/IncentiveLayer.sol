@@ -277,23 +277,21 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         t.requiredCommitted = true;
         emit TaskCreated(id, t.minDeposit, t.lastBlock, t.reward, t.tax, t.codeType, t.storageType, t.storageAddress);
     }
-
-    // @dev – changes a tasks state.
-    // @param taskID – the task id.
-    // @param newSate – the new state.
-    // @return – boolean
-    /*
-    function changeTaskState(bytes32 taskID, uint newState) public returns (bool) {
-        Task storage t = tasks[taskID];
-	
-        //TODO: Add this back in
-        require(stateChangeTimeoutReached(taskID));
-
-        t.state = State(newState);
-        emit TaskStateChange(taskID, newState);
-        return true;
+    
+    function getUploadNames(bytes32 id) public view returns (bytes32[]) {
+        RequiredFile[] storage lst = tasks[id].uploads;
+        bytes32[] memory arr = new bytes32[](lst.length);
+        for (uint i = 0; i < arr.length; i++) arr[i] = lst[i].nameHash;
+        return arr;
     }
-    */
+
+    function getUploadTypes(bytes32 id) public view returns (StorageType[]) {
+        RequiredFile[] storage lst = tasks[id].uploads;
+        StorageType[] memory arr = new StorageType[](lst.length);
+        for (uint i = 0; i < arr.length; i++) arr[i] = lst[i].fileStorage;
+        return arr;
+    }
+
 
     // @dev – solver registers for tasks, if first to register than automatically selected solver
     // 0 -> 1
