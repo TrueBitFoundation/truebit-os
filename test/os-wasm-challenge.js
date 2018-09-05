@@ -21,7 +21,7 @@ before(async () => {
 })
 
 describe('Truebit OS WASM Challenge', async function() {
-    this.timeout(60000)
+    this.timeout(600000)
 
     it('should have a logger', () => {
 	assert(os.logger)
@@ -87,9 +87,11 @@ describe('Truebit OS WASM Challenge', async function() {
 
 	    await taskSubmitter.submitTask(exampleTask)
 
-	    await timeout(40000)
+	    await timeout(5000)
 	    await mineBlocks(os.web3, 110)
 	    await timeout(5000)
+	    await mineBlocks(os.web3, 110)
+	    await timeout(30000)
 	    
 	    let tasks = os.taskGiver.getTasks()
 	    //taskID = Object.keys(tasks)[0]

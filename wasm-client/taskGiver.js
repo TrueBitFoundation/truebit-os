@@ -75,6 +75,7 @@ module.exports = {
 		    
 		    
 		    //TODO: store solution data somewhere
+            /*
 		    let solutionInfo = toSolutionInfo(await incentiveLayer.solutionInfo.call(taskID))
 
 		    let currentBlockNumber = await web3.eth.getBlockNumber()
@@ -85,6 +86,7 @@ module.exports = {
 			//Potentially have to finalize task here
 
 		    })
+            */
 		}
 	    }
 	})

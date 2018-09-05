@@ -45,6 +45,7 @@ module.exports = {
         let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3.currentProvider)
         
         const clean_list = []
+        const game_list = []
         
         function addEvent(ev, handler) {
             clean_list.push(ev)
@@ -211,7 +212,10 @@ module.exports = {
         addEvent(disputeResolutionLayer.StartChallenge(), async (result) => {
             let solver = result.args.p
             let gameID = result.args.uniq
+            console.log("Got start challenge")
             if (solver.toLowerCase() == account.toLowerCase()) {
+                
+                game_list.push(gameID)
 
                 let taskID = await disputeResolutionLayer.getTask.call(gameID)
 
@@ -269,12 +273,14 @@ module.exports = {
                     message: `Reported state hash for step: ${stepNumber} game: ${gameID} low: ${indices.low} high: ${indices.high}`
                 })
 
+                /*
                 let currentBlockNumber = await web3.eth.getBlockNumber()
                 waitForBlock(web3, currentBlockNumber + 105, async () => {
                     if(await disputeResolutionLayer.gameOver.call(gameID)) {
                         await disputeResolutionLayer.gameOver(gameID, {from: account})
                     }
                 })
+                */
 
             }
         })
@@ -324,13 +330,17 @@ module.exports = {
                     })
 
                 }
+                
+                /*
 
                 let currentBlockNumber = await web3.eth.getBlockNumber()	    
                 waitForBlock(web3, currentBlockNumber + 105, async () => {
+                    console.log("Game over")
                     if(await disputeResolutionLayer.gameOver.call(gameID)) {
                         await disputeResolutionLayer.gameOver(gameID, {from: account})
                     }
                 })
+                */
 
             }
         })
@@ -426,8 +436,15 @@ module.exports = {
             }
         })
         
+        async function handleGameTimeouts(gameID) {
+            if (await disputeResolutionLayer.gameOver.call(gameID)) {
+                console.log("Calling game over")
+                await disputeResolutionLayer.gameOver(gameID, {from: account})
+            }
+        }
+        
         async function handleTimeouts(taskID) {
-            console.log("Handling timeout")
+            console.log("Handling timeout", await web3.eth.getBlockNumber())
             if (await incentiveLayer.endChallengePeriod.call(taskID)) {
                 console.log("Ending challenge period")
                 await incentiveLayer.endChallengePeriod(taskID, {from:account, gas:100000})
@@ -438,7 +455,7 @@ module.exports = {
             }
             if (await incentiveLayer.canRunVerificationGame.call(taskID)) {
                 console.log("Start new verification game")
-                await incentiveLayer.runVerificationGame(taskID, {from:account, gas:100000})
+                await incentiveLayer.runVerificationGame(taskID, {from:account, gas:1000000})
             }
             if (await incentiveLayer.canFinalizeTask.call(taskID)) {
                 console.log("Finalizing task")
@@ -446,7 +463,10 @@ module.exports = {
             }
         }
         
-        let ival = setInterval(() => task_list.forEach(handleTimeouts), 1000)
+        let ival = setInterval(() => {
+            task_list.forEach(handleTimeouts)
+            game_list.forEach(handleGameTimeouts)
+        }, 1000)
 
         return () => {
             try {
@@ -454,9 +474,9 @@ module.exports = {
                 clean_list.forEach(ev => ev.stopWatching(empty))
                 clearInterval(ival)
             } catch(e) {
+                console.log("Ummm")
             }
         }
->>>>>>> b6897ebe72b9408cd943f973e34b7006caa34d2a
     }
 }
 

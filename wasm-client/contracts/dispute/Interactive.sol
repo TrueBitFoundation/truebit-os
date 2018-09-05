@@ -109,20 +109,20 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         g.start_state = startStateHash;
         g.end_state = endStateHash;
         g.timeout = timeout;
-        g.clock = block.number;
         g.next = g.prover;
         g.idx1 = 0;
         g.phase = 16;
         g.size = size;
         g.state = State.Started;
         g.status = Status.Challenged;	
-        emit StartChallenge(solver, verifier, startStateHash, endStateHash, g.size, timeout, gameID);
+        g.clock = block.number;
         blocked[taskID] = g.clock + g.timeout;
+        emit StartChallenge(solver, verifier, startStateHash, endStateHash, size, timeout, gameID);
         return gameID;
     }
 
     function status(bytes32 gameID) external view returns(uint8) {
-	return uint8(games[gameID].status);
+        return uint8(games[gameID].status);
     }
     
     uint constant FINAL_STATE = 0xffffffffff;
@@ -235,7 +235,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         g.proof[g.steps-1] = judge.calcStateHash(e_roots, e_pointers);
         g.proof[0] = judge.calcStateHash(s_roots, s_pointers);
         g.state = State.Running;
-	g.status = Status.Unresolved;
+        g.status = Status.Unresolved;
         // return true;
         return (e_roots, e_pointers, keccak256(abi.encodePacked(e_roots, e_pointers)), ccStateHash(e_roots, e_pointers));
     }
@@ -279,12 +279,12 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         require(checkTimeout(gameID));
         if (g.next == g.prover) {
             g.winner = g.challenger;
-	    g.status = Status.ChallengerWon;
+            g.status = Status.ChallengerWon;
             rejected[g.task_id] = true;
         }
         else {
             g.winner = g.prover;
-	    g.status = Status.SolverWon;
+            g.status = Status.SolverWon;
             blocked[g.task_id] = 0;
         }
         emit WinnerSelected(gameID);
@@ -410,6 +410,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         judge.judge(g.result, g.phase, proof, proof2, vmHash, op, regs, roots, pointers);
         emit WinnerSelected(gameID);
         g.winner = g.prover;
+        g.status = Status.SolverWon;
         blocked[g.task_id] = 0;
         g.state = State.Finished;
     }
@@ -423,6 +424,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         g.winner = g.prover;
         blocked[g.task_id] = 0;
         g.state = State.Finished;
+        g.status = Status.SolverWon;
         return true;
     }
 

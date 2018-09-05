@@ -531,7 +531,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
             verificationGame(taskID, t.selectedSolver, s.solution0Challengers[s.solution0Challengers.length-1], s.solutionHash0);
             s.solution0Challengers.length -= 1;
         } else if (s.solution1Challengers.length > 0) {
-            verificationGame(taskID, t.selectedSolver, s.solution1Challengers[s.solution0Challengers.length-1], s.solutionHash1);
+            verificationGame(taskID, t.selectedSolver, s.solution1Challengers[s.solution1Challengers.length-1], s.solutionHash1);
             s.solution1Challengers.length -= 1;
         }
         // emit VerificationGame(t.selectedSolver, s.currentChallenger);
