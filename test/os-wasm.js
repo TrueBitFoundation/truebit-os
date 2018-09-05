@@ -72,7 +72,7 @@ describe('Truebit OS WASM', async function() {
 		"minDeposit": "1",
 		"codeType": "WAST",
 		"storageType": "BLOCKCHAIN",
-		"codeFile": "/wasm-client/webasm-solidity/data/factorial.wast",
+		"codeFile": "/data/factorial.wast",
 		"reward": "0"
 	    }
 
@@ -83,6 +83,8 @@ describe('Truebit OS WASM', async function() {
 
 	    await taskSubmitter.submitTask(exampleTask)
 
+	    await timeout(5000)
+	    await mineBlocks(os.web3, 110)
 	    await timeout(5000)
 	    await mineBlocks(os.web3, 110)
 	    await timeout(5000)

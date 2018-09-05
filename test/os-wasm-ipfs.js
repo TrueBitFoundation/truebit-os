@@ -10,7 +10,7 @@ const fs = require('fs')
 
 const logger = require('../os/logger')
 
-const merkleComputer = require('../wasm-client/webasm-solidity/merkle-computer')()
+const merkleComputer = require('../wasm-client/merkle-computer')()
 
 const host = "localhost"
 const ipfs = require('ipfs-api')(host, '5001', {protocol: 'http'})
@@ -25,7 +25,7 @@ before(async () => {
     os = await require('../os/kernel')("./wasm-client/config.json")
 })
 
-describe('Truebit OS WASM', async function() {
+describe('Truebit OS WASM IPFS', async function() {
     this.timeout(60000)
 
     it('should have a logger', () => {
@@ -80,7 +80,7 @@ describe('Truebit OS WASM', async function() {
 		"minDeposit": "1",
 		"codeType": "WAST",
 		"storageType": "IPFS",
-		"codeFile": "/wasm-client/webasm-solidity/data/factorial.wast",
+		"codeFile": "/data/factorial.wast",
 		"reward": "0"
 	    }
 
@@ -91,6 +91,8 @@ describe('Truebit OS WASM', async function() {
 
 	    await taskSubmitter.submitTask(exampleTask)
 
+	    await timeout(5000)
+	    await mineBlocks(os.web3, 110)
 	    await timeout(5000)
 	    await mineBlocks(os.web3, 110)
 	    await timeout(5000)

@@ -7,11 +7,11 @@ const toTaskInfo = require('./util/toTaskInfo')
 const waitForBlock = require('./util/waitForBlock')
 const toSolutionInfo = require('./util/toSolutionInfo')
 
-const wasmClientConfig = JSON.parse(fs.readFileSync(__dirname + "/webasm-solidity/export/development.json"))
+const contractsConfig = JSON.parse(fs.readFileSync(__dirname + "/contracts.json"))
 
 function setup(httpProvider) {
     return (async () => {
-	incentiveLayer = await contract(httpProvider, wasmClientConfig['tasks'])
+	incentiveLayer = await contract(httpProvider, contractsConfig['incentiveLayer'])
 	return incentiveLayer
     })()
 }
@@ -27,12 +27,12 @@ module.exports = {
 	let incentiveLayer = await setup(web3.currentProvider)
 
 	//Task creation event
-	const taskPostedEvent = incentiveLayer.Posted()
+	const taskCreatedEvent = incentiveLayer.TaskCreated()
 
-	taskPostedEvent.watch(async (err, result) => {
+	taskCreatedEvent.watch(async (err, result) => {
 	    if (result) {
 		if (account.toLowerCase() == result.args.giver) {		    
-		    let taskID = result.args.id.toNumber()
+		    let taskID = result.args.taskID
 		    let taskInfo = toTaskInfo(await incentiveLayer.taskInfo.call(taskID))
 		    tasks[taskID] = taskInfo
 
@@ -45,12 +45,26 @@ module.exports = {
 	    }
 	})
 
+	const solverSelectedEvent = incentiveLayer.SolverSelected()
+
+	solverSelectedEvent.watch(async (err, result) => {
+	    if (result) {
+
+		let taskID = result.args.taskID
+
+		if (tasks[taskID]) {
+		    //TODO
+		    //Set timer for timeout
+		}
+	    }
+	})
+
 	//Solution committed event
-	const solvedEvent = incentiveLayer.Solved()
+	const solvedEvent = incentiveLayer.SolutionsCommitted()
 
 	solvedEvent.watch(async (err, result) => {
 	    if (result) {
-		let taskID = result.args.id.toNumber()
+		let taskID = result.args.taskID
 
 		if (tasks[taskID]) {
 
@@ -61,20 +75,18 @@ module.exports = {
 		    
 		    
 		    //TODO: store solution data somewhere
+            /*
 		    let solutionInfo = toSolutionInfo(await incentiveLayer.solutionInfo.call(taskID))
 
 		    let currentBlockNumber = await web3.eth.getBlockNumber()
 		    
 		    waitForBlock(web3, currentBlockNumber + 105, async () => {
 
-			if(await incentiveLayer.finalizeTask.call(taskID)) {			    
-			    await incentiveLayer.finalizeTask(taskID, {from: account})
-			    logger.log({
-				level: 'info',
-				message: `Task ${taskID} finalized`
-			    })			    
-			}			
+			//TODO
+			//Potentially have to finalize task here
+
 		    })
+            */
 		}
 	    }
 	})
@@ -82,7 +94,8 @@ module.exports = {
 	return () => {
 	    try {
 		let empty = data => {}
-		taskPostedEvent.stopWatching(empty)
+        solverSelectedEvent.stopWatching(empty)
+		taskCreatedEvent.stopWatching(empty)
 		solvedEvent.stopWatching(empty)
 	    } catch (e) {
 	    }

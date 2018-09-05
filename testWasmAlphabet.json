@@ -2,8 +2,8 @@
     "minDeposit": "1",
     "codeType": "WASM",
     "storageType": "IPFS",
-    "codeFile": "/wasm-client/webasm-solidity/data/reverse_alphabet.wasm",
-    "inputFile": "/wasm-client/webasm-solidity/data/alphabet.txt",
+    "codeFile": "/data/reverse_alphabet.wasm",
+    "inputFile": "/data/alphabet.txt",
     "reward": "0",
-    "files": ["/wasm-client/webasm-solidity/data/alphabet.txt", "/wasm-client/webasm-solidity/data/reverse_alphabet.txt"]
+    "files": ["/data/alphabet.txt", "/data/reverse_alphabet.txt"]
 }

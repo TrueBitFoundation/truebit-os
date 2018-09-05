@@ -7,7 +7,6 @@
 	"host": "localhost",
 	"port": "5001",
 	"protocol": "http",
-	"merkleComputer": "../wasm-client/webasm-solidity/merkle-computer/"
+	"merkleComputer": "../wasm-client/merkle-computer/"
     }
 }
-    
