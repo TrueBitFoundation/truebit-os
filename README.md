@@ -16,10 +16,16 @@ If you want to talk to the developers working on this project feel free to say h
 
 ## Installation
 ```bash
-npm i
-npm run deploy-wasm
+npm run fixperms
+npm run install
+npm run deploy
+npm run distribute
 npm run truebit wasm-client/config.json
 ```
+
+# Development
+
+To run the tests use: `npm run test`
 
 # WASM Client
 
