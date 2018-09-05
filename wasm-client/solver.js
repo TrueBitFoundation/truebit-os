@@ -444,7 +444,7 @@ module.exports = {
         }
         
         async function handleTimeouts(taskID) {
-            console.log("Handling timeout", await web3.eth.getBlockNumber())
+            //console.log("Handling timeout", await web3.eth.getBlockNumber())
             if (await incentiveLayer.endChallengePeriod.call(taskID)) {
                 console.log("Ending challenge period")
                 await incentiveLayer.endChallengePeriod(taskID, {from:account, gas:100000})

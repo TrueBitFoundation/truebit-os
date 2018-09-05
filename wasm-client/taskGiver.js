@@ -94,7 +94,7 @@ module.exports = {
 	return () => {
 	    try {
 		let empty = data => {}
-        solverSelectedEvent.stopWatching(empty)
+		solverSelectedEvent.stopWatching(empty)
 		taskCreatedEvent.stopWatching(empty)
 		solvedEvent.stopWatching(empty)
 	    } catch (e) {

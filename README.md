@@ -79,24 +79,11 @@ We have specified to submit a task from account 0. And the data related to the t
 
 If you are running this on a development test net you will need to skip blocks to see the solution in the solutions directory.
 ```
-skip 120
+skip 200 # Go past the challenge period
+skip 300 # Go past reveal period and finalize task
 ```
 
-# Basic Client
-
-The `basic-client` directory houses an example project with the relevant modules to interface with the Truebit OS kernel.
-
-The point of `basic-client` is to function as a template for anyone to base their interactive verification game project off of. Such a project can then be hosted on the Truebit OS platform. It was originally used to prototype the features for this project, and is useful for educational purposes as it uses a simplified Computation Layer. If you are interested in diving into how the protocol's implementation works without having to understand the internals of WASM this is a good place to look. Basic client is also a good template for Truebit Lite mechanisms that use specific computation layers (for example Scrypt hashing) and can be implemented fully in Solidity. Since WASM is a general platform, this may not end up being used, however, some teams may want to use it for cost optimization or other purposes.
-
-## Usage
-
-```
-npm run truebit basic-client/config.json
-```
-
-Similar instructions above but make sure to use `testTask.json`.
-
-Now you should see a json file in solutions/ labelled with the task id.
+*NOTE* These parameters are subject to future change
 
 ### Logging
 
