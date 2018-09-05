@@ -73,6 +73,11 @@ async function deploy() {
         exchangeRateOracle: exportContract(exchangeRateOracle),
         incentiveLayer: exportContract(incentiveLayer)
     }))
+
+    //TODO: Figure what to do for main net
+
+    const TRUperUSD = 2000
+    await exchangeRateOracle.methods.updateExchangeRate(TRUperUSD).send({from: accounts[0]})
     
     // Mint tokens for testing
     accounts.forEach(addr => {
