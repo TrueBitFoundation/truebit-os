@@ -9,6 +9,8 @@ const waitForBlock = require('./util/waitForBlock')
 const setupVM = require('./util/setupVM')
 const assert = require('assert')
 
+const helpers = require('./fsHelpers')
+
 const merkleComputer = require("./merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
 
 const contractsConfig = JSON.parse(fs.readFileSync(__dirname + "/contracts.json"))
@@ -21,14 +23,6 @@ function setup(httpProvider) {
         disputeResolutionLayer = await contract(httpProvider, contractsConfig['interactive'])
         return [incentiveLayer, fileSystem, disputeResolutionLayer, tru]
     })()
-}
-
-function makeRandom(n) {
-    let res = ""
-    for (let i = 0; i < n*2; i++) {
-        res += Math.floor(Math.random()*16).toString(16)
-    }
-    return res
 }
 
 let tasks = {}
@@ -107,7 +101,6 @@ module.exports = {
                     message: `Solving task ${taskID}`
                 })
 
-                let buf
                 let storageType = taskInfo.storageType
                 let storageAddress = taskInfo.storageAddress
                 
@@ -115,7 +108,7 @@ module.exports = {
 
                     let wasmCode = await fileSystem.getCode.call(storageAddress)
 
-                    buf = Buffer.from(wasmCode.substr(2), "hex")
+                    let buf = Buffer.from(wasmCode.substr(2), "hex")
 
                     vm = await setupVM(
                         incentiveLayer,
