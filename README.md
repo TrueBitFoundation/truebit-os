@@ -14,6 +14,8 @@ If you want to talk to the developers working on this project feel free to say h
 
 # Getting Started
 
+An ethereum client running on port 8545, and an ipfs daemon at port 5001.
+
 ## Installation
 ```bash
 npm run fixperms
