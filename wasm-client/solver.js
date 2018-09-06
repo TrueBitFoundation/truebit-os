@@ -9,6 +9,8 @@ const waitForBlock = require('./util/waitForBlock')
 const setupVM = require('./util/setupVM')
 const assert = require('assert')
 
+const fsHelpers = require('./fsHelpers')
+
 const merkleComputer = require("./merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
 
 const contractsConfig = JSON.parse(fs.readFileSync(__dirname + "/contracts.json"))
@@ -21,14 +23,6 @@ function setup(httpProvider) {
         disputeResolutionLayer = await contract(httpProvider, contractsConfig['interactive'])
         return [incentiveLayer, fileSystem, disputeResolutionLayer, tru]
     })()
-}
-
-function makeRandom(n) {
-    let res = ""
-    for (let i = 0; i < n*2; i++) {
-        res += Math.floor(Math.random()*16).toString(16)
-    }
-    return res
 }
 
 let tasks = {}
@@ -53,6 +47,8 @@ module.exports = {
                 if (result) handler(result)
             })
         }
+        
+        let helpers = fsHelpers.init(fileSystem, web3, mcFileSystem, logger, incentiveLayer, account)
 
         addEvent(incentiveLayer.TaskCreated(), async (result) => {
 
@@ -94,83 +90,28 @@ module.exports = {
 
                 //TODO: Need to read secret from persistence or else task is lost
                 let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))
+                if (!tasks[taskID]) tasks[taskID] = {}
                 tasks[taskID].taskInfo = taskInfo
+                taskInfo.taskID = taskID
 
                 task_list.push(taskID)
-
-                let solution, vm, interpreterArgs
 
                 logger.log({
                     level: 'info',
                     message: `Solving task ${taskID}`
                 })
 
-                let buf
-                let storageType = taskInfo.storageType
-                let storageAddress = taskInfo.storageAddress
+                let vm = await helpers.setupVMWithFS(taskInfo)
                 
-                if(storageType == merkleComputer.StorageType.BLOCKCHAIN) {
-
-                    let wasmCode = await fileSystem.getCode.call(storageAddress)
-
-                    buf = Buffer.from(wasmCode.substr(2), "hex")
-
-                    vm = await setupVM(
-                        incentiveLayer,
-                        merkleComputer,
-                        taskID,
-                        buf,
-                        tasks[taskID].taskInfo.codeType,
-                        false
-                    )
-
-                } else if(storageType == merkleComputer.StorageType.IPFS) {
-                    // download code file
-                    let codeIPFSHash = await fileSystem.getIPFSCode.call(storageAddress)
-
-                    let name = "task.wast"
-
-                    let codeBuf = (await mcFileSystem.download(codeIPFSHash, name)).content
-
-                    //download other files
-                    let fileIDs = await fileSystem.getFiles.call(storageAddress)
-
-                    let files = []
-
-                    if (fileIDs.length > 0) {
-                        for(let i = 0; i < fileIDs.length; i++) {
-                            let fileID = fileIDs[i]
-                            let name = await fileSystem.getName.call(fileID)
-                            let ipfsHash = await fileSystem.getHash.call(fileID)
-                            let dataBuf = (await mcFileSystem.download(ipfsHash, name)).content
-                            files.push({
-                                name: name,
-                                dataBuf: dataBuf
-                            })				
-                        }
-                    }
-
-                    vm = await setupVM(
-                        incentiveLayer,
-                        merkleComputer,
-                        taskID,
-                        codeBuf,
-                        tasks[taskID].taskInfo.codeType,
-                        false,
-                        files
-                    )
-
-                }
-
                 assert(vm != undefined, "vm is undefined")
 
-                interpreterArgs = []
-                solution = await vm.executeWasmTask(interpreterArgs)
+                let interpreterArgs = []
+                let solution = await vm.executeWasmTask(interpreterArgs)
                 tasks[taskID].solution = solution
 
                 console.log("Committing solution", solution)
 
-                let random_hash = "0x" + makeRandom(32)
+                let random_hash = "0x" + fsHelpers.makeRandom(32)
 
                 try {
 
@@ -204,12 +145,12 @@ module.exports = {
             if (tasks[taskID]) {		
                 let vm = tasks[taskID].solution.vm
                 await incentiveLayer.revealSolution(taskID, tasks[taskID].secret, vm.code, vm.input_size, vm.input_name, vm.input_data, {from: account, gas: 1000000})
-
-		logger.log({
-		    level: 'info',
-		    message: `Revealed solution for task: ${taskID}`
-		})
-		
+                await helpers.uploadOutputs(taskID, tasks[taskID].vm)
+              
+                logger.log({
+		              level: 'info',
+		              message: `Revealed solution for task: ${taskID}. Ouputs have been uploaded.`
+		            })
             }
 	    
         })
@@ -469,14 +410,14 @@ module.exports = {
             }
 	    
             if (await incentiveLayer.canFinalizeTask.call(taskID)) {
-		
-                await incentiveLayer.finalizeTask(taskID, {from:account, gas:100000})
+
+                await incentiveLayer.finalizeTask(taskID, {from:account, gas:1000000})
 
                 logger.log({
                     level: 'info',
                     message: `Finalized task ${taskID}`
                 })
-		
+
             }
         }
         
