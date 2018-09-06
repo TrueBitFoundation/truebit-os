@@ -202,17 +202,22 @@ module.exports = {
 
         addEvent(incentiveLayer.EndRevealPeriod(), async (result) => {
             let taskID = result.args.taskID
+	    
             console.log("Revealing solution")
+	    
             if (tasks[taskID]) {
                 let vm = tasks[taskID].solution.vm
                 await incentiveLayer.revealSolution(taskID, tasks[taskID].secret, vm.code, vm.input_size, vm.input_name, vm.input_data, {from: account, gas: 1000000})
             }
+	    
         })
 
         addEvent(disputeResolutionLayer.StartChallenge(), async (result) => {
             let solver = result.args.p
             let gameID = result.args.uniq
+	    
             console.log("Got start challenge")
+	    
             if (solver.toLowerCase() == account.toLowerCase()) {
                 
                 game_list.push(gameID)
@@ -223,7 +228,6 @@ module.exports = {
                     level: 'info',
                     message: `Solution to task ${taskID} has been challenged`
                 })
-
 
                 //Initialize verification game
                 let vm = tasks[taskID].vm
@@ -272,15 +276,6 @@ module.exports = {
                     level: 'info',
                     message: `Reported state hash for step: ${stepNumber} game: ${gameID} low: ${indices.low} high: ${indices.high}`
                 })
-
-                /*
-                let currentBlockNumber = await web3.eth.getBlockNumber()
-                waitForBlock(web3, currentBlockNumber + 105, async () => {
-                    if(await disputeResolutionLayer.gameOver.call(gameID)) {
-                        await disputeResolutionLayer.gameOver(gameID, {from: account})
-                    }
-                })
-                */
 
             }
         })
@@ -331,17 +326,6 @@ module.exports = {
 
                 }
                 
-                /*
-
-                let currentBlockNumber = await web3.eth.getBlockNumber()	    
-                waitForBlock(web3, currentBlockNumber + 105, async () => {
-                    console.log("Game over")
-                    if(await disputeResolutionLayer.gameOver.call(gameID)) {
-                        await disputeResolutionLayer.gameOver(gameID, {from: account})
-                    }
-                })
-                */
-
             }
         })
 
@@ -449,14 +433,17 @@ module.exports = {
                 console.log("Ending challenge period")
                 await incentiveLayer.endChallengePeriod(taskID, {from:account, gas:100000})
             }
+	    
             if (await incentiveLayer.endRevealPeriod.call(taskID)) {
                 console.log("Ending reveal period")
                 await incentiveLayer.endRevealPeriod(taskID, {from:account, gas:100000})
             }
+	    
             if (await incentiveLayer.canRunVerificationGame.call(taskID)) {
                 console.log("Start new verification game")
                 await incentiveLayer.runVerificationGame(taskID, {from:account, gas:1000000})
             }
+	    
             if (await incentiveLayer.canFinalizeTask.call(taskID)) {
                 console.log("Finalizing task")
                 await incentiveLayer.finalizeTask(taskID, {from:account, gas:100000})
