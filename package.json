@@ -8,7 +8,6 @@
     "install": "./wasm-client/install.sh",
     "compile": "./wasm-client/compile.sh",
     "deploy": "node wasm-client/deploy.js",
-    "distribute": "node wasm-client/distributeTokens.js",
     "test": "mocha",
     "truebit": "node ./cli/index.js"
   },

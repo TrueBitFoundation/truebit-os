@@ -284,8 +284,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         for (uint i = 0; i < arr.length; i++) arr[i] = lst[i].fileStorage;
         return arr;
     }
-
-
+    
     // @dev – solver registers for tasks, if first to register than automatically selected solver
     // 0 -> 1
     // @param taskID – the task id.
