@@ -72,21 +72,8 @@ module.exports = {
 			level: 'info',
 			message: `Solution for task ${taskID} has been submitted`
 		    })
-		    
-		    
-		    //TODO: store solution data somewhere
-            /*
-		    let solutionInfo = toSolutionInfo(await incentiveLayer.solutionInfo.call(taskID))
-
-		    let currentBlockNumber = await web3.eth.getBlockNumber()
-		    
-		    waitForBlock(web3, currentBlockNumber + 105, async () => {
-
-			//TODO
-			//Potentially have to finalize task here
-
-		    })
-            */
+		    		    
+		    //TODO: store solution data somewhere, or have hooks for actions to be taken when solution was submitted
 		}
 	    }
 	})

@@ -60,16 +60,18 @@ module.exports = {
 	//INCENTIVE
 
 	//Solution committed event
-	addEvent(incentiveLayer.SolutionsCommitted(), async result => {
-            console.log("Solution posted")
+	addEvent(incentiveLayer.SolutionsCommitted(), async result => {	    
+
+	    logger.log({
+		level: 'info',
+		message: `Solution has been posted`
+	    })	    
+	    
 	    let taskID = result.args.taskID
 	    let storageAddress = result.args.storageAddress
 	    let minDeposit = result.args.minDeposit.toNumber()
 	    let solverHash0 = result.args.solutionHash0
 	    let solverHash1 = result.args.solutionHash1
-
-	    // let taskInfo = toTaskInfo(await incentiveLayer.taskInfo.call(taskID))
-	    // let solutionInfo = toSolutionInfo(await incentiveLayer.solutionInfo.call(taskID))
 
 	    let storageType = result.args.storageType.toNumber()
 	    let vm, solution
@@ -133,7 +135,10 @@ module.exports = {
 		solution = await vm.executeWasmTask(interpreterArgs)
             }
 
-            console.log("Loaded files")
+	    logger.log({
+		level: 'info',
+		message: `Executed task ${taskID}. Checking solutions`
+	    })	    
 
             tasks[taskID] = {
 		solverHash0: solverHash0,
@@ -181,14 +186,17 @@ module.exports = {
             if (!taskData) return
 	    
             if (taskData.intent0) {
-		console.log("Revealing intent")
 		await incentiveLayer.revealIntent(taskID, taskData.solverHash0, taskData.solverHash1, taskData.intent0, {from: account, gas:1000000})
-            }
-	    
-            if (taskData.intent1) {
-		console.log("Revealing intent")
+            } else if (taskData.intent1) {
 		await incentiveLayer.revealIntent(taskID, taskData.solverHash0, taskData.solverHash1, taskData.intent1, {from: account, gas:1000000})
-            }
+	    } else {
+		throw `intent0 nor intent1 were truthy for task ${taskID}`
+	    }
+	    
+	    logger.log({
+                level: 'info',
+                message: `Revealing challenge intent for ${taskID}`
+	    })	    
 	    
 	})
 
@@ -283,7 +291,12 @@ module.exports = {
 	
 	async function handleGameTimeouts(gameID) {
             if (await disputeResolutionLayer.gameOver.call(gameID)) {
-		console.log("Calling game over")
+		
+		logger.log({
+                    level: 'info',
+                    message: `Triggering game over, game: ${gameID}`
+		})
+		
 		await disputeResolutionLayer.gameOver(gameID, {from: account})
             }
 	}

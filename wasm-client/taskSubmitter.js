@@ -244,16 +244,22 @@ module.exports = async (web3, logger, mcFileSystem) => {
                     task["initHash"] = initHash
                 }
 
+		logger.log({
+		    level: 'info',
+		    message: `Uploaded data to IPFS`
+		})		
+
             } else { //store file on blockchain
 
-                console.log("uploading onchain")
                 let contractAddress = await uploadOnchain(codeBuf, {from: task.from, gas: 400000})
+
+		logger.log({
+		    level: 'info',
+		    message: `Uploaded data onchain`
+		})		
 
                 task["initHash"] = await getInitHash(config, randomPath)
 
-                console.log("make bundle")
-
-                //register deployed contract with truebit filesystem
                 let bundleID = await makeSimpleBundle({
                     from: task.from,
                     gas: 350000,
@@ -261,18 +267,22 @@ module.exports = async (web3, logger, mcFileSystem) => {
                     contractAddress: contractAddress
                 })
 
+		logger.log({
+		    level: 'info',
+		    message: `Registered deployed contract with truebit filesystem`
+		})
+
                 task["storageAddress"] = bundleID
             }
 
             //translate storage type	    
             task["storageType"] = typeTable[task.storageType]
-
-            console.log("handling deposit")
             
             //bond minimum deposit
             task["minDeposit"] = web3.utils.toWei(task.minDeposit, 'ether')
             await depositsHelper(web3, incentiveLayer, tru, task.from, task.minDeposit)
-            console.log("Made deposit")
+	    
+	    logger.log({ level: 'info', message: `Minimum deposit was met`})			 
 
             var id = await incentiveLayer.createTask(
                 task.initHash,
@@ -284,7 +294,10 @@ module.exports = async (web3, logger, mcFileSystem) => {
                 {gas: 1000000, from: task.from}
             )
 
-            console.log("Created task")
+	    logger.log({
+		level: 'info',
+		message: 'Task was created'
+	    })
             
             return id
 

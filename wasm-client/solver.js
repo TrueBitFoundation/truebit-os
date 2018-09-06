@@ -55,24 +55,24 @@ module.exports = {
         }
 
         addEvent(incentiveLayer.TaskCreated(), async (result) => {
-            console.log("Got new task")
+
+	    logger.log({
+		level: 'info',
+		message: `Task has been posted. Checking for availability.`
+            })
+	    
             let taskID = result.args.taskID
             let minDeposit = result.args.minDeposit.toNumber()
 
-            console.log("get info", taskID, minDeposit)
             let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))
 
             let storageType = taskInfo.codeStorage
             let storageAddress = taskInfo.storageAddress
             let initTaskHash = taskInfo.initTaskHash
 
-            console.log("solution info", taskInfo)
             let solutionInfo = toSolutionInfo(await incentiveLayer.getSolutionInfo.call(taskID))
-
-            console.log("got solution info", solutionInfo)
             
             if (solutionInfo.solver == '0x0000000000000000000000000000000000000000') {
-                //TODO: Add more selection filters for solvers
 
                 let secret = Math.floor(Math.random() * Math.pow(2,32))
 
@@ -88,11 +88,9 @@ module.exports = {
 
         addEvent(incentiveLayer.SolverSelected(), async (result) => {
             let taskID = result.args.taskID
-            let solver = result.args.solver
-            
-            console.log("Solver was selected")
+            let solver = result.args.solver            
 
-            if (account.toLowerCase() == solver.toLowerCase()) {
+            if (account.toLowerCase() == solver.toLowerCase()) {		
 
                 //TODO: Need to read secret from persistence or else task is lost
                 let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))
@@ -201,24 +199,26 @@ module.exports = {
         })
 
         addEvent(incentiveLayer.EndRevealPeriod(), async (result) => {
-            let taskID = result.args.taskID
+            let taskID = result.args.taskID	   
 	    
-            console.log("Revealing solution")
-	    
-            if (tasks[taskID]) {
+            if (tasks[taskID]) {		
                 let vm = tasks[taskID].solution.vm
                 await incentiveLayer.revealSolution(taskID, tasks[taskID].secret, vm.code, vm.input_size, vm.input_name, vm.input_data, {from: account, gas: 1000000})
+
+		logger.log({
+		    level: 'info',
+		    message: `Revealed solution for task: ${taskID}`
+		})
+		
             }
 	    
         })
 
         addEvent(disputeResolutionLayer.StartChallenge(), async (result) => {
             let solver = result.args.p
-            let gameID = result.args.uniq
+            let gameID = result.args.uniq	   
 	    
-            console.log("Got start challenge")
-	    
-            if (solver.toLowerCase() == account.toLowerCase()) {
+            if (solver.toLowerCase() == account.toLowerCase()) {		
                 
                 game_list.push(gameID)
 
@@ -422,31 +422,61 @@ module.exports = {
         
         async function handleGameTimeouts(gameID) {
             if (await disputeResolutionLayer.gameOver.call(gameID)) {
-                console.log("Calling game over")
+		
                 await disputeResolutionLayer.gameOver(gameID, {from: account})
+		
+                logger.log({
+                    level: 'info',
+                    message: `gameOver was called for game ${gameID}`
+                })
+		
             }
         }
         
         async function handleTimeouts(taskID) {
-            //console.log("Handling timeout", await web3.eth.getBlockNumber())
+
             if (await incentiveLayer.endChallengePeriod.call(taskID)) {
-                console.log("Ending challenge period")
-                await incentiveLayer.endChallengePeriod(taskID, {from:account, gas:100000})
+
+                await incentiveLayer.endChallengePeriod(taskID, {from:account, gas: 100000})
+
+                logger.log({
+                    level: 'info',
+                    message: `Ended challenge period for ${taskID}`
+                })
+		
             }
 	    
             if (await incentiveLayer.endRevealPeriod.call(taskID)) {
-                console.log("Ending reveal period")
+
                 await incentiveLayer.endRevealPeriod(taskID, {from:account, gas:100000})
+
+                logger.log({
+                    level: 'info',
+                    message: `Ended reveal period for ${taskID}`
+                })
+		
             }
 	    
             if (await incentiveLayer.canRunVerificationGame.call(taskID)) {
-                console.log("Start new verification game")
+
                 await incentiveLayer.runVerificationGame(taskID, {from:account, gas:1000000})
+
+                logger.log({
+                    level: 'info',
+                    message: `Ran verification game for ${taskID}`
+                })
+		
             }
 	    
             if (await incentiveLayer.canFinalizeTask.call(taskID)) {
-                console.log("Finalizing task")
+		
                 await incentiveLayer.finalizeTask(taskID, {from:account, gas:100000})
+
+                logger.log({
+                    level: 'info',
+                    message: `Finalized task ${taskID}`
+                })
+		
             }
         }
         
