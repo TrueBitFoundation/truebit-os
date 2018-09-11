@@ -235,7 +235,6 @@ module.exports = async (web3, logger, mcFileSystem) => {
     return {
 
 	getInitialHash: async (task) => {
-            //verifyTaskFormat(task)
 
 	    let [config, randomPath, codeBuf] = setupTaskConfiguration(task)
 
