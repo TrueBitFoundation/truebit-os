@@ -19,38 +19,25 @@ An ethereum client running on port 8545, and an ipfs daemon at port 5001.
 You will also need the latest version of solidity installed and available on your path.
 
 ## Installation
+
+In order to get things running you'll have to go through all these commands at least once.
+
 ```bash
 npm run fixperms
-npm run install
+npm run deps
 npm run compile
 npm run deploy
-npm run truebit wasm-client/config.json
 ```
-
-# Development
-
-To run the tests use: `npm run test`
-
-# WASM Client
-
-The `wasm-client` directory houses the primary Truebit client. It contains 4 relevant JS modules that wrap the internal details of the protocol for a user friendly experience. These modules are designed to interact with the Truebit OS kernel and shell. The four modules are taskGiver, taskSubmitter, solver, and verifier. These modules can be run independently from each other. With the exception of taskGiver and taskSubmitter being recommended to run together.
 
 ## Usage
-The way that Truebit OS knows where to load the relevant modules is with a config file. This is a simple JSON file with a couple fields, that tell the OS where to find the modules at. Here is the example config.json provided used for `basic-client`:
-```javascript
-{
-    "http-url": "http://localhost:8545",
-    "verifier": "../wasm-client/verifier",
-    "solver": "../wasm-client/solver",
-    "task-giver": "../wasm-client/taskGiver"
-}
+
+Point the truebit-os shell to the wasm client configuration file which it will use to initialize. 
+
 ```
-
-Once a user has created their config file they can start up the Truebit OS shell to interact with the client. Ex:
-
-```bash
 npm run truebit wasm-client/config.json
 ```
+
+The prompt should show up and then you can use the commands.
 
 ## Example
 
@@ -84,6 +71,25 @@ skip 300 # Go past reveal period and finalize task
 ```
 
 *NOTE* These parameters are subject to future change
+
+# Development
+
+To run the tests use: `npm run test`
+
+# WASM Client
+
+The `wasm-client` directory houses the primary Truebit client. It contains 4 relevant JS modules that wrap the internal details of the protocol for a user friendly experience. These modules are designed to interact with the Truebit OS kernel and shell. The four modules are taskGiver, taskSubmitter, solver, and verifier. These modules can be run independently from each other. With the exception of taskGiver and taskSubmitter being recommended to run together.
+
+## Usage
+The way that Truebit OS knows where to load the relevant modules is with a config file. This is a simple JSON file with a couple fields, that tell the OS where to find the modules at. Here is the example config.json provided used for `basic-client`:
+```javascript
+{
+    "http-url": "http://localhost:8545",
+    "verifier": "../wasm-client/verifier",
+    "solver": "../wasm-client/solver",
+    "task-giver": "../wasm-client/taskGiver"
+}
+```
 
 ### Logging
 
