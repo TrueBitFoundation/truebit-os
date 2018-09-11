@@ -197,38 +197,63 @@ module.exports = async (web3, logger, mcFileSystem) => {
         return [bundleID, initHash]
     }
 
+    //This also creates a directory for the random path if it doesnt exist
+    
+    function setupTaskConfiguration(task) {
+        task["codeType"] = typeTable[task.codeType]
+
+        if (!task.files) {
+            task["files"] = []
+        }
+
+        if (!task.inputFile) {
+            task["inputFile"] = ""
+        } else {
+            task["inputFile"] = process.cwd() + task.inputFile
+        }
+
+        let codeBuf = fs.readFileSync(process.cwd() + task.codeFile)
+
+        let randomPath = process.cwd() + "/tmp.giver_" + Math.floor(Math.random()*Math.pow(2, 60)).toString(32)
+
+        if (!fs.existsSync(randomPath)) fs.mkdirSync(randomPath)
+	fs.writeFileSync(randomPath + "/" + path.basename(task.codeFile), codeBuf)
+	
+
+        let config = {
+            code_file: path.basename(task.codeFile),
+            input_file: task.inputFile,
+            actor: {},
+            files: task.files,
+            code_type: task.codeType
+        }
+
+	return [config, randomPath, codeBuf]
+	
+    }
+
     return {
+
+	getInitialHash: async (task) => {
+            //verifyTaskFormat(task)
+
+	    let [config, randomPath, codeBuf] = setupTaskConfiguration(task)
+
+	    let initHash
+
+	    if (task.files == []) {
+		initHash = await getInitHash(config, randomPath) 
+	    } else {
+		initHash = await getInitHash(config, randomPath)
+	    }
+
+	    return initHash
+	    
+	},
 
         submitTask: async (task) => {
 
-            //verifyTaskFormat(task)
-            task["codeType"] = typeTable[task.codeType]
-
-            if (!task.files) {
-                task["files"] = []
-            }
-
-            if (!task.inputFile) {
-                task["inputFile"] = ""
-            } else {
-                task["inputFile"] = process.cwd() + task.inputFile
-            }
-
-            //get initial hash
-            let config = {
-                code_file: path.basename(task.codeFile),
-                input_file: task.inputFile,
-                actor: {},
-                files: task.files,
-                code_type: task.codeType
-            }
-
-            codeBuf = fs.readFileSync(process.cwd() + task.codeFile)
-
-            let randomPath = process.cwd() + "/tmp.giver_" + Math.floor(Math.random()*Math.pow(2, 60)).toString(32)
-
-            if (!fs.existsSync(randomPath)) fs.mkdirSync(randomPath)
-            fs.writeFileSync(randomPath + "/" + path.basename(task.codeFile), codeBuf)
+	    let [config, randomPath, codeBuf] = setupTaskConfiguration(task)
 
             if(task.storageType == "IPFS") {
 
