@@ -52,9 +52,9 @@ module.exports = {
 
         addEvent(incentiveLayer.TaskCreated(), async (result) => {
 
-	    logger.log({
-		level: 'info',
-		message: `Task has been posted. Checking for availability.`
+	        logger.log({
+                level: 'info',
+                message: `Task has been posted. Checking for availability.`
             })
 	    
             let taskID = result.args.taskID

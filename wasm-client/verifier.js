@@ -7,6 +7,8 @@ const setupVM = require('./util/setupVM')
 const midpoint = require('./util/midpoint')
 const waitForBlock = require('./util/waitForBlock')
 
+const fsHelpers = require('./fsHelpers')
+
 const merkleComputer = require(__dirname+ "/merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
 
 const contractsConfig = JSON.parse(fs.readFileSync(__dirname + "/contracts.json"))
@@ -25,14 +27,6 @@ function writeFile(fname, buf) {
     return new Promise(function (cont,err) { fs.writeFile(fname, buf, function (err, res) { cont() }) })
 }
 
-function makeRandom(n) {
-    let res = ""
-    for (let i = 0; i < n*2; i++) {
-        res += Math.floor(Math.random()*16).toString(16)
-    }
-    return res
-}
-
 const solverConf = { error: false, error_location: 0, stop_early: -1, deposit: 1 }
 
 let tasks = {}
@@ -47,6 +41,8 @@ module.exports = {
 
 	let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3.currentProvider)
 	
+	let helpers = fsHelpers.init(fileSystem, web3, mcFileSystem, logger, incentiveLayer, account)
+
 	const clean_list = []
 	let game_list = []
 
