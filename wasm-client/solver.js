@@ -43,10 +43,10 @@ module.exports = {
         let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3.currentProvider)
         
         const recovery_mode = false
+        let events = []
 
         const clean_list = []
         const game_list = []
-        let events = []
         
         function addEvent(evC, handler) {
             let ev = recovery_mode ? evC({}, {fromBlock:bn-200}) : evC()
