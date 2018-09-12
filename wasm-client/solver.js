@@ -111,7 +111,7 @@ module.exports = {
 
                 console.log("Committing solution", solution)
 
-                let random_hash = "0x" + fsHelpers.makeRandom(32)
+                let random_hash = "0x" + helpers.makeSecret(taskID)
 
                 try {
 

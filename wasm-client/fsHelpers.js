@@ -1,6 +1,9 @@
 
 const merkleComputer = require("./merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
 const setupVM = require('./util/setupVM')
+const fs = require("fs")
+
+let secret = fs.readFileSync(__dirname+"/secret")
 
 exports.makeRandom = function (n) {
     let res = ""
@@ -206,9 +209,14 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
         }
     }
     
+    function makeSecret(data) {
+        return web3.utils.soliditySha3(data+secret).substr(2)
+    }
+
     return {
         setupVMWithFS: setupVMWithFS,
         uploadOutputs: uploadOutputs,
+        makeSecret
     }
 
 }
