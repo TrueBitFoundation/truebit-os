@@ -31,6 +31,10 @@ let task_list = []
 
 module.exports = {
     init: async (web3, account, logger, mcFileSystem) => {
+
+        let bn = await web3.eth.getBlockNumber()
+        console.log("Starting at", bn)
+
         logger.log({
             level: 'info',
             message: `Solver initialized`
@@ -38,19 +42,28 @@ module.exports = {
 
         let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3.currentProvider)
         
+        const recovery_mode = false
+
         const clean_list = []
         const game_list = []
+        let events = []
         
-        function addEvent(ev, handler) {
+        function addEvent(evC, handler) {
+            let ev = recovery_mode ? evC({}, {fromBlock:bn-200}) : evC()
             clean_list.push(ev)
             ev.watch(async (err, result) => {
-                if (result) handler(result)
+                // console.log(result)
+                if (result && recovery_mode) events.push({ev:result, handler})
+                else if (result) handler(result)
+                else console.log(error)
             })
         }
         
         let helpers = fsHelpers.init(fileSystem, web3, mcFileSystem, logger, incentiveLayer, account)
 
-        addEvent(incentiveLayer.TaskCreated(), async (result) => {
+        // console.log(incentiveLayer.TaskCreated)
+
+        addEvent(incentiveLayer.TaskCreated, async (result) => {
 
 	        logger.log({
                 level: 'info',
@@ -83,7 +96,7 @@ module.exports = {
             }
         })
 
-        addEvent(incentiveLayer.SolverSelected(), async (result) => {
+        addEvent(incentiveLayer.SolverSelected, async (result) => {
             let taskID = result.args.taskID
             let solver = result.args.solver            
 
@@ -141,7 +154,7 @@ module.exports = {
 
         })
 
-        addEvent(incentiveLayer.EndRevealPeriod(), async (result) => {
+        addEvent(incentiveLayer.EndRevealPeriod, async (result) => {
             let taskID = result.args.taskID	   
 	    
             if (tasks[taskID]) {		
@@ -153,15 +166,18 @@ module.exports = {
               
                 logger.log({
 		              level: 'info',
-		              message: `Revealed solution for task: ${taskID}. Ouputs have been uploaded.`
+		              message: `Revealed solution for task: ${taskID}. Outputs have been uploaded.`
 		            })
             }
 	    
         })
 
-        addEvent(disputeResolutionLayer.StartChallenge(), async (result) => {
+        addEvent(incentiveLayer.TaskFinalized, async (result) => {
+        })
+
+        addEvent(disputeResolutionLayer.StartChallenge, async (result) => {
             let solver = result.args.p
-            let gameID = result.args.uniq	   
+            let gameID = result.args.gameID	   
 	    
             if (solver.toLowerCase() == account.toLowerCase()) {		
                 
@@ -225,8 +241,8 @@ module.exports = {
             }
         })
 
-        addEvent(disputeResolutionLayer.Queried(), async (result) => {
-            let gameID = result.args.id
+        addEvent(disputeResolutionLayer.Queried, async (result) => {
+            let gameID = result.args.gameID
             let lowStep = result.args.idx1.toNumber()
             let highStep = result.args.idx2.toNumber()
 
@@ -274,8 +290,8 @@ module.exports = {
             }
         })
 
-        addEvent(disputeResolutionLayer.SelectedPhase(), async (result) => {
-            let gameID = result.args.id
+        addEvent(disputeResolutionLayer.SelectedPhase, async (result) => {
+            let gameID = result.args.gameID
             if (games[gameID]) {
                 let taskID = games[gameID].taskID
 
@@ -425,9 +441,61 @@ module.exports = {
             }
         }
         
+        function findLastEvent(lst) {
+            let num = ev => ev.event.transactionIndex*10 + ev.event.logIndex + ev.event.blockNumber*100000000
+            let copy = lst.concat()
+            copy.sort(num)
+            return copy[0]
+        }
+
+        function analyzeEvents() {
+            // Sort them based on task ids and disputation ids
+            let task_evs = {}
+            let game_evs = {}
+            let tasks = []
+            let games = []
+            event.forEach(function (ev) {
+                let taskid = ev.event.args.taskID
+                let gameid = ev.event.args.gameID
+                if (taskid) {
+                    if (!task_evs[taskid]) {
+                        tasks.push(taskid)
+                        task_evs[taskid] = []
+                    }
+                    task_evs[taskid].push(ev)
+                }
+                if (gameid) {
+                    if (!game_evs[gameid]) {
+                        games.push(gameid)
+                        games_evs[gameid] = []
+                    }
+                    game_evs[gamesid].push(ev)
+                }
+            })
+            // for each game, check if it has ended, otherwise handle last event and add it to game list
+            games.forEach(function (id) {
+                let evs = game_evs[id]
+                if (evs.exists(a => a.event == "WinnerSelected")) return
+                game_list.push(id)
+                let last = findLastEvent(evs)
+                last.handler(last.event)
+            })
+            // for each task, check if it has ended, otherwise handle last event and add it to task list
+            // TODO: also check that all verification games have started properly ??
+            tasks.forEach(function (id) {
+                let evs = task_evs[id]
+                if (evs.exists(a => a.event == "TaskFinalized")) return
+                task_list.push(id)
+                let last = findLastEvent(evs)
+                last.handler(last.event)
+            })
+            recovery_mode = false
+        }
+
         let ival = setInterval(() => {
             task_list.forEach(handleTimeouts)
             game_list.forEach(handleGameTimeouts)
+            if (recovery_mode) analyzeEvents()
         }, 1000)
 
         return () => {

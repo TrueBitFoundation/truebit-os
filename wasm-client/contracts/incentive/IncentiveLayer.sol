@@ -56,6 +56,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
 
     event EndRevealPeriod(bytes32 taskID);
     event EndChallengePeriod(bytes32 taskID);
+    event TaskFinalized(bytes32 taskID);
 
     enum State { TaskInitialized, SolverSelected, SolutionCommitted, ChallengesAccepted, IntentsRevealed, SolutionRevealed, TaskFinalized, TaskTimeout }
     enum Status { Uninitialized, Challenged, Unresolved, SolverWon, ChallengerWon }//For dispute resolution
@@ -587,6 +588,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         payReward(taskID, t.selectedSolver);
         if (!t.owner.call(abi.encodeWithSignature("solved(bytes32,bytes32[])", taskID, files))) {
         }
+        emit TaskFinalized(taskID);
         // Callback(t.owner).solved(taskID, files);
     }
     
