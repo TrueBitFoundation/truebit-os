@@ -173,10 +173,12 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         uint bondedDeposit = task.bondedDeposits[account];
         uint toOpponent = bondedDeposit/10;
 
+        emit SlashedDeposit(taskID, account, opponent, bondedDeposit);
+        if (bondedDeposit == 0) return 0;
+
         delete task.bondedDeposits[account];
         jackpot = jackpot.add(bondedDeposit-toOpponent);
         deposits[opponent] += toOpponent;
-        emit SlashedDeposit(taskID, account, opponent, bondedDeposit);
         
         return bondedDeposit;
     }
@@ -546,7 +548,8 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
             verificationGame(taskID, t.selectedSolver, s.currentChallenger, s.solutionHash0);
             s.solution0Challengers.length -= 1;
         } else if (s.solution1Challengers.length > 0) {
-            verificationGame(taskID, t.selectedSolver, s.solution1Challengers[s.solution1Challengers.length-1], s.solutionHash1);
+            s.currentChallenger = s.solution1Challengers[s.solution1Challengers.length-1];
+            verificationGame(taskID, t.selectedSolver, s.currentChallenger, s.solutionHash1);
             s.solution1Challengers.length -= 1;
         }
         // emit VerificationGame(t.selectedSolver, s.currentChallenger);

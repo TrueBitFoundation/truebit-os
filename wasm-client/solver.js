@@ -196,7 +196,7 @@ module.exports = {
         })
 
         // DISPUTE
-        
+
         addEvent(disputeResolutionLayer.StartChallenge, async (result) => {
             let solver = result.args.p
             let gameID = result.args.gameID	   
@@ -418,6 +418,9 @@ module.exports = {
         
         async function handleTimeouts(taskID) {
 
+            let deposit = await incentiveLayer.getBondedDeposit.call(taskID, account)
+            console.log("Solver deposit", deposit.toNumber(), account)
+
             if (await incentiveLayer.endChallengePeriod.call(taskID)) {
 
                 await incentiveLayer.endChallengePeriod(taskID, {from:account, gas: 100000})
@@ -437,9 +440,9 @@ module.exports = {
                     level: 'info',
                     message: `Ended reveal period for ${taskID}`
                 })
-		
+
             }
-	    
+
             if (await incentiveLayer.canRunVerificationGame.call(taskID)) {
 
                 await incentiveLayer.runVerificationGame(taskID, {from:account, gas:1000000})
