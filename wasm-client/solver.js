@@ -459,7 +459,7 @@ module.exports = {
             return copy[0]
         }
 
-        function analyzeEvents() {
+        async function analyzeEvents() {
             // Sort them based on task ids and disputation ids
             let task_evs = {}
             let game_evs = {}
@@ -469,18 +469,24 @@ module.exports = {
                 let taskid = ev.event.args.taskID
                 let gameid = ev.event.args.gameID
                 if (taskid) {
-                    if (!task_evs[taskid]) {
-                        tasks.push(taskid)
-                        task_evs[taskid] = []
+                    let num = (await incentiveLayer.getBondedDeposit(taskid, account)).toNumber()
+                    if (num > 0) {
+                        if (!task_evs[taskid]) {
+                            tasks.push(taskid)
+                            task_evs[taskid] = []
+                        }
+                        task_evs[taskid].push(ev)
                     }
-                    task_evs[taskid].push(ev)
                 }
                 if (gameid) {
-                    if (!game_evs[gameid]) {
-                        games.push(gameid)
-                        games_evs[gameid] = []
+                    let actor = await disputeResolutionLayer.getProver.call(gameID)
+                    if (actor.toLowerCase() == account.toLowerCase()) {
+                        if (!game_evs[gameid]) {
+                            games.push(gameid)
+                            games_evs[gameid] = []
+                        }
+                        game_evs[gamesid].push(ev)
                     }
-                    game_evs[gamesid].push(ev)
                 }
             })
             // for each game, check if it has ended, otherwise handle last event and add it to game list
