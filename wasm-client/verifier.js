@@ -154,6 +154,20 @@ module.exports = {
 
         })
 
+        addEvent(incentiveLayer.TaskFinalized, async (result) => {
+            let taskID = result.args.taskID	   
+	    
+            if (tasks[taskID]) {
+                await incentiveLayer.unbondDeposit(taskID, {from: account, gas: 100000})
+                logger.log({
+                    level: 'info',
+                    message: `Task ${taskID} finalized. Tried to unbond deposits.`
+                  })
+
+            }
+
+        })
+
         // DISPUTE
 
         addEvent(disputeResolutionLayer.StartChallenge, async result => {
