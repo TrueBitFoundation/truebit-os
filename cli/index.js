@@ -28,7 +28,7 @@ vorpal
   })
 
 vorpal
-  .command('start <command>', 'start a task giver.')
+  .command('start <command>', 'start a task giver, solver or verifier.')
   .option('-a, --account <num>', 'index of web3 account to use.')
   .action(async (args, callback) => {
     // console.log(args)
@@ -124,5 +124,5 @@ vorpal
 vorpal
   // current behavior is shell, this can be altered by uncommenting this line
   // .parse(process.argv)
-  .delimiter('🎲   $')
+  .delimiter('$ ')
   .show()

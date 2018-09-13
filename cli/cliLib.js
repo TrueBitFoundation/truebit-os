@@ -18,6 +18,7 @@ module.exports.version = ({ os }) => {
 /** initialize and await os and attach taskSubmitter  */
 module.exports.setup = configPath => {
     return (async () => {
+      console.log(configPath)
 	const os = await require('../os/kernel')(configPath)
 	let baseName = configPath.split("/")[0]
 	os.taskSubmitter = await require("../" + baseName + "/taskSubmitter")(
