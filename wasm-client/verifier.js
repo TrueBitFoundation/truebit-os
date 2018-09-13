@@ -269,9 +269,23 @@ module.exports = {
             }
         })
 
+        let busy_table = {}
+        function busy(id) {
+            return busy_table[id] && Date.now() < busy_table[id]
+        }
+
+        // const WAIT_TIME = 10000
+        const WAIT_TIME = 0
+
+        function working(id) {
+            busy_table[id] = Date.now() + WAIT_TIME
+        }
+
         async function handleTimeouts(taskID) {
             // let deposit = await incentiveLayer.getBondedDeposit.call(taskID, account)
             // console.log("Verifier deposit", deposit.toNumber(), account)
+
+            if (busy(taskID)) return
 
             if (await incentiveLayer.solverLoses.call(taskID, {from: account})) {
 
@@ -281,11 +295,14 @@ module.exports = {
                 })
 
                 await incentiveLayer.solverLoses(taskID, {from: account})
+
+                working(taskID)
             }
         }
 
         async function handleGameTimeouts(gameID) {
-            console.log("Verifier game timeout")
+            // console.log("Verifier game timeout")
+            if (busy(gameID)) return
             if (await disputeResolutionLayer.gameOver.call(gameID)) {
 
                 logger.log({
@@ -294,6 +311,7 @@ module.exports = {
                 })
 
                 await disputeResolutionLayer.gameOver(gameID, { from: account })
+                working(gameID)
             }
         }
 

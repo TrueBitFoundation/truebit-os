@@ -402,8 +402,22 @@ module.exports = {
 
             }
         })
-        
+
+        let busy_table = {}
+        function busy(id) {
+            let res = busy_table[id] && Date.now() < busy_table[id]
+            return res
+        }
+
+        // const WAIT_TIME = 10000
+        const WAIT_TIME = 0
+
+        function working(id) {
+            busy_table[id] = Date.now() + WAIT_TIME
+        }
+
         async function handleGameTimeouts(gameID) {
+            if (busy(gameID)) return
             if (await disputeResolutionLayer.gameOver.call(gameID)) {
 		
                 await disputeResolutionLayer.gameOver(gameID, {from: account})
@@ -412,6 +426,8 @@ module.exports = {
                     level: 'info',
                     message: `gameOver was called for game ${gameID}`
                 })
+
+                working(gameID)
 		
             }
         }
@@ -420,7 +436,7 @@ module.exports = {
 
             // let deposit = await incentiveLayer.getBondedDeposit.call(taskID, account)
             // console.log("Solver deposit", deposit.toNumber(), account)
-
+            if (busy(taskID)) return
             if (await incentiveLayer.endChallengePeriod.call(taskID)) {
 
                 await incentiveLayer.endChallengePeriod(taskID, {from:account, gas: 100000})
@@ -429,6 +445,7 @@ module.exports = {
                     level: 'info',
                     message: `Ended challenge period for ${taskID}`
                 })
+                working(taskID)
 		
             }
 	    
@@ -440,6 +457,7 @@ module.exports = {
                     level: 'info',
                     message: `Ended reveal period for ${taskID}`
                 })
+                working(taskID)
 
             }
 
@@ -451,6 +469,7 @@ module.exports = {
                     level: 'info',
                     message: `Ran verification game for ${taskID}`
                 })
+                working(taskID)
 		
             }
 	    
@@ -462,6 +481,7 @@ module.exports = {
                     level: 'info',
                     message: `Finalized task ${taskID}`
                 })
+                working(taskID)
 
             }
         }
