@@ -45,6 +45,7 @@ module.exports = {
 
         const clean_list = []
         let game_list = []
+        let task_list = []
 
         let bn = await web3.eth.getBlockNumber()
 
@@ -73,14 +74,14 @@ module.exports = {
             })
 
             let taskID = result.args.taskID
-            let storageAddress = result.args.storageAddress
+            // let storageAddress = result.args.storageAddress
             let minDeposit = result.args.minDeposit.toNumber()
             let solverHash0 = result.args.solutionHash0
             let solverHash1 = result.args.solutionHash1
             let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))
             taskInfo.taskID = taskID
 
-            let storageType = result.args.storageType.toNumber()
+            // let storageType = result.args.storageType.toNumber()
 
             let vm = await helpers.setupVMWithFS(taskInfo)
 
@@ -91,6 +92,8 @@ module.exports = {
                 level: 'info',
                 message: `Executed task ${taskID}. Checking solutions`
             })
+
+            task_list.push(taskID)
 
             tasks[taskID] = {
                 solverHash0: solverHash0,
@@ -257,6 +260,18 @@ module.exports = {
             }
         })
 
+        async function handleTimeouts(taskID) {
+            if (await incentiveLayer.solverLoses.call(taskID, {from: account})) {
+
+                logger.log({
+                    level: 'info',
+                    message: `Winning verification game for task ${taskID}`
+                })
+
+                await incentiveLayer.solverLoses(taskID, {from: account})
+            }
+        }
+
         async function handleGameTimeouts(gameID) {
             if (await disputeResolutionLayer.gameOver.call(gameID)) {
 
@@ -321,6 +336,7 @@ module.exports = {
         }
 
         let ival = setInterval(() => {
+            task_list.forEach(handleTimeouts)
             game_list.forEach(handleGameTimeouts)
             if (recovery_mode) analyzeEvents()
         }, 1000)

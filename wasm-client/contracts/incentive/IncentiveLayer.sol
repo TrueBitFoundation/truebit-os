@@ -405,7 +405,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         t.state = State.TaskTimeout;
         if (IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.ChallengerWon)) {
             slashDeposit(taskID, t.selectedSolver, s.currentChallenger);
-            return true;
+            return s.currentChallenger == msg.sender;
         }
         return false;
  }
