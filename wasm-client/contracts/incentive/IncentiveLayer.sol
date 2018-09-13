@@ -43,7 +43,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
 
     event DepositBonded(bytes32 taskID, address account, uint amount);
     event DepositUnbonded(bytes32 taskID, address account, uint amount);
-    event BondedDepositMovedToJackpot(bytes32 taskID, address account, uint amount);
+    event SlashedDeposit(bytes32 taskID, address account, address opponent, uint amount);
     event TaskCreated(bytes32 taskID, uint minDeposit, uint blockNumber, uint reward, uint tax, CodeType codeType, StorageType storageType, string storageAddress);
     event SolverSelected(bytes32 indexed taskID, address solver, bytes32 taskData, uint minDeposit, bytes32 randomBitsHash);
     event SolutionsCommitted(bytes32 taskID, uint minDeposit, CodeType codeType, StorageType storageType, string storageAddress, bytes32 solutionHash0, bytes32 solutionHash1);
@@ -168,12 +168,15 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     // @param taskID – the task id.
     // @param account – the user's address.
     // @return – the updated jackpot amount.
-    function moveBondedDepositToJackpot(bytes32 taskID, address account) private returns (uint) {
+    function slashDeposit(bytes32 taskID, address account, address opponent) private returns (uint) {
         Task storage task = tasks[taskID];
         uint bondedDeposit = task.bondedDeposits[account];
+        uint toOpponent = bondedDeposit/10;
+
         delete task.bondedDeposits[account];
-        jackpot = jackpot.add(bondedDeposit);
-        emit BondedDepositMovedToJackpot(taskID, account, bondedDeposit);
+        jackpot = jackpot.add(bondedDeposit-toOpponent);
+        deposits[opponent] += toOpponent;
+        emit SlashedDeposit(taskID, account, opponent, bondedDeposit);
         
         return bondedDeposit;
     }
@@ -371,11 +374,8 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         require(t.state == State.SolverSelected);
         // require(block.number < t.taskCreationBlockNumber.add(TIMEOUT));
         require(t.randomBitsHash == keccak256(abi.encodePacked(originalRandomBits)));
-        uint bondedDeposit = t.bondedDeposits[t.selectedSolver];
-        delete t.bondedDeposits[t.selectedSolver];
-        deposits[msg.sender] = deposits[msg.sender].add(bondedDeposit/2);
-        token.burn(bondedDeposit/2);
-        emit SolverDepositBurned(t.selectedSolver, taskID);
+
+        slashDeposit(taskID, t.selectedSolver, msg.sender);
         
         // Reset task data to selected another solver
         t.state = State.TaskInitialized;
@@ -386,25 +386,29 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         return true;
     }        
 
-    function taskGiverTimeout(bytes32 taskID) public {
+    function taskTimeout(bytes32 taskID) public {
         Task storage t = tasks[taskID];
-        require(msg.sender == t.owner);
         Solution storage s = solutions[taskID];
-        require(s.solutionHash0 == 0x0 && s.solutionHash1 == 0x0);
+        // require(s.solutionHash0 == 0x0 && s.solutionHash1 == 0x0);
+        uint8 status = IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame);
+        require(status != uint(Status.Challenged));
+        require(status != uint(Status.Unresolved));
         require(block.number > t.lastBlock.add(TIMEOUT));
-        moveBondedDepositToJackpot(taskID, t.selectedSolver);
+        slashDeposit(taskID, t.selectedSolver, s.currentChallenger);
         t.state = State.TaskTimeout;
+        delete t.selectedSolver;
     }
 
-    function taskGiverTimeout(bytes32 taskID) public {
+    function solverLoses(bytes32 taskID) public returns (bool) {
         Task storage t = tasks[taskID];
-        require(msg.sender == t.owner);
         Solution storage s = solutions[taskID];
-        require(s.solutionHash0 == 0x0 && s.solutionHash1 == 0x0);
-        require(block.number > t.lastBlock.add(TIMEOUT));
-        moveBondedDepositToJackpot(taskID, t.selectedSolver);
         t.state = State.TaskTimeout;
-    }
+        if (IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.ChallengerWon)) {
+            slashDeposit(taskID, t.selectedSolver, s.currentChallenger);
+            return true;
+        }
+        return false;
+ }
 
     mapping (bytes32 => uint) challenges;
 
@@ -534,7 +538,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         require(s.currentGame == 0 || IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon));
 
         if (IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon)) {
-            moveBondedDepositToJackpot(taskID, s.currentChallenger);
+            slashDeposit(taskID, s.currentChallenger, t.selectedSolver);
         }
         
         if (s.solution0Challengers.length > 0) {
@@ -597,7 +601,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         require(s.solution0Challengers.length + s.solution1Challengers.length == 0 && (s.currentGame == 0 || IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon)));
 
         if (IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon)) {
-            moveBondedDepositToJackpot(taskID, s.currentChallenger);
+            slashDeposit(taskID, s.currentChallenger, t.selectedSolver);
         }
 
         bytes32[] memory files = new bytes32[](t.uploads.length);
