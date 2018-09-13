@@ -3,8 +3,7 @@ COPY . /truebit-os
 RUN add-apt-repository ppa:ethereum/ethereum
 
 RUN apt-get update \
- && apt-get install nodejs npm solc
-
+ && apt-get install nodejs npm solc geth
 
 RUN npm install \
  && npm run fixperms \
