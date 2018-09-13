@@ -171,6 +171,15 @@ module.exports = {
 
         })
 
+        addEvent(incentiveLayer.SlashedDeposit, async (result) => {
+            let addr = result.args.account
+
+            if (account.toLowerCase() == addr.toLowerCase()) {
+                logger.info("Oops, I was slashed, hopefully this was a test")
+            }
+
+        })
+
         // DISPUTE
 
         addEvent(disputeResolutionLayer.StartChallenge, async result => {
@@ -291,13 +300,14 @@ module.exports = {
             return copy[0]
         }
 
-        function analyzeEvents() {
+        async function analyzeEvents() {
             // Sort them based on task ids and disputation ids
             let task_evs = {}
             let game_evs = {}
             let tasks = []
             let games = []
-            event.forEach(function (ev) {
+            for (let i = 0; i < events.length; i++) {
+                let ev = events[i]
                 let taskid = ev.event.args.taskID
                 let gameid = ev.event.args.gameID
                 if (taskid) {
@@ -320,7 +330,7 @@ module.exports = {
                         game_evs[gamesid].push(ev)
                     }
                 }
-            })
+            }
             // for each game, check if it has ended, otherwise handle last event and add it to game list
             games.forEach(function (id) {
                 let evs = game_evs[id]
