@@ -270,8 +270,8 @@ module.exports = {
         })
 
         async function handleTimeouts(taskID) {
-            let deposit = await incentiveLayer.getBondedDeposit.call(taskID, account)
-            console.log("Verifier deposit", deposit.toNumber(), account)
+            // let deposit = await incentiveLayer.getBondedDeposit.call(taskID, account)
+            // console.log("Verifier deposit", deposit.toNumber(), account)
 
             if (await incentiveLayer.solverLoses.call(taskID, {from: account})) {
 
