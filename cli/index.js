@@ -55,9 +55,7 @@ vorpal
 vorpal
   .command('task', 'submit a task')
   .option('-a, --account <num>', 'index of web3 account to use.')
-  // TODO: implement
-  // .option('-d, --deposit <num>', 'minimum deposit')
-  .option('-t, --task <pathToTask>', 'the path to a task.json')
+  .option('-t, --task <pathToTask>', 'the path to a task json file')
   .action(async (args, callback) => {
     await cliLib.taskGiver({
       os,
@@ -65,6 +63,22 @@ vorpal
     })
     callback()
   })
+
+vorpal
+    .command(
+	'hash',
+	'Given task information generates an initial hash for the code including input files'
+    )
+    .option('-t, --task <pathToTask>', 'the path to a task json file')
+    .action(async (args, callback) => {
+	let initHash = await cliLib.initHash({
+	    os,
+	    args
+	})
+	console.log("Initial hash: " + initHash)
+	callback()
+    })
+
 
 vorpal
   .command('skip', 'skip blocks')

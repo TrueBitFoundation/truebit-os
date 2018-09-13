@@ -51,7 +51,7 @@ module.exports.initVerifier = ({ os, account }) => {
 /** submit a task  */
 module.exports.taskGiver = async ({ os, args }) => {
   const account = os.accounts[args.options.account || 0]
-  const task = args.options.task || 'testTask.json'
+  const task = args.options.task
 
   return new Promise((resolve, reject) => {
     fs.readFile(task, (err, data) => {
@@ -65,6 +65,21 @@ module.exports.taskGiver = async ({ os, args }) => {
       }
     })
   })
+}
+
+/** initialize task hash */
+module.exports.initHash = async ({os, args}) => {
+    const task = args.options.task 
+    return new Promise((resolve, reject) => {
+	fs.readFile(task, (err, data) => {
+	    if (err) {
+		reject(err)
+	    } else {
+		let taskData = JSON.parse(data)
+		resolve(os.taskSubmitter.getInitialHash(taskData))
+	    }
+	})
+    })
 }
 
 /** skip blocks */
