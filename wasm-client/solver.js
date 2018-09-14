@@ -493,6 +493,51 @@ module.exports = {
             return copy[0]
         }
 
+        async function recoverTask(taskID) {
+            let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))
+            if (!tasks[taskID]) tasks[taskID] = {}
+            tasks[taskID].taskInfo = taskInfo
+            taskInfo.taskID = taskID
+
+            logger.log({
+                level: 'info',
+                message: `RECOVERY: Solving task ${taskID}`
+            })
+
+            let vm = await helpers.setupVMWithFS(taskInfo)
+
+            assert(vm != undefined, "vm is undefined")
+
+            let interpreterArgs = []
+            let solution = await vm.executeWasmTask(interpreterArgs)
+            tasks[taskID].solution = solution
+        }
+
+        async function recoverGame(gameID) {
+            let taskID = await disputeResolutionLayer.getTask.call(gameID)
+
+            if (!tasks[taskID]) logger.error(`FAILURE: haven't recovered task ${taskID} for game ${gameID}`)
+
+            logger.log({
+                level: 'info',
+                message: `RECOVERY: Solution to task ${taskID} has been challenged`
+            })
+
+            //Initialize verification game
+            let vm = tasks[taskID].vm
+
+            let solution = tasks[taskID].solution
+
+            let lowStep = 0
+            let highStep = solution.steps + 1
+
+            games[gameID] = {
+                lowStep: lowStep,
+                highStep: highStep,
+                taskID: taskID
+            }
+        }
+
         async function analyzeEvents() {
             // Sort them based on task ids and disputation ids
             let task_evs = {}
@@ -524,23 +569,31 @@ module.exports = {
                     }
                 }
             }
-            // for each game, check if it has ended, otherwise handle last event and add it to game list
-            games.forEach(function (id) {
-                let evs = game_evs[id]
-                if (evs.exists(a => a.event == "WinnerSelected")) return
-                game_list.push(id)
-                let last = findLastEvent(evs)
-                last.handler(last.event)
-            })
             // for each task, check if it has ended, otherwise handle last event and add it to task list
             // TODO: also check that all verification games have started properly ??
-            tasks.forEach(function (id) {
+            for (let i = 0; i < tasks.length; i++) {
+                let id = tasks[i]
                 let evs = task_evs[id]
                 if (evs.exists(a => a.event == "TaskFinalized")) return
                 task_list.push(id)
+
+                await recoverTask(id)
+
                 let last = findLastEvent(evs)
                 last.handler(last.event)
-            })
+            }
+            // for each game, check if it has ended, otherwise handle last event and add it to game list
+            for (let i = 0; i < games.length; i++) {
+                let id = games[i]
+                let evs = game_evs[id]
+                if (evs.exists(a => a.event == "WinnerSelected")) return
+                game_list.push(id)
+
+                await recoverGame(id)
+
+                let last = findLastEvent(evs)
+                last.handler(last.event)
+            }
             recovery_mode = false
         }
 
