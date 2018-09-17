@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "fixperms": "chmod 755 wasm-client/install.sh wasm-client/compile.sh",
-    "install": "./wasm-client/install.sh",
+    "deps": "./wasm-client/install.sh",
     "compile": "./wasm-client/compile.sh",
     "deploy": "node wasm-client/deploy.js",
     "test": "mocha",
