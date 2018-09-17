@@ -30,7 +30,7 @@ let games = {}
 let task_list = []
 
 module.exports = {
-    init: async (web3, account, logger, mcFileSystem) => {
+    init: async (web3, account, logger, mcFileSystem, test, recovery) => {
 
         let bn = await web3.eth.getBlockNumber()
 
@@ -48,14 +48,19 @@ module.exports = {
         const game_list = []
         const RECOVERY_BLOCKS = recovery
         
+        if (recovery_mode) console.log("Recovering back to", bn-RECOVERY_BLOCKS)
+
         function addEvent(evC, handler) {
             let ev = recovery_mode ? evC({}, {fromBlock:bn-RECOVERY_BLOCKS}) : evC()
             clean_list.push(ev)
             ev.watch(async (err, result) => {
                 // console.log(result)
-                if (result && recovery_mode) events.push({ev:result, handler})
+                if (result && recovery_mode) {
+                    events.push({event:result, handler})
+                    console.log("Recovering", result.event)
+                }
                 else if (result) handler(result)
-                else console.log(error)
+                else console.log(err)
             })
         }
         
@@ -287,8 +292,8 @@ module.exports = {
                 } else {
                     //Final step -> post phases
 
-                    let lowStepState = await disputeResolutionLayer.getStateAt.call(gameID, lowStep)
-                    let highStepState = await disputeResolutionLayer.getStateAt.call(gameID, highStep)
+                    // let lowStepState = await disputeResolutionLayer.getStateAt.call(gameID, lowStep)
+                    // let highStepState = await disputeResolutionLayer.getStateAt.call(gameID, highStep)
 
                     let states = (await tasks[taskID].vm.getStep(lowStep, tasks[taskID].interpreterArgs)).states
 
@@ -511,6 +516,7 @@ module.exports = {
             let interpreterArgs = []
             let solution = await vm.executeWasmTask(interpreterArgs)
             tasks[taskID].solution = solution
+            tasks[taskID].vm = vm
         }
 
         async function recoverGame(gameID) {
@@ -559,13 +565,13 @@ module.exports = {
                     }
                 }
                 if (gameid) {
-                    let actor = await disputeResolutionLayer.getProver.call(gameID)
+                    let actor = await disputeResolutionLayer.getProver.call(gameid)
                     if (actor.toLowerCase() == account.toLowerCase()) {
                         if (!game_evs[gameid]) {
                             games.push(gameid)
-                            games_evs[gameid] = []
+                            game_evs[gameid] = []
                         }
-                        game_evs[gamesid].push(ev)
+                        game_evs[gameid].push(ev)
                     }
                 }
             }
@@ -574,7 +580,7 @@ module.exports = {
             for (let i = 0; i < tasks.length; i++) {
                 let id = tasks[i]
                 let evs = task_evs[id]
-                if (evs.exists(a => a.event == "TaskFinalized")) return
+                if (evs.some(a => a.event == "TaskFinalized")) return
                 task_list.push(id)
 
                 await recoverTask(id)
@@ -586,7 +592,7 @@ module.exports = {
             for (let i = 0; i < games.length; i++) {
                 let id = games[i]
                 let evs = game_evs[id]
-                if (evs.exists(a => a.event == "WinnerSelected")) return
+                if (evs.some(a => a.event == "WinnerSelected")) return
                 game_list.push(id)
 
                 await recoverGame(id)

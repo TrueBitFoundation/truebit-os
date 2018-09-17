@@ -33,7 +33,6 @@ vorpal
   .option('-r, --recover <num>', 'recovery mode: check the blocks.')
   .option('-t, --test', 'testing mode: verifier will challenge correct tasks.')
   .action(async (args, callback) => {
-    // console.log(args)
     // account is optional argument, defaulted to 0
     const account = os.accounts[args.options.account || 0]
     const test = !!args.options.test
