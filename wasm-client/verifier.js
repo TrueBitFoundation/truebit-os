@@ -33,7 +33,7 @@ let tasks = {}
 let games = {}
 
 module.exports = {
-    init: async (web3, account, logger, mcFileSystem, test = false, phase = 1) => {
+    init: async (web3, account, logger, mcFileSystem, test = false, recovery = -1) => {
         logger.log({
             level: 'info',
             message: `Verifier initialized`
@@ -49,7 +49,7 @@ module.exports = {
 
         let bn = await web3.eth.getBlockNumber()
 
-        const recovery_mode = false
+        let recovery_mode = recovery > 0
         let events = []
 
         function addEvent(evC, handler) {
@@ -248,7 +248,7 @@ module.exports = {
                 let taskID = games[gameID].taskID
 
                 if (test) {
-                    await disputeResolutionLayer.selectPhase(gameID, lowStep, phases[phase], phase, { from: account })
+                    await disputeResolutionLayer.selectPhase(gameID, lowStep, phases[3], 3, { from: account })
                 } else {
 
                     let states = (await tasks[taskID].vm.getStep(lowStep, tasks[taskID].interpreterArgs)).states
@@ -262,6 +262,7 @@ module.exports = {
                                 i,
                                 { from: account }
                             )
+                            return
                         }
                     }
                 }

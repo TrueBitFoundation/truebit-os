@@ -18,7 +18,6 @@ module.exports.version = ({ os }) => {
 /** initialize and await os and attach taskSubmitter  */
 module.exports.setup = configPath => {
     return (async () => {
-      console.log(configPath)
 	const os = await require('../os/kernel')(configPath)
 	let baseName = configPath.split("/")[0]
 	os.taskSubmitter = await require("../" + baseName + "/taskSubmitter")(
@@ -40,19 +39,19 @@ module.exports.initTaskGiver = ({ os, account }) => {
 }
 
 /** initialize solver with account address  */
-module.exports.initSolver = ({ os, account }) => {
-    return os.solver.init(os.web3, account, os.logger, os.fileSystem)
+module.exports.initSolver = ({ os, account, test, recovery }) => {
+    return os.solver.init(os.web3, account, os.logger, os.fileSystem, test, recovery)
 }
 
 /** initialize verifier with account address  */
-module.exports.initVerifier = ({ os, account }) => {
-    return os.verifier.init(os.web3, account, os.logger, os.fileSystem)
+module.exports.initVerifier = ({ os, account, test, recovery }) => {
+    return os.verifier.init(os.web3, account, os.logger, os.fileSystem, test, recovery)
 }
 
 /** submit a task  */
 module.exports.taskGiver = async ({ os, args }) => {
   const account = os.accounts[args.options.account || 0]
-  const task = args.options.task || 'testTask.json'
+  const task = args.options.task || 'testWasmTask.json'
 
   return new Promise((resolve, reject) => {
     fs.readFile(task, (err, data) => {

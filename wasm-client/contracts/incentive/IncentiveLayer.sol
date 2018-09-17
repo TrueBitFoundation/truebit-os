@@ -420,6 +420,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     // @param intentHash – submit hash of even or odd number to designate which solution is correct/incorrect.
     // @return – boolean
     function commitChallenge(bytes32 hash) public returns (bool) {
+        require(challenges[hash] == 0);
         challenges[hash] = block.number;
         return true;
     }

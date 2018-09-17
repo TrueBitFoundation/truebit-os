@@ -33,23 +33,23 @@ module.exports = {
     init: async (web3, account, logger, mcFileSystem) => {
 
         let bn = await web3.eth.getBlockNumber()
-        console.log("Starting at", bn)
 
         logger.log({
             level: 'info',
-            message: `Solver initialized`
+            message: `Solver initialized at block ${bn}`
         })
 
         let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3.currentProvider)
         
-        const recovery_mode = false
+        let recovery_mode = recovery > 0
         let events = []
 
         const clean_list = []
         const game_list = []
+        const RECOVERY_BLOCKS = recovery
         
         function addEvent(evC, handler) {
-            let ev = recovery_mode ? evC({}, {fromBlock:bn-200}) : evC()
+            let ev = recovery_mode ? evC({}, {fromBlock:bn-RECOVERY_BLOCKS}) : evC()
             clean_list.push(ev)
             ev.watch(async (err, result) => {
                 // console.log(result)

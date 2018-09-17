@@ -92,8 +92,8 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
         let randomNum = Math.floor(Math.random()*Math.pow(2, 60))
 
-        let bundleID = await fileSystem.calcId.call(randomNum, {from: bundlePayload.from})
-        let tx = await fileSystem.makeSimpleBundle(
+        let bundleID = await tbFileSystem.calcId.call(randomNum, {from: bundlePayload.from})
+        let tx = await tbFileSystem.makeSimpleBundle(
             randomNum,
             bundlePayload.contractAddress,
             bundlePayload.initHash,

@@ -13,7 +13,7 @@ console.log(
 
 console.log(chalk.blue(figlet.textSync('task solve verify')))
 
-let configPath = process.argv[2]
+let configPath = process.argv[2] || "wasm-client/config.json"
 
 let os
 ;(async () => {
@@ -28,19 +28,23 @@ vorpal
   })
 
 vorpal
-  .command('start <command>', 'start a task giver, solver or verifier.')
+  .command('start <command>', 'start a task giver, solver or verifier [task,solve,verify].')
   .option('-a, --account <num>', 'index of web3 account to use.')
+  .option('-r, --recover <num>', 'recovery mode: check the blocks.')
+  .option('-t, --test', 'testing mode: verifier will challenge correct tasks.')
   .action(async (args, callback) => {
     // console.log(args)
     // account is optional argument, defaulted to 0
     const account = os.accounts[args.options.account || 0]
+    const test = !!args.options.test
+    const recover = args.options.recover || -1
     switch (args.command) {
       case 'task':
         return cliLib.initTaskGiver({ os, account })
       case 'solve':
-        return cliLib.initSolver({ os, account })
+        return cliLib.initSolver({ os, account, recover, test })
       case 'verify':
-        return cliLib.initVerifier({ os, account })
+        return cliLib.initVerifier({ os, account, recover, test  })
       default:
         os.logger.log({
           level: 'error',
