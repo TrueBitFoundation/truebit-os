@@ -6,6 +6,7 @@ const toSolutionInfo = require('./util/toSolutionInfo')
 const setupVM = require('./util/setupVM')
 const midpoint = require('./util/midpoint')
 const waitForBlock = require('./util/waitForBlock')
+const recovery = require('./recovery')
 
 const fsHelpers = require('./fsHelpers')
 
@@ -33,7 +34,7 @@ let tasks = {}
 let games = {}
 
 module.exports = {
-    init: async (web3, account, logger, mcFileSystem, test = false, recovery = -1) => {
+    init: async (web3, account, logger, mcFileSystem, test = false, recover = -1) => {
         logger.log({
             level: 'info',
             message: `Verifier initialized`
@@ -49,7 +50,7 @@ module.exports = {
 
         let bn = await web3.eth.getBlockNumber()
 
-        let recovery_mode = recovery > 0
+        let recovery_mode = recover > 0
         let events = []
 
         function addEvent(evC, handler) {
@@ -57,7 +58,7 @@ module.exports = {
             clean_list.push(ev)
             ev.watch(async (err, result) => {
                 // console.log(result)
-                if (result && recovery_mode) events.push({ev:result, handler})
+                if (result && recovery_mode) events.push({event:result, handler})
                 else if (result) handler(result)
                 else console.log(error)
             })
@@ -358,69 +359,13 @@ module.exports = {
             }
         }
 
-        async function analyzeEvents() {
-            // Sort them based on task ids and disputation ids
-            let task_evs = {}
-            let game_evs = {}
-            let tasks = []
-            let games = []
-            for (let i = 0; i < events.length; i++) {
-                let ev = events[i]
-                let taskid = ev.event.args.taskID
-                let gameid = ev.event.args.gameID
-                if (taskid) {
-                    let num = (await incentiveLayer.getBondedDeposit(taskid, account)).toNumber()
-                    if (num > 0) {
-                        if (!task_evs[taskid]) {
-                            tasks.push(taskid)
-                            task_evs[taskid] = []
-                        }
-                        task_evs[taskid].push(ev)
-                    }
-                }
-                if (gameid) {
-                    let actor = await disputeResolutionLayer.getProver.call(gameID)
-                    if (actor.toLowerCase() == account.toLowerCase()) {
-                        if (!game_evs[gameid]) {
-                            games.push(gameid)
-                            games_evs[gameid] = []
-                        }
-                        game_evs[gamesid].push(ev)
-                    }
-                }
-            }
-            // for each task, check if it has ended, otherwise handle last event and add it to task list
-            // TODO: also check that all verification games have started properly ??
-            for (let i = 0; i < tasks.length; i++) {
-                let id = tasks[i]
-                let evs = task_evs[id]
-                if (evs.exists(a => a.event == "TaskFinalized")) return
-                task_list.push(id)
-
-                await recoverTask(id)
-
-                let last = findLastEvent(evs)
-                last.handler(last.event)
-            }
-            // for each game, check if it has ended, otherwise handle last event and add it to game list
-            for (let i = 0; i < games.length; i++) {
-                let id = games[i]
-                let evs = game_evs[id]
-                if (evs.exists(a => a.event == "WinnerSelected")) return
-                game_list.push(id)
-
-                await recoverGame(id)
-
-                let last = findLastEvent(evs)
-                last.handler(last.event)
-            }
-            recovery_mode = false
-        }
-
         let ival = setInterval(() => {
             task_list.forEach(handleTimeouts)
             game_list.forEach(handleGameTimeouts)
-            if (recovery_mode) analyzeEvents()
+            if (recovery_mode) {
+                recovery_mode = false
+                recovery.analyze(account, events, recoverTask, recoverGame, disputeResolutionLayer, incentiveLayer, game_list, task_list)
+            }
         }, 1000)
 
         return () => {

@@ -8,6 +8,7 @@ const toIndices = require('./util/toIndices')
 const waitForBlock = require('./util/waitForBlock')
 const setupVM = require('./util/setupVM')
 const assert = require('assert')
+const recovery = require('./recovery')
 
 const fsHelpers = require('./fsHelpers')
 
@@ -30,7 +31,7 @@ let games = {}
 let task_list = []
 
 module.exports = {
-    init: async (web3, account, logger, mcFileSystem, test, recovery) => {
+    init: async (web3, account, logger, mcFileSystem, test = false, recover = -1) => {
 
         let bn = await web3.eth.getBlockNumber()
 
@@ -41,12 +42,12 @@ module.exports = {
 
         let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3.currentProvider)
         
-        let recovery_mode = recovery > 0
+        let recovery_mode = recover > 0
         let events = []
 
         const clean_list = []
         const game_list = []
-        const RECOVERY_BLOCKS = recovery
+        const RECOVERY_BLOCKS = recover
         
         if (recovery_mode) console.log("Recovering back to", bn-RECOVERY_BLOCKS)
 
@@ -408,6 +409,11 @@ module.exports = {
             }
         })
 
+        addEvent(disputeResolutionLayer.WinnerSelected, async (result) => {
+        })
+
+        // Timeouts
+
         let busy_table = {}
         function busy(id) {
             let res = busy_table[id] && Date.now() < busy_table[id]
@@ -491,13 +497,6 @@ module.exports = {
             }
         }
         
-        function findLastEvent(lst) {
-            let num = ev => ev.event.transactionIndex*10 + ev.event.logIndex + ev.event.blockNumber*100000000
-            let copy = lst.concat()
-            copy.sort(num)
-            return copy[0]
-        }
-
         async function recoverTask(taskID) {
             let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))
             if (!tasks[taskID]) tasks[taskID] = {}
@@ -544,69 +543,13 @@ module.exports = {
             }
         }
 
-        async function analyzeEvents() {
-            // Sort them based on task ids and disputation ids
-            let task_evs = {}
-            let game_evs = {}
-            let tasks = []
-            let games = []
-            for (let i = 0; i < events.length; i++) {
-                let ev = events[i]
-                let taskid = ev.event.args.taskID
-                let gameid = ev.event.args.gameID
-                if (taskid) {
-                    let num = (await incentiveLayer.getBondedDeposit(taskid, account)).toNumber()
-                    if (num > 0) {
-                        if (!task_evs[taskid]) {
-                            tasks.push(taskid)
-                            task_evs[taskid] = []
-                        }
-                        task_evs[taskid].push(ev)
-                    }
-                }
-                if (gameid) {
-                    let actor = await disputeResolutionLayer.getProver.call(gameid)
-                    if (actor.toLowerCase() == account.toLowerCase()) {
-                        if (!game_evs[gameid]) {
-                            games.push(gameid)
-                            game_evs[gameid] = []
-                        }
-                        game_evs[gameid].push(ev)
-                    }
-                }
-            }
-            // for each task, check if it has ended, otherwise handle last event and add it to task list
-            // TODO: also check that all verification games have started properly ??
-            for (let i = 0; i < tasks.length; i++) {
-                let id = tasks[i]
-                let evs = task_evs[id]
-                if (evs.some(a => a.event == "TaskFinalized")) return
-                task_list.push(id)
-
-                await recoverTask(id)
-
-                let last = findLastEvent(evs)
-                last.handler(last.event)
-            }
-            // for each game, check if it has ended, otherwise handle last event and add it to game list
-            for (let i = 0; i < games.length; i++) {
-                let id = games[i]
-                let evs = game_evs[id]
-                if (evs.some(a => a.event == "WinnerSelected")) return
-                game_list.push(id)
-
-                await recoverGame(id)
-
-                let last = findLastEvent(evs)
-                last.handler(last.event)
-            }
-            recovery_mode = false
-        }
-
         let ival = setInterval(() => {
             task_list.forEach(handleTimeouts)
             game_list.forEach(handleGameTimeouts)
-            if (recovery_mode) analyzeEvents()
+            if (recovery_mode) {
+                recovery_mode = false
+                recovery.analyze(account, events, recoverTask, recoverGame, disputeResolutionLayer, incentiveLayer, game_list, task_list)
+            }
         }, 1000)
 
         return () => {
