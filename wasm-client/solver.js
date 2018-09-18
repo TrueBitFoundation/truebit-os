@@ -49,16 +49,16 @@ module.exports = {
         const game_list = []
         const RECOVERY_BLOCKS = recover
         
-        if (recovery_mode) console.log("Recovering back to", bn-RECOVERY_BLOCKS)
+        if (recovery_mode) console.log("Recovering back to", Math.max(0,bn-RECOVERY_BLOCKS))
 
         function addEvent(evC, handler) {
-            let ev = recovery_mode ? evC({}, {fromBlock:bn-RECOVERY_BLOCKS}) : evC()
+            let ev = recovery_mode ? evC({}, {fromBlock:Math.max(0,bn-RECOVERY_BLOCKS)}) : evC()
             clean_list.push(ev)
             ev.watch(async (err, result) => {
                 // console.log(result)
                 if (result && recovery_mode) {
                     events.push({event:result, handler})
-                    console.log("Recovering", result.event)
+                    console.log("Recovering", result.event, "at block", result.blockNumber)
                 }
                 else if (result) handler(result)
                 else console.log(err)
@@ -158,6 +158,14 @@ module.exports = {
             }
 
 
+        })
+
+        addEvent(incentiveLayer.SolutionsCommitted, async result => {
+            logger.info("Committed a solution pair")
+        })
+
+        addEvent(incentiveLayer.SolutionRevealed, async result => {
+            logger.info("Revealed correct solution")
         })
 
         addEvent(incentiveLayer.EndRevealPeriod, async (result) => {
@@ -290,6 +298,8 @@ module.exports = {
 
                     await disputeResolutionLayer.report(gameID, lowStep, highStep, [stateHash], {from: account})
 
+                    logger.info(`Reported state for step ${stepNumber}`)
+
                 } else {
                     //Final step -> post phases
 
@@ -412,6 +422,9 @@ module.exports = {
         addEvent(disputeResolutionLayer.WinnerSelected, async (result) => {
         })
 
+        addEvent(disputeResolutionLayer.Reported, async (result) => {
+        })
+
         // Timeouts
 
         let busy_table = {}
@@ -444,6 +457,7 @@ module.exports = {
         }
         
         async function handleTimeouts(taskID) {
+            // console.log("Handling task", taskID)
 
             // let deposit = await incentiveLayer.getBondedDeposit.call(taskID, account)
             // console.log("Solver deposit", deposit.toNumber(), account)

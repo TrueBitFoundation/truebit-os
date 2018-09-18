@@ -2,7 +2,7 @@
 function findLastEvent(lst) {
     let num = ev => ev.event.transactionIndex*10 + ev.event.logIndex + ev.event.blockNumber*100000000
     let copy = lst.concat()
-    copy.sort(num)
+    copy.sort((a,b) => num(a) < num(b))
     return copy[0]
 }
 
@@ -49,7 +49,8 @@ module.exports.analyze = async function (account, events, recoverTask, recoverGa
         await recoverTask(id)
 
         let last = findLastEvent(evs)
-        last.handler(last.event)
+        console.log("Handling to recover:", last.event)
+        await last.handler(last.event)
     }
     // for each game, check if it has ended, otherwise handle last event and add it to game list
     for (let i = 0; i < games.length; i++) {
@@ -62,7 +63,9 @@ module.exports.analyze = async function (account, events, recoverTask, recoverGa
         await recoverGame(id)
 
         let last = findLastEvent(evs)
-        last.handler(last.event)
+        console.log("Handling to recover:", last.event)
+        await last.handler(last.event)
     }
+    console.log("Tasks", task_list, "Games", game_list)
 }
 
