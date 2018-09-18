@@ -47,6 +47,7 @@ install:
   - npm run fixperms
   - npm install
 #  - npm run install
+  - npm run deps
   - npm run compile
   - npm run deploy
 

@@ -67,6 +67,21 @@ module.exports.taskGiver = async ({ os, args }) => {
   })
 }
 
+/** initialize task hash */
+module.exports.initHash = async ({os, args}) => {
+    const task = args.options.task 
+    return new Promise((resolve, reject) => {
+	fs.readFile(task, (err, data) => {
+	    if (err) {
+		reject(err)
+	    } else {
+		let taskData = JSON.parse(data)
+		resolve(os.taskSubmitter.getInitialHash(taskData))
+	    }
+	})
+    })
+}
+
 /** skip blocks */
 module.exports.skipHelper = async ({ os, args }) => {
   const number = args.options.number || 65
