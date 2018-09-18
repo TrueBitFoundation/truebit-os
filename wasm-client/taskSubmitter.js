@@ -7,6 +7,10 @@ const path = require('path')
 
 const contractsConfig = JSON.parse(fs.readFileSync(__dirname + "/contracts.json"))
 
+function isString(n) {
+    return typeof n == 'string' || n instanceof String
+}
+
 function setup(httpProvider) {
     return (async () => {
         let incentiveLayer = await contract(httpProvider, contractsConfig['incentiveLayer'])
@@ -306,15 +310,19 @@ module.exports = async (web3, logger, mcFileSystem) => {
             task["minDeposit"] = web3.utils.toWei(task.minDeposit, 'ether')
             await depositsHelper(web3, incentiveLayer, tru, task.from, task.minDeposit)
 	    
-	    logger.log({ level: 'info', message: `Minimum deposit was met`})			 
+	    logger.log({ level: 'info', message: `Minimum deposit was met`})
+
+	    if(isString(task.maxDiffulty)) task.maxDifficulty = parseInt(task.maxDifficulty)
+	    if(isString(task.reward)) task.reward = parseInt(task.reward)
+	    
 
             var id = await incentiveLayer.createTask(
                 task.initHash,
                 task.codeType,
                 task.storageType,
                 task.storageAddress,
-                1, //TODO: set maxDifficulty 
-                1,  //TODO: set Reward
+                task.maxDifficulty, 
+                task.reward,
                 {gas: 1000000, from: task.from}
             )
 

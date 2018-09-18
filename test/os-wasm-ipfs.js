@@ -81,13 +81,13 @@ describe('Truebit OS WASM IPFS', async function() {
 		"codeType": "WAST",
 		"storageType": "IPFS",
 		"codeFile": "/data/factorial.wast",
-		"reward": "0"
+		"reward": "1",
+		"maxDifficulty": "1"
 	    }
 
 	    //simulate cli by adding from account and translate reward
 
-	    exampleTask["from"] = os.accounts[0]
-	    exampleTask["reward"] = os.web3.utils.toWei(exampleTask.reward, 'ether')
+	    exampleTask["from"] = os.accounts[0]	    
 
 	    await taskSubmitter.submitTask(exampleTask)
 

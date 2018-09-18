@@ -81,14 +81,14 @@ describe('Truebit OS WASM Alphabet', async function() {
 		"codeType": "WASM",
 		"storageType": "IPFS",
 		"codeFile": "/data/reverse_alphabet.wasm",
-		"reward": "0",
+		"reward": "1",
+		"maxDifficulty": "1",
 		"files": ["/data/alphabet.txt", "/data/reverse_alphabet.txt"]
 	    }
 
 	    //simulate cli by adding from account and translate reward
 
-	    exampleTask["from"] = os.accounts[0]
-	    exampleTask["reward"] = os.web3.utils.toWei(exampleTask.reward, 'ether')
+	    exampleTask["from"] = os.accounts[0]	    
 
 	    await taskSubmitter.submitTask(exampleTask)
 

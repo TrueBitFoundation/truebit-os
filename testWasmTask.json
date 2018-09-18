@@ -3,5 +3,6 @@
     "codeType": "WAST",
     "storageType": "BLOCKCHAIN",
     "codeFile": "/data/factorial.wast",
-    "reward": "0"
+    "reward": "1",
+    "maxDifficulty": "1"
 }

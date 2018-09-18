@@ -149,7 +149,7 @@ module.exports = {
               
                 logger.log({
 		              level: 'info',
-		              message: `Revealed solution for task: ${taskID}. Ouputs have been uploaded.`
+		              message: `Revealed solution for task: ${taskID}. Outputs have been uploaded.`
 		            })
             }
 	    
