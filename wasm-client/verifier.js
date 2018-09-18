@@ -60,7 +60,7 @@ module.exports = {
                 // console.log(result)
                 if (result && recovery_mode) events.push({event:result, handler})
                 else if (result) handler(result)
-                else console.log(error)
+                else console.log(err)
             })
         }
 
@@ -300,6 +300,17 @@ module.exports = {
 
                 working(taskID)
             }
+            if (await incentiveLayer.isTaskTimeout.call(taskID, {from: account})) {
+
+                logger.log({
+                    level: 'info',
+                    message: `Timeout in task ${taskID}`
+                })
+
+                await incentiveLayer.taskTimeout(taskID, {from: account})
+
+                working(taskID)
+            }
         }
 
         async function handleGameTimeouts(gameID) {
@@ -315,13 +326,6 @@ module.exports = {
                 await disputeResolutionLayer.gameOver(gameID, { from: account })
                 working(gameID)
             }
-        }
-
-        function findLastEvent(lst) {
-            let num = ev => ev.event.transactionIndex*10 + ev.event.logIndex + ev.event.blockNumber*100000000
-            let copy = lst.concat()
-            copy.sort(num)
-            return copy[0]
         }
 
         async function recoverTask(taskID) {

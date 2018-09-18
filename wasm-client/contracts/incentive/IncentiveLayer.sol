@@ -395,10 +395,21 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         uint8 status = IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame);
         require(status != uint(Status.Challenged));
         require(status != uint(Status.Unresolved));
-        require(block.number > t.lastBlock.add(TIMEOUT));
+        require(block.number > t.lastBlock.add(TIMEOUT*2));
         slashDeposit(taskID, t.selectedSolver, s.currentChallenger);
         t.state = State.TaskTimeout;
         delete t.selectedSolver;
+    }
+
+    function isTaskTimeout(bytes32 taskID) public view returns (bool) {
+        Task storage t = tasks[taskID];
+        Solution storage s = solutions[taskID];
+        // require(s.solutionHash0 == 0x0 && s.solutionHash1 == 0x0);
+        uint8 status = IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame);
+        if (status == uint(Status.Challenged)) return false;
+        if (status == uint(Status.Unresolved)) return false;
+        if (block.number <= t.lastBlock.add(TIMEOUT*2)) return false;
+        return true;
     }
 
     function solverLoses(bytes32 taskID) public returns (bool) {
