@@ -233,6 +233,9 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         // check final state
         require(e_pointers[0] == FINAL_STATE);
 
+        // TODO: implement gas metering
+        require(_steps < 2**34);
+
         // Now we can initialize
         g.steps = _steps;
         if (g.size > g.steps - 2) g.size = g.steps-2;
