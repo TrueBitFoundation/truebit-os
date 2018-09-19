@@ -59,8 +59,7 @@ module.exports.taskGiver = async ({ os, args }) => {
         reject(err)
       } else {
         let taskData = JSON.parse(data)
-        taskData['from'] = account
-        taskData['reward'] = os.web3.utils.toWei(taskData.reward, 'ether')
+        taskData['from'] = account        
         resolve(os.taskSubmitter.submitTask(taskData))
       }
     })

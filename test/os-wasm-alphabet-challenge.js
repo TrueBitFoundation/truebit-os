@@ -83,14 +83,14 @@ describe('Truebit OS WASM Alphabet Challenge', async function() {
 		"storageType": "IPFS",
 		"codeFile": "/data/reverse_alphabet.wasm",
 		"inputFile": "/data/alphabet.txt",
-		"reward": "0",
+		"reward": "1",
+		"maxDifficulty": "1",
 		"files": ["/data/alphabet.txt", "/data/reverse_alphabet.txt"]
 	    }
 
 	    //simulate cli by adding from account and translate reward
 
-	    exampleTask["from"] = os.accounts[0]
-	    exampleTask["reward"] = os.web3.utils.toWei(exampleTask.reward, 'ether')
+	    exampleTask["from"] = os.accounts[0]	    
 
 	    await taskSubmitter.submitTask(exampleTask)
 
@@ -98,7 +98,7 @@ describe('Truebit OS WASM Alphabet Challenge', async function() {
 	    await mineBlocks(os.web3, 110)
 	    await timeout(5000)
 	    await mineBlocks(os.web3, 110)
-        await timeout(60000)
+            await timeout(60000)
 	    
 	    let tasks = os.taskGiver.getTasks()
 	    //taskID = Object.keys(tasks)[0]

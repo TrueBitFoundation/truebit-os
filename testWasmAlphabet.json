@@ -4,6 +4,7 @@
     "storageType": "IPFS",
     "codeFile": "/data/reverse_alphabet.wasm",
     "inputFile": "/data/alphabet.txt",
-    "reward": "0",
+    "reward": "1",
+    "maxDifficulty": "1",
     "files": ["/data/alphabet.txt", "/data/reverse_alphabet.txt"]
 }
