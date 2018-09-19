@@ -135,7 +135,7 @@ describe('Truebit OS WASM Scrypt test', async function() {
 
     it('wait for task', async () => {
 
-	    await timeout(15000)
+	    await timeout(25000)
 	    await mineBlocks(os.web3, 110)
 	    await timeout(5000)
 	    await mineBlocks(os.web3, 110)

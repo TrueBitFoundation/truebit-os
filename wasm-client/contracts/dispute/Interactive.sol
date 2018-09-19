@@ -98,7 +98,13 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         judges[id] = CustomJudge(addr);
     }
 
-    event StartChallenge(address p, address c, bytes32 s, bytes32 e, uint256 par, uint to, bytes32 uniq);
+    event StartChallenge(address p, address c, bytes32 s, bytes32 e, uint256 par, uint to, bytes32 gameID);
+    event Reported(bytes32 gameID, uint idx1, uint idx2, bytes32[] arr);
+    event Queried(bytes32 gameID, uint idx1, uint idx2);
+    event PostedPhases(bytes32 gameID, uint idx1, bytes32[13] arr);
+    event SelectedPhase(bytes32 gameID, uint idx1, uint phase);
+    event WinnerSelected(bytes32 gameID);
+    event SubGoal(bytes32 gameID, uint64 judge, bytes32 init_data, uint init_size, bytes32 ret_data, uint ret_size);
 
     function make(bytes32 taskID, address solver, address verifier, bytes32 startStateHash, bytes32 endStateHash, uint256 size, uint timeout) external returns (bytes32) {
         bytes32 gameID = keccak256(abi.encodePacked(taskID, solver, verifier, startStateHash, endStateHash, size, timeout));
@@ -313,8 +319,6 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         i2 = g.idx2;
     }
 
-    event Reported(bytes32 id, uint idx1, uint idx2, bytes32[] arr);
-
     function report(bytes32 gameID, uint i1, uint i2, bytes32[] arr) public returns (bool) {
         Game storage g = games[gameID];
         require(g.state == State.Running && arr.length == g.size && i1 == g.idx1 && i2 == g.idx2 && msg.sender == g.prover && g.prover == g.next);
@@ -333,8 +337,6 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         return games[gameID].proof[loc];
     }
     
-    event Queried(bytes32 id, uint idx1, uint idx2);
-
     function query(bytes32 gameID, uint i1, uint i2, uint num) public {
         Game storage g = games[gameID];
         require(g.state == State.Running && num <= g.size && i1 == g.idx1 && i2 == g.idx2 && msg.sender == g.challenger && g.challenger == g.next);
@@ -356,8 +358,6 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         return g.proof[idx];
     }
 
-    event PostedPhases(bytes32 id, uint idx1, bytes32[13] arr);
-
     function postPhases(bytes32 gameID, uint i1, bytes32[13] arr) public {
         Game storage g = games[gameID];
         require(g.state == State.NeedPhases && msg.sender == g.prover && g.next == g.prover && g.idx1 == i1);
@@ -373,8 +373,6 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
     function getResult(bytes32 gameID)  public view returns (bytes32[13]) {
         return games[gameID].result;
     }
-    
-    event SelectedPhase(bytes32 id, uint idx1, uint phase);
     
     function selectPhase(bytes32 gameID, uint i1, bytes32 st, uint q) public {
         Game storage g = games[gameID];
@@ -399,8 +397,6 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         return games[gameID].winner;
     }
 
-    event WinnerSelected(bytes32 id);
-
     function callJudge(bytes32 gameID, uint i1, uint q, bytes32[] proof, bytes32[] proof2, bytes32 vmHash, bytes32 op, uint[4] regs, bytes32[10] roots, uint[4] pointers) public {
         Game storage g = games[gameID];
         require(g.state == State.SelectedPhase && g.phase == q && msg.sender == g.prover && g.idx1 == i1 && g.next == g.prover);
@@ -414,8 +410,6 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         blocked[g.task_id] = 0;
         g.state = State.Finished;
     }
-
-    event SubGoal(bytes32 id, uint64 judge, bytes32 init_data, uint init_size, bytes32 ret_data, uint ret_size);
 
     function resolveCustom(bytes32 gameID) public returns (bool) {
         Game storage g = games[gameID];

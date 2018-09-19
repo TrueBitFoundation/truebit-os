@@ -39,19 +39,19 @@ module.exports.initTaskGiver = ({ os, account }) => {
 }
 
 /** initialize solver with account address  */
-module.exports.initSolver = ({ os, account }) => {
-    return os.solver.init(os.web3, account, os.logger, os.fileSystem)
+module.exports.initSolver = ({ os, account, test, recover }) => {
+    return os.solver.init(os.web3, account, os.logger, os.fileSystem, test, recover)
 }
 
 /** initialize verifier with account address  */
-module.exports.initVerifier = ({ os, account }) => {
-    return os.verifier.init(os.web3, account, os.logger, os.fileSystem)
+module.exports.initVerifier = ({ os, account, test, recover }) => {
+    return os.verifier.init(os.web3, account, os.logger, os.fileSystem, test, recover)
 }
 
 /** submit a task  */
 module.exports.taskGiver = async ({ os, args }) => {
   const account = os.accounts[args.options.account || 0]
-  const task = args.options.task
+  const task = args.options.task || 'testWasmTask.json'
 
   return new Promise((resolve, reject) => {
     fs.readFile(task, (err, data) => {
