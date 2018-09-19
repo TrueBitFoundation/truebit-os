@@ -7,11 +7,14 @@ const toTaskInfo = require('./util/toTaskInfo')
 const waitForBlock = require('./util/waitForBlock')
 const toSolutionInfo = require('./util/toSolutionInfo')
 
-const contractsConfig = JSON.parse(fs.readFileSync(__dirname + "/contracts.json"))
+const contractsConfig = require('./util/contractsConfig')
 
-function setup(httpProvider) {
+function setup(web3) {
     return (async () => {
-	incentiveLayer = await contract(httpProvider, contractsConfig['incentiveLayer'])
+	const httpProvider = web3.currentProvider
+	const config = await contractsConfig(web3)
+	
+	incentiveLayer = await contract(httpProvider, config['incentiveLayer'])
 	return incentiveLayer
     })()
 }
@@ -24,7 +27,7 @@ module.exports = {
 	    message: `Task Giver initialized`
 	})
 
-	let incentiveLayer = await setup(web3.currentProvider)
+	let incentiveLayer = await setup(web3)
 
 	//Task creation event
 	const taskCreatedEvent = incentiveLayer.TaskCreated()

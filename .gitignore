@@ -8,3 +8,4 @@ tmp.*
 
 wasm-client/build
 wasm-client/contracts.json
+wasm-client/development.json

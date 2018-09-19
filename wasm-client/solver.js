@@ -14,14 +14,16 @@ const fsHelpers = require('./fsHelpers')
 
 const merkleComputer = require("./merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
 
-const contractsConfig = JSON.parse(fs.readFileSync(__dirname + "/contracts.json"))
+const contractsConfig = require('./util/contractsConfig')
 
-function setup(httpProvider) {
+function setup(web3) {
     return (async () => {
-        incentiveLayer = await contract(httpProvider, contractsConfig['incentiveLayer'])
-        fileSystem = await contract(httpProvider, contractsConfig['fileSystem'])
-        tru = await contract(httpProvider, contractsConfig['tru'])
-        disputeResolutionLayer = await contract(httpProvider, contractsConfig['interactive'])
+	const httpProvider = web3.currentProvider
+	const config = await contractsConfig(web3)
+        incentiveLayer = await contract(httpProvider, config['incentiveLayer'])
+        fileSystem = await contract(httpProvider, config['fileSystem'])
+        tru = await contract(httpProvider, config['tru'])
+        disputeResolutionLayer = await contract(httpProvider, config['interactive'])
         return [incentiveLayer, fileSystem, disputeResolutionLayer, tru]
     })()
 }
@@ -40,7 +42,7 @@ module.exports = {
             message: `Solver initialized at block ${bn}`
         })
 
-        let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3.currentProvider)
+        let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3)
         
         let recovery_mode = recover > 0
         let events = []

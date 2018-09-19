@@ -4,18 +4,20 @@ const contract = require('./contractHelper')
 const merkleComputer = require('./merkle-computer')('./../wasm-client/ocaml-offchain/interpreter/wasm')
 const assert = require('assert')
 const path = require('path')
-
-const contractsConfig = JSON.parse(fs.readFileSync(__dirname + "/contracts.json"))
+const contractsConfig = require('./util/contractsConfig')
 
 function isString(n) {
     return typeof n == 'string' || n instanceof String
 }
 
-function setup(httpProvider) {
+function setup(web3) {
+    
     return (async () => {
-        let incentiveLayer = await contract(httpProvider, contractsConfig['incentiveLayer'])
-        let fileSystem = await contract(httpProvider, contractsConfig['fileSystem'])
-        let tru = await contract(httpProvider, contractsConfig['tru'])
+	const httpProvider = web3.currentProvider
+	const config = await contractsConfig(web3)
+        let incentiveLayer = await contract(httpProvider, config['incentiveLayer'])
+        let fileSystem = await contract(httpProvider, config['fileSystem'])
+        let tru = await contract(httpProvider, config['tru'])
         return [incentiveLayer, fileSystem, tru]
     })()
 }
@@ -62,7 +64,7 @@ const writeFile = (filepath, buf) => {
 
 module.exports = async (web3, logger, mcFileSystem) => {
 
-    let contracts = await setup(web3.currentProvider)
+    let contracts = await setup(web3)
 
     //Two filesystems (which may be confusing)
     //tbFileSystem is the Truebit filesystem contract
