@@ -7,6 +7,7 @@ const setupVM = require('./util/setupVM')
 const midpoint = require('./util/midpoint')
 const waitForBlock = require('./util/waitForBlock')
 const recovery = require('./recovery')
+const assert = require('assert')
 
 const fsHelpers = require('./fsHelpers')
 
@@ -52,13 +53,17 @@ module.exports = {
 
         let recovery_mode = recover > 0
         let events = []
+        const RECOVERY_BLOCKS = recover
 
         function addEvent(evC, handler) {
-            let ev = recovery_mode ? evC({}, {fromBlock:bn-200}) : evC()
+            let ev = recovery_mode ? evC({}, {fromBlock:Math.max(0,bn-RECOVERY_BLOCKS)}) : evC()
             clean_list.push(ev)
             ev.watch(async (err, result) => {
                 // console.log(result)
-                if (result && recovery_mode) events.push({event:result, handler})
+                if (result && recovery_mode) {
+                    events.push({event:result, handler})
+                    console.log("Recovering", result.event, "at block", result.blockNumber)
+                }
                 else if (result) handler(result)
                 else console.log(err)
             })
@@ -158,6 +163,9 @@ module.exports = {
 
         })
 
+        addEvent(incentiveLayer.VerificationCommitted, async result => {
+        })
+
         addEvent(incentiveLayer.TaskFinalized, async (result) => {
             let taskID = result.args.taskID	   
 	    
@@ -200,8 +208,11 @@ module.exports = {
             }
         })
 
+        addEvent(disputeResolutionLayer.Queried, async result => {
+        })
+        
         addEvent(disputeResolutionLayer.Reported, async result => {
-            let gameID = result.args.gameID
+                let gameID = result.args.gameID
 
             if (games[gameID]) {
 
@@ -346,6 +357,7 @@ module.exports = {
             let interpreterArgs = []
             let solution = await vm.executeWasmTask(interpreterArgs)
             tasks[taskID].solution = solution
+            tasks[taskID].vm = vm
         }
 
         async function recoverGame(gameID) {
@@ -368,7 +380,7 @@ module.exports = {
             game_list.forEach(handleGameTimeouts)
             if (recovery_mode) {
                 recovery_mode = false
-                recovery.analyze(account, events, recoverTask, recoverGame, disputeResolutionLayer, incentiveLayer, game_list, task_list)
+                recovery.analyze(account, events, recoverTask, recoverGame, disputeResolutionLayer, incentiveLayer, game_list, task_list, true)
             }
         }, 1000)
 
