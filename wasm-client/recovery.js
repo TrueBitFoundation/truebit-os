@@ -6,7 +6,7 @@ function findLastEvent(lst) {
     return copy[0]
 }
 
-module.exports.analyze = async function (account, events, recoverTask, recoverGame, disputeResolutionLayer, incentiveLayer, game_list, task_list) {
+module.exports.analyze = async function (account, events, recoverTask, recoverGame, disputeResolutionLayer, incentiveLayer, game_list, task_list, verifier_mode) {
     // Sort them based on task ids and disputation ids
     let task_evs = {}
     let game_evs = {}
@@ -27,8 +27,10 @@ module.exports.analyze = async function (account, events, recoverTask, recoverGa
             }
         }
         if (gameid) {
-            // console.log("Found", ev.event.event, "for", gameid)
-            let actor = await disputeResolutionLayer.getProver.call(gameid)
+            console.log("Found", ev.event.event, "for", gameid)
+            let actor
+            if (!verifier_mode) actor = await disputeResolutionLayer.getProver.call(gameid)
+            else actor = await disputeResolutionLayer.getChallenger.call(gameid)
             if (actor.toLowerCase() == account.toLowerCase()) {
                 if (!game_evs[gameid]) {
                     games.push(gameid)

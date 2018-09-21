@@ -49,7 +49,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     event SolutionsCommitted(bytes32 taskID, uint minDeposit, CodeType codeType, StorageType storageType, string storageAddress, bytes32 solutionHash0, bytes32 solutionHash1);
     event SolutionRevealed(bytes32 taskID, uint randomBits);
     // event TaskStateChange(bytes32 taskID, uint state);
-    event VerificationCommitted(address verifier, uint jackpotID, uint solutionID, uint index);
+    event VerificationCommitted(bytes32 taskID, address verifier, uint jackpotID, uint solutionID, uint index);
     event SolverDepositBurned(address solver, bytes32 taskID);
     event VerificationGame(address indexed solver, uint currentChallenger); 
     event PayReward(address indexed solver, uint reward);
@@ -479,7 +479,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         solutions[taskID].allChallengers.push(msg.sender);
 
         delete tasks[taskID].challenges[msg.sender];
-        emit VerificationCommitted(msg.sender, tasks[taskID].jackpotID, solution, position);
+        emit VerificationCommitted(taskID, msg.sender, tasks[taskID].jackpotID, solution, position);
         return true;
     }
 
