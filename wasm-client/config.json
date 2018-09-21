@@ -8,5 +8,6 @@
 	"port": "5001",
 	"protocol": "http",
 	"merkleComputer": "../wasm-client/merkle-computer/"
-    }
+    },
+    "throttle" : 20
 }
