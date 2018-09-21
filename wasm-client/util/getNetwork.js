@@ -1,5 +1,5 @@
 module.exports = async (web3) => {
-    let networkId = await web3.eth.net.getId()
+    let networkId = await web3.eth.net.getNetworkType()
     let networkName
     switch (networkId) {
         case "1":
