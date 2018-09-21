@@ -5,7 +5,7 @@ const merkleComputer = require('./merkle-computer')('./../wasm-client/ocaml-offc
 const assert = require('assert')
 const path = require('path')
 
-const contractsConfig = JSON.parse(fs.readFileSync(__dirname + "/contracts.json"))
+const contractsConfig = JSON.parse(fs.readFileSync("./contracts.json"))
 
 function isString(n) {
     return typeof n == 'string' || n instanceof String

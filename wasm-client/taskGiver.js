@@ -7,7 +7,7 @@ const toTaskInfo = require('./util/toTaskInfo')
 const waitForBlock = require('./util/waitForBlock')
 const toSolutionInfo = require('./util/toSolutionInfo')
 
-const contractsConfig = JSON.parse(fs.readFileSync(__dirname + "/contracts.json"))
+const contractsConfig = JSON.parse(fs.readFileSync("./contracts.json"))
 
 function setup(httpProvider) {
     return (async () => {

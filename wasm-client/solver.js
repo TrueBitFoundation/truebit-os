@@ -14,7 +14,7 @@ const fsHelpers = require('./fsHelpers')
 
 const merkleComputer = require("./merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
 
-const contractsConfig = JSON.parse(fs.readFileSync(__dirname + "/contracts.json"))
+const contractsConfig = JSON.parse(fs.readFileSync("./contracts.json"))
 
 function setup(httpProvider) {
     return (async () => {

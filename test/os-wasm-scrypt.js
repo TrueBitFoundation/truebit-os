@@ -12,7 +12,7 @@ const logger = require('../os/logger')
 const contract = require('../wasm-client/contractHelper')
 var truffle_contract = require("truffle-contract");
 
-const contractsConfig = JSON.parse(fs.readFileSync("./wasm-client/contracts.json"))
+const contractsConfig = JSON.parse(fs.readFileSync("./contracts.json"))
 
 const merkleComputer = require('../wasm-client/merkle-computer')()
 
