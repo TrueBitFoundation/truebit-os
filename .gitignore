@@ -6,5 +6,5 @@ combined.log.json
 .vscode
 tmp.*
 
-wasm-client/build
-wasm-client/contracts.json
+build
+contracts.json

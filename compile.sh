@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cd /contracts/
+cd ./contracts/
 
 mkdir -p ../build
 
