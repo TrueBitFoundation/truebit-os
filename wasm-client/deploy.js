@@ -33,6 +33,10 @@ function exportContract(contract) {
 }
 
 async function deploy() {
+    let networkName = await getNetwork(web3)
+    let filename = './wasm-client/' + networkName + '.json'
+    console.log("Writing to", filename)
+
     let accounts = await web3.eth.getAccounts()
     let fileSystem = await deployContract('Filesystem', {from: accounts[0], gas: 3500000})
     let judge = await deployContract('Judge', {from: accounts[0], gas: 4600000})
@@ -43,9 +47,6 @@ async function deploy() {
     let exchangeRateOracle = await deployContract('ExchangeRateOracle', {from: accounts[0], gas: 1000000})
     let incentiveLayer = await deployContract('IncentiveLayer', {from: accounts[0], gas: 5200000}, [tru._address, exchangeRateOracle._address, interactive._address, fileSystem._address])
 
-    let networkName = await getNetwork(web3)
-
-    let filename = './wasm-client/' + networkName + '.json'
     
     fs.writeFileSync(filename, JSON.stringify({
         fileSystem: exportContract(fileSystem),
