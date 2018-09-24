@@ -13,14 +13,16 @@ const fsHelpers = require('./fsHelpers')
 
 const merkleComputer = require(__dirname + "/merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
 
-const contractsConfig = JSON.parse(fs.readFileSync("./contracts.json"))
+const contractsConfig = require('./util/contractsConfig')
 
-function setup(httpProvider) {
+function setup(web3) {
     return (async () => {
-        let incentiveLayer = await contract(httpProvider, contractsConfig['incentiveLayer'])
-        let fileSystem = await contract(httpProvider, contractsConfig['fileSystem'])
-        let disputeResolutionLayer = await contract(httpProvider, contractsConfig['interactive'])
-        let tru = await contract(httpProvider, contractsConfig['tru'])
+	const httpProvider = web3.currentProvider
+	const config = await contractsConfig(web3)
+        let incentiveLayer = await contract(httpProvider, config['incentiveLayer'])
+        let fileSystem = await contract(httpProvider, config['fileSystem'])
+        let disputeResolutionLayer = await contract(httpProvider, config['interactive'])
+        let tru = await contract(httpProvider, config['tru'])
         return [incentiveLayer, fileSystem, disputeResolutionLayer, tru]
     })()
 }
@@ -35,13 +37,13 @@ let tasks = {}
 let games = {}
 
 module.exports = {
-    init: async (web3, account, logger, mcFileSystem, test = false, recover = -1) => {
+    init: async (web3, account, logger, mcFileSystem, test = false, recover = -1, throttle = 1) => {
         logger.log({
             level: 'info',
             message: `Verifier initialized`
         })
 
-        let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3.currentProvider)
+        let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3)
 
         let helpers = fsHelpers.init(fileSystem, web3, mcFileSystem, logger, incentiveLayer, account)
 
@@ -87,59 +89,61 @@ module.exports = {
             let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))
             taskInfo.taskID = taskID
 
-            // let storageType = result.args.storageType.toNumber()
+	    if (Object.keys(tasks).length <= throttle) {
+		// let storageType = result.args.storageType.toNumber()
 
-            let vm = await helpers.setupVMWithFS(taskInfo)
+		let vm = await helpers.setupVMWithFS(taskInfo)
 
-            let interpreterArgs = []
-            solution = await vm.executeWasmTask(interpreterArgs)
+		let interpreterArgs = []
+		solution = await vm.executeWasmTask(interpreterArgs)
 
-            logger.log({
-                level: 'info',
-                message: `Executed task ${taskID}. Checking solutions`
-            })
-
-            task_list.push(taskID)
-
-            tasks[taskID] = {
-                solverHash0: solverHash0,
-                solverHash1: solverHash1,
-                solutionHash: solution.hash,
-                vm: vm
-            }
-
-            if ((solverHash0 != solution.hash) ^ test) {
-
-                await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
-                let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "00"
-                console.log("intent", intent)
-                tasks[taskID].intent0 = "0x" + intent
-                let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2)
-                await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000 })
-
-                logger.log({
+		logger.log({
                     level: 'info',
-                    message: `Challenged solution for task ${taskID}`
-                })
+                    message: `Executed task ${taskID}. Checking solutions`
+		})
 
-            }
+		task_list.push(taskID)
 
-            if ((solverHash1 != solution.hash) ^ test) {
+		tasks[taskID] = {
+                    solverHash0: solverHash0,
+                    solverHash1: solverHash1,
+                    solutionHash: solution.hash,
+                    vm: vm
+		}
 
-                await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
-                let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "01"
-                tasks[taskID].intent1 = "0x" + intent
-                console.log("intent", intent)
-                let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2)
-                await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000 })
+		if ((solverHash0 != solution.hash) ^ test) {
 
-                logger.log({
-                    level: 'info',
-                    message: `Challenged solution for task ${taskID}`
-                })
+                    await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
+                    let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "00"
+                    console.log("intent", intent)
+                    tasks[taskID].intent0 = "0x" + intent
+                    let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2)
+                    await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000 })
 
-            }
+                    logger.log({
+			level: 'info',
+			message: `Challenged solution for task ${taskID}`
+                    })
 
+		}
+
+		if ((solverHash1 != solution.hash) ^ test) {
+
+                    await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
+                    let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "01"
+                    tasks[taskID].intent1 = "0x" + intent
+                    console.log("intent", intent)
+                    let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2)
+                    await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000 })
+
+                    logger.log({
+			level: 'info',
+			message: `Challenged solution for task ${taskID}`
+                    })
+
+		}		
+		
+	    }
         })
 
         addEvent(incentiveLayer.EndChallengePeriod, async result => {
@@ -171,6 +175,7 @@ module.exports = {
 	    
             if (tasks[taskID]) {
                 await incentiveLayer.unbondDeposit(taskID, {from: account, gas: 100000})
+		delete tasks[taskID]
                 logger.log({
                     level: 'info',
                     message: `Task ${taskID} finalized. Tried to unbond deposits.`

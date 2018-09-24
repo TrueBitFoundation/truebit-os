@@ -12,7 +12,7 @@ const logger = require('../os/logger')
 const contract = require('../wasm-client/contractHelper')
 var truffle_contract = require("truffle-contract");
 
-const contractsConfig = JSON.parse(fs.readFileSync("./contracts.json"))
+const contractsConfig = require('../wasm-client/util/contractsConfig')
 
 const merkleComputer = require('../wasm-client/merkle-computer')()
 
@@ -86,66 +86,67 @@ describe('Truebit OS WASM Scrypt test', async function() {
 	
 	let originalBalance
 
-	let storageAddress, initStateHash, bundleID
+	let storageAddress, initStateHash, bundleID, cConfig
 
 	before(async () => {
-        tbFilesystem = await contract(web3.currentProvider, contractsConfig['fileSystem'])
-        tru = await contract(web3.currentProvider, contractsConfig['tru'])
+	    cConfig = await contractsConfig(web3)
+            tbFilesystem = await contract(web3.currentProvider, cConfig['fileSystem'])
+            tru = await contract(web3.currentProvider, cConfig['tru'])
 	    killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger, fileSystem)
 	})
 
 	after(() => {
-        console.log("here")
+            console.log("here")
 	    killSolver()
 	})
 
 	it('should upload task code', async () => {
-        let codeBuf = fs.readFileSync("./scrypt-data/task.wasm")
-        let ipfsHash = (await fileSystem.upload(codeBuf, "task.wasm"))[0].hash
-        
-        assert.equal(ipfsHash, info.ipfshash)
-    })
-    
-    let scrypt_contract
-    let scrypt_result
+            let codeBuf = fs.readFileSync("./scrypt-data/task.wasm")
+            let ipfsHash = (await fileSystem.upload(codeBuf, "task.wasm"))[0].hash
+            
+            assert.equal(ipfsHash, info.ipfshash)
+	})
+	
+	let scrypt_contract
+	let scrypt_result
 
 	it('should deploy test contract', async () => {
-        let MyContract = truffle_contract({
-            abi: JSON.parse(fs.readFileSync("./scrypt-data/compiled/Scrypt.abi")),
-            unlinked_binary: fs.readFileSync("./scrypt-data/compiled/Scrypt.bin"),
-        })
-        MyContract.setProvider(web3.currentProvider)
+            let MyContract = truffle_contract({
+		abi: JSON.parse(fs.readFileSync("./scrypt-data/compiled/Scrypt.abi")),
+		unlinked_binary: fs.readFileSync("./scrypt-data/compiled/Scrypt.bin"),
+            })
+            MyContract.setProvider(web3.currentProvider)
 
-        scrypt_contract = await MyContract.new(contractsConfig.incentiveLayer.address, contractsConfig.tru.address, contractsConfig.fileSystem.address, info.ipfshash, info.codehash, {from:account, gas:2000000})
-        let result_event = scrypt_contract.GotFiles()
-        result_event.watch(async (err, result) => {
-            console.log("got event, file ID", result.args.files[0])
-            result_event.stopWatching(data => {})
-            let fileid = result.args.files[0]
-            var lst = await tbFilesystem.getData(fileid)
-            console.log("got stuff", lst)
-            scrypt_result = lst[0]
-        })
-        tru.transfer(scrypt_contract.address, "100000000000", {from:account, gas:200000})
-    })
-    
+            scrypt_contract = await MyContract.new(cConfig.incentiveLayer.address, cConfig.tru.address, cConfig.fileSystem.address, info.ipfshash, info.codehash, {from:account, gas:2000000})
+            let result_event = scrypt_contract.GotFiles()
+            result_event.watch(async (err, result) => {
+		console.log("got event, file ID", result.args.files[0])
+		result_event.stopWatching(data => {})
+		let fileid = result.args.files[0]
+		var lst = await tbFilesystem.getData(fileid)
+		console.log("got stuff", lst)
+		scrypt_result = lst[0]
+            })
+            tru.transfer(scrypt_contract.address, "100000000000", {from:account, gas:200000})
+	})
+	
 	it('should submit task', async () => {
-        scrypt_contract.submitData("testing", {from:account, gas:2000000})
-    })
+            scrypt_contract.submitData("testing", {from:account, gas:2000000})
+	})
 
-    it('wait for task', async () => {
+	it('wait for task', async () => {
 
 	    await timeout(25000)
 	    await mineBlocks(os.web3, 110)
 	    await timeout(5000)
 	    await mineBlocks(os.web3, 110)
 	    await timeout(5000)
-        
+            
 	    await mineBlocks(os.web3, 110)
 	    await timeout(5000)
-        
-        assert.equal(scrypt_result, '0x78b512d6425a6fe9e45baf14603bfce1c875a6962db18cc12ecf4292dbd51da6')
-        
+            
+            assert.equal(scrypt_result, '0x78b512d6425a6fe9e45baf14603bfce1c875a6962db18cc12ecf4292dbd51da6')
+            
 	})
     })
 })
