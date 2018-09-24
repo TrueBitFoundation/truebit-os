@@ -8,4 +8,8 @@ tmp.*
 
 wasm-client/build
 wasm-client/contracts.json
+wasm-client/private.json
+wasm-client/kovan.json
+wasm-client/rinkeby.json
+wasm-client/ropsten.json
 wasm-client/development.json
