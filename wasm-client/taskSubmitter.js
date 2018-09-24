@@ -4,14 +4,14 @@ const contract = require('./contractHelper')
 const merkleComputer = require('./merkle-computer')('./../wasm-client/ocaml-offchain/interpreter/wasm')
 const assert = require('assert')
 const path = require('path')
+
 const contractsConfig = require('./util/contractsConfig')
 
 function isString(n) {
     return typeof n == 'string' || n instanceof String
 }
 
-function setup(web3) {
-    
+function setup(web3) {    
     return (async () => {
 	const httpProvider = web3.currentProvider
 	const config = await contractsConfig(web3)

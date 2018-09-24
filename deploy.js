@@ -8,7 +8,7 @@ const web3 = new Web3(new Web3.providers.HttpProvider(host))
 const fs = require('fs')
 const getNetwork = require('./util/getNetwork')
 
-const base = './wasm-client/build/'
+const base = './build/'
 
 function getArtifacts(name) {
     return {
@@ -48,7 +48,11 @@ async function deploy() {
     let incentiveLayer = await deployContract('IncentiveLayer', {from: accounts[0], gas: 5200000}, [tru._address, exchangeRateOracle._address, interactive._address, fileSystem._address])
 
     
+<<<<<<< HEAD:deploy.js
+    fs.writeFileSync('./contracts.json', JSON.stringify({
+=======
     fs.writeFileSync(filename, JSON.stringify({
+>>>>>>> master:wasm-client/deploy.js
         fileSystem: exportContract(fileSystem),
         judge: exportContract(judge),
         interactive: exportContract(interactive),
