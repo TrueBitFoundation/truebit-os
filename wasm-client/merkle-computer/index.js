@@ -62,14 +62,38 @@ function buildArgs(args, config) {
     return args
 }
 
+let queue = []
+let num = 0
+const MAX_SIMULTANEOUS = 1
+
+function singletonExec(path, args, opt, cont) {
+    queue.push({path, args, opt, cont})
+    execQueue()
+}
+
+function execQueue() {
+    if (num >= MAX_SIMULTANEOUS || queue.length == 0) return
+    let task = queue[0]
+    queue = queue.slice(1)
+    num++
+    execFile(task.path, task.args, task.opt, function (error, stdout, stderr) {
+        num--
+        task.cont(error, stdout, stderr)
+        execQueue()
+    })
+    execQueue()
+}
+
 module.exports = (wasmInterpreterPath = defaultWasmInterpreterPath) => {
+
 
     function exec(config, lst, interpreterArgs, path) {
         let args = buildArgs(lst, config).concat(interpreterArgs)
         return new Promise(function (resolve, reject) {
             console.log(wasmInterpreterPath, args.join(" "))
-            execFile(wasmInterpreterPath, args, {cwd:path}, function (error, stdout, stderr) {
-                //if (stderr) console.log(stderr)
+            singletonExec(wasmInterpreterPath, args, {cwd:path}, function (error, stdout, stderr) {
+//            execFile(wasmInterpreterPath, args, {cwd:path}, function (error, stdout, stderr) {
+                    //if (stderr) console.log(stderr)
                 //if (stdout) console.log(stdout)
                 if (stdout) {
                     resolve(stdout)
