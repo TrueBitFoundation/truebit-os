@@ -33,7 +33,7 @@ let games = {}
 let task_list = []
 
 module.exports = {
-    init: async (web3, account, logger, mcFileSystem, test = false, recover = -1) => {
+    init: async (web3, account, logger, mcFileSystem, test = false, recover = -1, throttle = 1) => {
 
         let bn = await web3.eth.getBlockNumber()
 
@@ -73,7 +73,7 @@ module.exports = {
 
         addEvent(incentiveLayer.TaskCreated, async (result) => {
 
-	        logger.log({
+	    logger.log({
                 level: 'info',
                 message: `Task has been posted. Checking for availability.`
             })
@@ -88,20 +88,23 @@ module.exports = {
             let initTaskHash = taskInfo.initTaskHash
 
             let solutionInfo = toSolutionInfo(await incentiveLayer.getSolutionInfo.call(taskID))
+
+	    if(Object.keys(tasks).length <= throttle) {
+		if (solutionInfo.solver == '0x0000000000000000000000000000000000000000') {
+
+                    let secret = "0x"+helpers.makeSecret(taskID)
+
+                    await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
+                    
+                    console.log("secret", secret, web3.utils.soliditySha3(secret))
+                    incentiveLayer.registerForTask(taskID, web3.utils.soliditySha3(secret), {from: account, gas: 500000})
+                    
+                    tasks[taskID] = {minDeposit: minDeposit}
+
+                    // tasks[taskID].secret = secret
+		}		
+	    }
             
-            if (solutionInfo.solver == '0x0000000000000000000000000000000000000000') {
-
-                let secret = "0x"+helpers.makeSecret(taskID)
-
-                await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
-                
-                console.log("secret", secret, web3.utils.soliditySha3(secret))
-                incentiveLayer.registerForTask(taskID, web3.utils.soliditySha3(secret), {from: account, gas: 500000})
-                
-                tasks[taskID] = {minDeposit: minDeposit}
-
-                // tasks[taskID].secret = secret
-            }
         })
 
         addEvent(incentiveLayer.SolverSelected, async (result) => {
@@ -179,11 +182,11 @@ module.exports = {
                 console.log("secret", secret)
                 await incentiveLayer.revealSolution(taskID, secret, vm.code, vm.input_size, vm.input_name, vm.input_data, {from: account, gas: 1000000})
                 await helpers.uploadOutputs(taskID, tasks[taskID].vm)
-              
+		
                 logger.log({
-		              level: 'info',
-		              message: `Revealed solution for task: ${taskID}. Outputs have been uploaded.`
-		            })
+		    level: 'info',
+		    message: `Revealed solution for task: ${taskID}. Outputs have been uploaded.`
+		})
             }
 	    
         })
@@ -192,11 +195,12 @@ module.exports = {
             let taskID = result.args.taskID	   
 	    
             if (tasks[taskID]) {
+		delete tasks[taskID]
                 await incentiveLayer.unbondDeposit(taskID, {from: account, gas: 100000})
                 logger.log({
                     level: 'info',
                     message: `Task ${taskID} finalized. Tried to unbond deposits.`
-                  })
+                })
 
             }
 
