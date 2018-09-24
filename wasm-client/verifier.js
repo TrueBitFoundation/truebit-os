@@ -13,14 +13,16 @@ const fsHelpers = require('./fsHelpers')
 
 const merkleComputer = require(__dirname + "/merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
 
-const contractsConfig = JSON.parse(fs.readFileSync(__dirname + "/contracts.json"))
+const contractsConfig = require('./util/contractsConfig')
 
-function setup(httpProvider) {
+function setup(web3) {
     return (async () => {
-        let incentiveLayer = await contract(httpProvider, contractsConfig['incentiveLayer'])
-        let fileSystem = await contract(httpProvider, contractsConfig['fileSystem'])
-        let disputeResolutionLayer = await contract(httpProvider, contractsConfig['interactive'])
-        let tru = await contract(httpProvider, contractsConfig['tru'])
+	const httpProvider = web3.currentProvider
+	const config = await contractsConfig(web3)
+        let incentiveLayer = await contract(httpProvider, config['incentiveLayer'])
+        let fileSystem = await contract(httpProvider, config['fileSystem'])
+        let disputeResolutionLayer = await contract(httpProvider, config['interactive'])
+        let tru = await contract(httpProvider, config['tru'])
         return [incentiveLayer, fileSystem, disputeResolutionLayer, tru]
     })()
 }
@@ -41,7 +43,7 @@ module.exports = {
             message: `Verifier initialized`
         })
 
-        let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3.currentProvider)
+        let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3)
 
         let helpers = fsHelpers.init(fileSystem, web3, mcFileSystem, logger, incentiveLayer, account)
 

@@ -6,6 +6,7 @@ let host = argv.host || 'http://localhost:8545'
 const Web3 = require('web3')
 const web3 = new Web3(new Web3.providers.HttpProvider(host))
 const fs = require('fs')
+const getNetwork = require('./util/getNetwork')
 
 const base = './wasm-client/build/'
 
@@ -24,31 +25,6 @@ async function deployContract(name, options = {}, args = []) {
         .send(options)
 }
 
-async function getNetwork() {
-    let networkId = await web3.eth.net.getId()
-    let networkName
-    switch (networkId) {
-        case "1":
-            networkName = "main";
-            break;
-        case "2":
-            networkName = "morden";
-            break;
-        case "3":
-            networkName = "ropsten";
-            break;
-        case "4":
-            networkName = "rinkeby";
-            break;
-        case "42":
-            networkName = "kovan";
-            break;
-        default:
-            networkName = "development";
-    }
-    return networkName
-}
-
 function exportContract(contract) {
     return {
         address: contract._address,
@@ -57,6 +33,10 @@ function exportContract(contract) {
 }
 
 async function deploy() {
+    let networkName = await getNetwork(web3)
+    let filename = './wasm-client/' + networkName + '.json'
+    console.log("Writing to", filename)
+
     let accounts = await web3.eth.getAccounts()
     let fileSystem = await deployContract('Filesystem', {from: accounts[0], gas: 3500000})
     let judge = await deployContract('Judge', {from: accounts[0], gas: 4600000})
@@ -66,8 +46,9 @@ async function deploy() {
     let tru = await deployContract('TRU', {from: accounts[0], gas: 1000000})
     let exchangeRateOracle = await deployContract('ExchangeRateOracle', {from: accounts[0], gas: 1000000})
     let incentiveLayer = await deployContract('IncentiveLayer', {from: accounts[0], gas: 5200000}, [tru._address, exchangeRateOracle._address, interactive._address, fileSystem._address])
+
     
-    fs.writeFileSync('./wasm-client/contracts.json', JSON.stringify({
+    fs.writeFileSync(filename, JSON.stringify({
         fileSystem: exportContract(fileSystem),
         judge: exportContract(judge),
         interactive: exportContract(interactive),
