@@ -6,7 +6,7 @@ let host = argv.host || 'http://localhost:8545'
 const Web3 = require('web3')
 const web3 = new Web3(new Web3.providers.HttpProvider(host))
 const fs = require('fs')
-const getNetwork = require('./util/getNetwork')
+const getNetwork = async () => { return await web3.eth.net.getNetworkType() }
 
 const base = './build/'
 
@@ -46,13 +46,8 @@ async function deploy() {
     let tru = await deployContract('TRU', {from: accounts[0], gas: 1000000})
     let exchangeRateOracle = await deployContract('ExchangeRateOracle', {from: accounts[0], gas: 1000000})
     let incentiveLayer = await deployContract('IncentiveLayer', {from: accounts[0], gas: 5200000}, [tru._address, exchangeRateOracle._address, interactive._address, fileSystem._address])
-
     
-<<<<<<< HEAD:deploy.js
-    fs.writeFileSync('./contracts.json', JSON.stringify({
-=======
     fs.writeFileSync(filename, JSON.stringify({
->>>>>>> master:wasm-client/deploy.js
         fileSystem: exportContract(fileSystem),
         judge: exportContract(judge),
         interactive: exportContract(interactive),
