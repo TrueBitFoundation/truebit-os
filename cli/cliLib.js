@@ -4,6 +4,8 @@
 
 const fs = require('fs')
 const mineBlocks = require('../os/lib/util/mineBlocks')
+const contractsConfig = require('../wasm-client/util/contractsConfig')
+const contract = require('../wasm-client/contractHelper')
 
 /** returns the package version  */
 module.exports.version = ({ os }) => {
@@ -101,9 +103,37 @@ module.exports.accounts = async ({ os }) => {
 module.exports.balance = async ({ os, args }) => {
   const account = os.accounts[args.options.account || 0]
   let balance = await os.web3.eth.getBalance(account)
+  const httpProvider = os.web3.currentProvider
+	const config = await contractsConfig(os.web3)
+  const tru = await contract(httpProvider, config['tru'])
+  let truBalance = await tru.balanceOf(account)
   os.logger.log({
     level: 'info',
-    message: `${account}: ${balance} wei`
+    message: `${account}: ${os.web3.utils.fromWei(balance)} ETH, ${os.web3.utils.fromWei(truBalance.toString(10))} TRU`
   })
   return balance
 }
+
+/** get balance of an account */
+module.exports.claimTokens = async ({ os, args }) => {
+  const account = os.accounts[args.options.account || 0]
+  const httpProvider = os.web3.currentProvider
+	const config = await contractsConfig(os.web3)
+  const tru = await contract(httpProvider, config['tru'])
+  let success = await tru.getTestTokens.call({from:account, gas:100000})
+  if (!success) {
+    os.logger.log({
+      level: 'info',
+      message: `${account}: Already claimed the test tokens`
+    })
+  }
+  else {
+    await tru.getTestTokens({from:account, gas:100000})
+    os.logger.log({
+      level: 'info',
+      message: `${account}: Claimed test tokens`
+    })
+    module.exports.balance({os, args})
+  }
+}
+

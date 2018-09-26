@@ -106,11 +106,22 @@ vorpal
     callback()
   })
 
-vorpal
+  vorpal
   .command('balance', 'show the balance of an account')
   .option('-a, --account <num>', 'index of web3 account to use.')
   .action(async (args, callback) => {
     await cliLib.balance({
+      os,
+      args
+    })
+    callback()
+  })
+
+  vorpal
+  .command('claim', 'claim test tokens')
+  .option('-a, --account <num>', 'index of web3 account to use.')
+  .action(async (args, callback) => {
+    await cliLib.claimTokens({
       os,
       args
     })
