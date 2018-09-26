@@ -1,7 +1,6 @@
 const depositsHelper = require('./depositsHelper')
 const fs = require('fs')
 const contract = require('./contractHelper')
-const merkleComputer = require('./merkle-computer')('./../wasm-client/ocaml-offchain/interpreter/wasm')
 const assert = require('assert')
 const path = require('path')
 
@@ -37,13 +36,6 @@ function verifyBundlePayloadFormat(bundlePayload) {
     assert(bundlePayload.initHash != undefined)
 }
 
-const typeTable = {
-    "WAST": merkleComputer.CodeType.WAST,
-    "WASM": merkleComputer.CodeType.WASM,
-    "BLOCKCHAIN": merkleComputer.StorageType.BLOCKCHAIN,
-    "IPFS": merkleComputer.StorageType.IPFS
-}
-
 const readFile = (filepath) => {
     return new Promise((resolve, reject) => {
 	fs.readFile(filepath, (err, res) => {
@@ -65,8 +57,16 @@ const writeFile = (filepath, buf) => {
 module.exports = async (web3, logger, mcFileSystem) => {
 
     let contracts = await setup(web3)
+    const merkleComputer = require('./merkle-computer')(logger, './../wasm-client/ocaml-offchain/interpreter/wasm')
 
-    //Two filesystems (which may be confusing)
+    const typeTable = {
+        "WAST": merkleComputer.CodeType.WAST,
+        "WASM": merkleComputer.CodeType.WASM,
+        "BLOCKCHAIN": merkleComputer.StorageType.BLOCKCHAIN,
+        "IPFS": merkleComputer.StorageType.IPFS
+    }
+    
+        //Two filesystems (which may be confusing)
     //tbFileSystem is the Truebit filesystem contract
     //mcFileSystem is a module for ipfs helpers from merkleComputer module
 

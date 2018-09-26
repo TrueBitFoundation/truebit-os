@@ -1,5 +1,4 @@
 
-const merkleComputer = require("./merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
 const setupVM = require('./util/setupVM')
 const fs = require("fs")
 
@@ -42,9 +41,11 @@ function getLeaf(lst, loc) {
 
 exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer, account) {
     
+    const merkleComputer = require("./merkle-computer")(logger, './../wasm-client/ocaml-offchain/interpreter/wasm')
+
     async function loadMixedCode(fileid) {
         var hash = await fileSystem.getIPFSCode.call(fileid)
-        console.log("code hash", hash, fileid)
+        // console.log("code hash", hash, fileid)
         if (hash) {
             return (await mcFileSystem.download(hash, "task.wasm")).content
         }
@@ -85,7 +86,7 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
         var tx = await fileSystem.createFileWithContents(fname, nonce, arrange(arr), buf.length, {from: account, gas: 200000})
         var id = await fileSystem.calcId.call(nonce, {from: account, gas: 200000})
         var lst = await fileSystem.getData.call(id, {from: account, gas: 200000})
-        console.log("Ensure upload", {data:lst})
+        // console.log("Ensure upload", {data:lst})
         return id
     }
     
@@ -110,11 +111,11 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
     async function uploadOutputs(task_id, vm) {
         var lst = await incentiveLayer.getUploadNames.call(task_id)
         var types = await incentiveLayer.getUploadTypes.call(task_id)
-        console.log("Uploading", {names:lst, types:types})
+        // console.log("Uploading", {names:lst, types:types})
         if (lst.length == 0) return
         var proofs = await vm.fileProofs() // common.exec(config, ["-m", "-input-proofs", "-input2"])
         // var proofs = JSON.parse(proofs)
-        console.log("Uploading", {names:lst, types:types, proofs: proofs})
+        // console.log("Uploading", {names:lst, types:types, proofs: proofs})
         for (var i = 0; i < lst.length; i++) {
             // find proof with correct hash
             console.log("Findind upload proof", {hash:lst[i], kind:types[i]})
@@ -124,18 +125,18 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
                 logger.error("Cannot find proof for a file")
                 continue
             }
-            console.log("Found proof", proof)
+            // console.log("Found proof", proof)
             // upload the file to ipfs or blockchain
             var fname = proof.file.substr(0, proof.file.length-4)
             var buf = await vm.readFile(proof.file)
             var file_id
             if (parseInt(types[i]) == 1) file_id = await createIPFSFile(fname, buf)
             else {
-                console.log("Create file", {fname:fname, data:buf})
+                // console.log("Create file", {fname:fname, data:buf})
                 file_id = await createFile(fname, buf)
             }
-            console.log("Uploading file", {id:file_id, fname:fname})
-            console.log("result", await incentiveLayer.uploadFile.call(task_id, i, file_id, proof.name, proof.data, proof.loc, {from: account, gas: 1000000}))
+            // console.log("Uploading file", {id:file_id, fname:fname})
+            // console.log("result", await incentiveLayer.uploadFile.call(task_id, i, file_id, proof.name, proof.data, proof.loc, {from: account, gas: 1000000}))
             await incentiveLayer.uploadFile(task_id, i, file_id, proof.name, proof.data, proof.loc, {from: account, gas: 1000000})
         }
     }

@@ -43,7 +43,7 @@ async function deploy() {
     
     let interactive = await deployContract('Interactive', {from: accounts[0], gas: 3500000}, [judge._address])
 
-    let tru = await deployContract('TRU', {from: accounts[0], gas: 1000000})
+    let tru = await deployContract('TRU', {from: accounts[0], gas: 2000000})
     let exchangeRateOracle = await deployContract('ExchangeRateOracle', {from: accounts[0], gas: 1000000})
     let incentiveLayer = await deployContract('IncentiveLayer', {from: accounts[0], gas: 5200000}, [tru._address, exchangeRateOracle._address, interactive._address, fileSystem._address])
     
@@ -68,7 +68,7 @@ async function deploy() {
 
     // Mint tokens for testing
     accounts.forEach(addr => {
-        tru.methods.getTestTokens().send({from:addr, gas: 100000})
+        tru.methods.getTestTokens().send({from:addr, gas: 300000})
     })
 
 }

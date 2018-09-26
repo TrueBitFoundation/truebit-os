@@ -16,6 +16,8 @@ contract TRU is MintableToken, BurnableToken {
         if (test_tokens[msg.sender] != 0) return false;
         test_tokens[msg.sender] = block.number;
         balances[msg.sender] += 100000000000000000000000;
+        totalSupply_ += 100000000000000000000000;
+        return true;
     }
 
     function () public payable {
