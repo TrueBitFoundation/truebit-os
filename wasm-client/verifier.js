@@ -7,6 +7,7 @@ const setupVM = require('./util/setupVM')
 const midpoint = require('./util/midpoint')
 const waitForBlock = require('./util/waitForBlock')
 const recovery = require('./recovery')
+const assert = require('assert')
 
 const fsHelpers = require('./fsHelpers')
 
@@ -36,7 +37,7 @@ let tasks = {}
 let games = {}
 
 module.exports = {
-    init: async (web3, account, logger, mcFileSystem, test = false, recover = -1) => {
+    init: async (web3, account, logger, mcFileSystem, test = false, recover = -1, throttle = 1) => {
         logger.log({
             level: 'info',
             message: `Verifier initialized`
@@ -57,13 +58,17 @@ module.exports = {
 
         let recovery_mode = recover > 0
         let events = []
+        const RECOVERY_BLOCKS = recover
 
         function addEvent(evC, handler) {
-            let ev = recovery_mode ? evC({}, {fromBlock:bn-200}) : evC()
+            let ev = recovery_mode ? evC({}, {fromBlock:Math.max(0,bn-RECOVERY_BLOCKS)}) : evC()
             clean_list.push(ev)
             ev.watch(async (err, result) => {
                 // console.log(result)
-                if (result && recovery_mode) events.push({event:result, handler})
+                if (result && recovery_mode) {
+                    events.push({event:result, handler})
+                    console.log("Recovering", result.event, "at block", result.blockNumber)
+                }
                 else if (result) handler(result)
                 else console.log(err)
             })
@@ -87,59 +92,61 @@ module.exports = {
             let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))
             taskInfo.taskID = taskID
 
-            // let storageType = result.args.storageType.toNumber()
+	    if (Object.keys(tasks).length <= throttle) {
+		// let storageType = result.args.storageType.toNumber()
 
-            let vm = await helpers.setupVMWithFS(taskInfo)
+		let vm = await helpers.setupVMWithFS(taskInfo)
 
-            let interpreterArgs = []
-            solution = await vm.executeWasmTask(interpreterArgs)
+		let interpreterArgs = []
+		solution = await vm.executeWasmTask(interpreterArgs)
 
-            logger.log({
-                level: 'info',
-                message: `Executed task ${taskID}. Checking solutions`
-            })
-
-            task_list.push(taskID)
-
-            tasks[taskID] = {
-                solverHash0: solverHash0,
-                solverHash1: solverHash1,
-                solutionHash: solution.hash,
-                vm: vm
-            }
-
-            if ((solverHash0 != solution.hash) ^ test) {
-
-                await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
-                let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "00"
-                console.log("intent", intent)
-                tasks[taskID].intent0 = "0x" + intent
-                let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2)
-                await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000 })
-
-                logger.log({
+		logger.log({
                     level: 'info',
-                    message: `Challenged solution for task ${taskID}`
-                })
+                    message: `Executed task ${taskID}. Checking solutions`
+		})
 
-            }
+		task_list.push(taskID)
 
-            if ((solverHash1 != solution.hash) ^ test) {
+		tasks[taskID] = {
+                    solverHash0: solverHash0,
+                    solverHash1: solverHash1,
+                    solutionHash: solution.hash,
+                    vm: vm
+		}
 
-                await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
-                let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "01"
-                tasks[taskID].intent1 = "0x" + intent
-                console.log("intent", intent)
-                let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2)
-                await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000 })
+		if ((solverHash0 != solution.hash) ^ test) {
 
-                logger.log({
-                    level: 'info',
-                    message: `Challenged solution for task ${taskID}`
-                })
+                    await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
+                    let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "00"
+                    console.log("intent", intent)
+                    tasks[taskID].intent0 = "0x" + intent
+                    let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2)
+                    await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000 })
 
-            }
+                    logger.log({
+			level: 'info',
+			message: `Challenged solution for task ${taskID}`
+                    })
 
+		}
+
+		if ((solverHash1 != solution.hash) ^ test) {
+
+                    await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
+                    let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "01"
+                    tasks[taskID].intent1 = "0x" + intent
+                    console.log("intent", intent)
+                    let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2)
+                    await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000 })
+
+                    logger.log({
+			level: 'info',
+			message: `Challenged solution for task ${taskID}`
+                    })
+
+		}		
+		
+	    }
         })
 
         addEvent(incentiveLayer.EndChallengePeriod, async result => {
@@ -163,11 +170,15 @@ module.exports = {
 
         })
 
+        addEvent(incentiveLayer.VerificationCommitted, async result => {
+        })
+
         addEvent(incentiveLayer.TaskFinalized, async (result) => {
             let taskID = result.args.taskID	   
 	    
             if (tasks[taskID]) {
                 await incentiveLayer.unbondDeposit(taskID, {from: account, gas: 100000})
+		delete tasks[taskID]
                 logger.log({
                     level: 'info',
                     message: `Task ${taskID} finalized. Tried to unbond deposits.`
@@ -205,8 +216,11 @@ module.exports = {
             }
         })
 
+        addEvent(disputeResolutionLayer.Queried, async result => {
+        })
+        
         addEvent(disputeResolutionLayer.Reported, async result => {
-            let gameID = result.args.gameID
+                let gameID = result.args.gameID
 
             if (games[gameID]) {
 
@@ -348,6 +362,7 @@ module.exports = {
             let interpreterArgs = []
             let solution = await vm.executeWasmTask(interpreterArgs)
             tasks[taskID].solution = solution
+            tasks[taskID].vm = vm
         }
 
         async function recoverGame(gameID) {
@@ -370,7 +385,7 @@ module.exports = {
             game_list.forEach(handleGameTimeouts)
             if (recovery_mode) {
                 recovery_mode = false
-                recovery.analyze(account, events, recoverTask, recoverGame, disputeResolutionLayer, incentiveLayer, game_list, task_list)
+                recovery.analyze(account, events, recoverTask, recoverGame, disputeResolutionLayer, incentiveLayer, game_list, task_list, true)
             }
         }, 1000)
 
