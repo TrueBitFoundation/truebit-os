@@ -44,6 +44,9 @@ module.exports = {
 
         let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3)
 
+        const config = await contractsConfig(web3)
+        const WAIT_TIME = config.WAIT_TIME || 0
+
         let helpers = fsHelpers.init(fileSystem, web3, mcFileSystem, logger, incentiveLayer, account)
 
         const clean_list = []
@@ -277,9 +280,6 @@ module.exports = {
         function busy(id) {
             return busy_table[id] && Date.now() < busy_table[id]
         }
-
-        // const WAIT_TIME = 10000
-        const WAIT_TIME = 0
 
         function working(id) {
             busy_table[id] = Date.now() + WAIT_TIME

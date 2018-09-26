@@ -18,8 +18,8 @@ const contractsConfig = require('./util/contractsConfig')
 
 function setup(web3) {
     return (async () => {
-	const httpProvider = web3.currentProvider
-	const config = await contractsConfig(web3)
+        const httpProvider = web3.currentProvider
+        const config = await contractsConfig(web3)
         incentiveLayer = await contract(httpProvider, config['incentiveLayer'])
         fileSystem = await contract(httpProvider, config['fileSystem'])
         tru = await contract(httpProvider, config['tru'])
@@ -43,6 +43,9 @@ module.exports = {
         })
 
         let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3)
+
+        const config = await contractsConfig(web3)
+        const WAIT_TIME = config.WAIT_TIME || 0
         
         let recovery_mode = recover > 0
         let events = []
@@ -434,9 +437,6 @@ module.exports = {
             let res = busy_table[id] && Date.now() < busy_table[id]
             return res
         }
-
-        // const WAIT_TIME = 10000
-        const WAIT_TIME = 0
 
         function working(id) {
             busy_table[id] = Date.now() + WAIT_TIME

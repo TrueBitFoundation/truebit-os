@@ -48,7 +48,13 @@ async function deploy() {
     let incentiveLayer = await deployContract('IncentiveLayer', {from: accounts[0], gas: 5200000}, [tru._address, exchangeRateOracle._address, interactive._address, fileSystem._address])
 
     
+    let wait = 0
+    if (networkName == "kovan") wait = 10000
+    else if (networkName == "rinkeby") wait = 15000
+    else if (networkName == "ropsten") wait = 30000
+
     fs.writeFileSync(filename, JSON.stringify({
+        WAIT_TIME: wait,
         fileSystem: exportContract(fileSystem),
         judge: exportContract(judge),
         interactive: exportContract(interactive),
