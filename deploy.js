@@ -68,7 +68,7 @@ async function deploy() {
 
     // Mint tokens for testing
     accounts.forEach(addr => {
-        tru.methods.mint(addr, "100000000000000000000000").send({from:accounts[0], gas: 100000})
+        tru.methods.getTestTokens().send({from:addr, gas: 100000})
     })
 
 }
