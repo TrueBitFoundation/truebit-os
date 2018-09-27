@@ -452,6 +452,7 @@ module.exports = {
             if (busy(gameID)) return
             if (await disputeResolutionLayer.gameOver.call(gameID)) {
 		
+                working(gameID)
                 await disputeResolutionLayer.gameOver(gameID, {from: account})
 		
                 logger.log({
@@ -459,7 +460,6 @@ module.exports = {
                     message: `gameOver was called for game ${gameID}`
                 })
 
-                working(gameID)
 		
             }
         }
@@ -475,57 +475,57 @@ module.exports = {
             }
             if (await incentiveLayer.endChallengePeriod.call(taskID)) {
 
-                console.log("Ending challenge")
+                // console.log("Ending challenge")
 
+                working(taskID)
                 await incentiveLayer.endChallengePeriod(taskID, {from:account, gas: 100000})
 
                 logger.log({
                     level: 'info',
                     message: `Ended challenge period for ${taskID}`
                 })
-                working(taskID)
 		
             }
 	    
             if (await incentiveLayer.endRevealPeriod.call(taskID)) {
 
-                console.log("Ending reveal")
+                // console.log("Ending reveal")
 
+                working(taskID)
                 await incentiveLayer.endRevealPeriod(taskID, {from:account, gas:100000})
 
                 logger.log({
                     level: 'info',
                     message: `Ended reveal period for ${taskID}`
                 })
-                working(taskID)
 
             }
 
             if (await incentiveLayer.canRunVerificationGame.call(taskID)) {
 
-                console.log("Running game")
+                // console.log("Running game")
 
+                working(taskID)
                 await incentiveLayer.runVerificationGame(taskID, {from:account, gas:1000000})
 
                 logger.log({
                     level: 'info',
                     message: `Ran verification game for ${taskID}`
                 })
-                working(taskID)
 		
             }
 	    
             if (await incentiveLayer.canFinalizeTask.call(taskID)) {
 
-                console.log("Tax should be", (await incentiveLayer.getTax.call(taskID)).toString())
+                // console.log("Tax should be", (await incentiveLayer.getTax.call(taskID)).toString())
 
+                working(taskID)
                 await incentiveLayer.finalizeTask(taskID, {from:account, gas:1000000})
 
                 logger.log({
                     level: 'info',
                     message: `Finalized task ${taskID}`
                 })
-                working(taskID)
 
             }
         }

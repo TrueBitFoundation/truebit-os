@@ -307,6 +307,7 @@ module.exports = {
 
             if (await incentiveLayer.solverLoses.call(taskID, {from: account})) {
 
+                working(taskID)
                 logger.log({
                     level: 'info',
                     message: `Winning verification game for task ${taskID}`
@@ -314,10 +315,10 @@ module.exports = {
 
                 await incentiveLayer.solverLoses(taskID, {from: account})
 
-                working(taskID)
             }
             if (await incentiveLayer.isTaskTimeout.call(taskID, {from: account})) {
 
+                working(taskID)
                 logger.log({
                     level: 'info',
                     message: `Timeout in task ${taskID}`
@@ -325,13 +326,13 @@ module.exports = {
 
                 await incentiveLayer.taskTimeout(taskID, {from: account})
 
-                working(taskID)
             }
         }
 
         async function handleGameTimeouts(gameID) {
             // console.log("Verifier game timeout")
             if (busy(gameID)) return
+            working(gameID)
             if (await disputeResolutionLayer.gameOver.call(gameID)) {
 
                 logger.log({
@@ -340,7 +341,6 @@ module.exports = {
                 })
 
                 await disputeResolutionLayer.gameOver(gameID, { from: account })
-                working(gameID)
             }
         }
 
