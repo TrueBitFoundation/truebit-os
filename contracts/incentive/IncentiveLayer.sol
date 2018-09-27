@@ -210,8 +210,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         // Get minDeposit required by task
         uint minDeposit = oracle.getMinDeposit(maxDifficulty);
         require(minDeposit > 0);
-	require(reward > 0);
-        
+	    require(reward > 0);
         
         bytes32 id = keccak256(abi.encodePacked(initTaskHash, codeType, storageType, storageAddress, maxDifficulty, reward, numTasks));
         numTasks.add(1);
@@ -622,8 +621,8 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
 
         bytes32[] memory files = new bytes32[](t.uploads.length);
         for (uint i = 0; i < t.uploads.length; i++) {
-           require(t.uploads[i].fileId != 0);
-           files[i] = t.uploads[i].fileId;
+            require(t.uploads[i].fileId != 0);
+            files[i] = t.uploads[i].fileId;
         }
 
         t.state = State.TaskFinalized;

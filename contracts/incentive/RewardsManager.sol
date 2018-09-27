@@ -50,6 +50,10 @@ contract RewardsManager {
         token.transfer(to, payout);
         emit RewardClaimed(taskID, to, payout, tax);
         return true;
-    } 
+    }
+
+    function getTax(bytes32 taskID) public view returns (uint) {
+        return taxes[taskID];
+    }
 
 }

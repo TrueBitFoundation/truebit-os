@@ -11,7 +11,7 @@ const assert = require('assert')
 
 const fsHelpers = require('./fsHelpers')
 
-const merkleComputer = require(__dirname + "/merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
+// const merkleComputer = require(__dirname + "/merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
 
 const contractsConfig = require('./util/contractsConfig')
 
@@ -44,6 +44,9 @@ module.exports = {
         })
 
         let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3)
+
+        const config = await contractsConfig(web3)
+        const WAIT_TIME = config.WAIT_TIME || 0
 
         let helpers = fsHelpers.init(fileSystem, web3, mcFileSystem, logger, incentiveLayer, account)
 
@@ -115,7 +118,7 @@ module.exports = {
 
                     await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
                     let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "00"
-                    console.log("intent", intent)
+                    // console.log("intent", intent)
                     tasks[taskID].intent0 = "0x" + intent
                     let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2)
                     await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000 })
@@ -132,7 +135,7 @@ module.exports = {
                     await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
                     let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "01"
                     tasks[taskID].intent1 = "0x" + intent
-                    console.log("intent", intent)
+                    // console.log("intent", intent)
                     let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2)
                     await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000 })
 
@@ -291,9 +294,6 @@ module.exports = {
         function busy(id) {
             return busy_table[id] && Date.now() < busy_table[id]
         }
-
-        // const WAIT_TIME = 10000
-        const WAIT_TIME = 0
 
         function working(id) {
             busy_table[id] = Date.now() + WAIT_TIME

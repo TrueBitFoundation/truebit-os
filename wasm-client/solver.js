@@ -12,14 +12,12 @@ const recovery = require('./recovery')
 
 const fsHelpers = require('./fsHelpers')
 
-const merkleComputer = require("./merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
-
 const contractsConfig = require('./util/contractsConfig')
 
 function setup(web3) {
     return (async () => {
-	const httpProvider = web3.currentProvider
-	const config = await contractsConfig(web3)
+        const httpProvider = web3.currentProvider
+        const config = await contractsConfig(web3)
         incentiveLayer = await contract(httpProvider, config['incentiveLayer'])
         fileSystem = await contract(httpProvider, config['fileSystem'])
         tru = await contract(httpProvider, config['tru'])
@@ -35,6 +33,8 @@ let task_list = []
 module.exports = {
     init: async (web3, account, logger, mcFileSystem, test = false, recover = -1, throttle = 1) => {
 
+        const merkleComputer = require("./merkle-computer")(logger, './../wasm-client/ocaml-offchain/interpreter/wasm')
+
         let bn = await web3.eth.getBlockNumber()
 
         logger.log({
@@ -43,6 +43,9 @@ module.exports = {
         })
 
         let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3)
+
+        const config = await contractsConfig(web3)
+        const WAIT_TIME = config.WAIT_TIME || 0
         
         let recovery_mode = recover > 0
         let events = []
@@ -96,7 +99,7 @@ module.exports = {
 
                     await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
                     
-                    console.log("secret", secret, web3.utils.soliditySha3(secret))
+                    // console.log("secret", secret, web3.utils.soliditySha3(secret))
                     incentiveLayer.registerForTask(taskID, web3.utils.soliditySha3(secret), {from: account, gas: 500000})
                     
                     tasks[taskID] = {minDeposit: minDeposit}
@@ -134,14 +137,14 @@ module.exports = {
                 let solution = await vm.executeWasmTask(interpreterArgs)
                 tasks[taskID].solution = solution
 
-                console.log("Committing solution", solution)
+                logger.info("Committing solution", solution)
 
                 let random_hash = "0x" + helpers.makeSecret(taskID)
 
                 try {
 
                     let b = parseInt(random_hash.substr(64), 16) % 2 == 0
-                    console.log("secret", random_hash, random_hash.substr(64), b)
+                    // console.log("secret", random_hash, random_hash.substr(64), b)
                     let s1 = b ? solution.hash : random_hash
                     let s2 = b ? random_hash : solution.hash
 
@@ -179,7 +182,7 @@ module.exports = {
             if (tasks[taskID]) {		
                 let vm = tasks[taskID].solution.vm
                 let secret = "0x"+helpers.makeSecret(taskID)
-                console.log("secret", secret)
+                // console.log("secret", secret)
                 await incentiveLayer.revealSolution(taskID, secret, vm.code, vm.input_size, vm.input_name, vm.input_data, {from: account, gas: 1000000})
                 await helpers.uploadOutputs(taskID, tasks[taskID].vm)
 		
@@ -439,9 +442,6 @@ module.exports = {
             return res
         }
 
-        // const WAIT_TIME = 10000
-        const WAIT_TIME = 0
-
         function working(id) {
             busy_table[id] = Date.now() + WAIT_TIME
         }
@@ -506,6 +506,8 @@ module.exports = {
 	    
             if (await incentiveLayer.canFinalizeTask.call(taskID)) {
 
+                // console.log("Tax should be", (await incentiveLayer.getTax.call(taskID)).toString())
+
                 await incentiveLayer.finalizeTask(taskID, {from:account, gas:1000000})
 
                 logger.log({
@@ -549,8 +551,6 @@ module.exports = {
             })
 
             //Initialize verification game
-            let vm = tasks[taskID].vm
-
             let solution = tasks[taskID].solution
 
             let lowStep = 0
@@ -563,7 +563,8 @@ module.exports = {
             }
         }
 
-        let ival = setInterval(() => {
+        let ival = setInterval(async () => {
+            // console.log("deposits", (await tru.balanceOf.call(incentiveLayer.address)).toString())
             task_list.forEach(handleTimeouts)
             game_list.forEach(handleGameTimeouts)
             if (recovery_mode) {
