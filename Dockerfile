@@ -32,7 +32,8 @@ RUN git clone https://github.com/TrueBitFoundation/truebit-os \
  && npm run deps \
  && npm run compile
 
-EXPOSE 80 22448 4001
+# ipfs and eth ports
+EXPOSE 4001 30303
 
-# docker build . -t truebit-livepeer:latest
-# docker run -it -p 8080:80 -p 4001:4001 -p 22448:22448 truebit-livepeer:latest /bin/bash
+# docker build . -t truebit-os:latest
+# docker run -it -p 4001:4001 -p 30303 truebit-livepeer:latest /bin/bash

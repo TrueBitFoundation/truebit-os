@@ -47,8 +47,6 @@ module.exports = {
         const config = await contractsConfig(web3)
         const WAIT_TIME = config.WAIT_TIME || 0
         
-        console.log("wait time", WAIT_TIME)
-
         let recovery_mode = recover > 0
         let events = []
 
@@ -56,7 +54,7 @@ module.exports = {
         const game_list = []
         const RECOVERY_BLOCKS = recover
         
-        if (recovery_mode) console.log("Recovering back to", Math.max(0,bn-RECOVERY_BLOCKS))
+        if (recovery_mode) logger.info(`Recovering back to ${Math.max(0,bn-RECOVERY_BLOCKS)}`)
 
         function addEvent(evC, handler) {
             let ev = recovery_mode ? evC({}, {fromBlock:Math.max(0,bn-RECOVERY_BLOCKS)}) : evC()
