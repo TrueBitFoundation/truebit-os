@@ -47,6 +47,8 @@ module.exports = {
         const config = await contractsConfig(web3)
         const WAIT_TIME = config.WAIT_TIME || 0
         
+        console.log("wait time", WAIT_TIME)
+
         let recovery_mode = recover > 0
         let events = []
 
@@ -467,8 +469,13 @@ module.exports = {
 
             // let deposit = await incentiveLayer.getBondedDeposit.call(taskID, account)
             // console.log("Solver deposit", deposit.toNumber(), account)
-            if (busy(taskID)) return
+            if (busy(taskID)) {
+                logger.info("Task busy")
+                return
+            }
             if (await incentiveLayer.endChallengePeriod.call(taskID)) {
+
+                console.log("Ending challenge")
 
                 await incentiveLayer.endChallengePeriod(taskID, {from:account, gas: 100000})
 
@@ -482,6 +489,8 @@ module.exports = {
 	    
             if (await incentiveLayer.endRevealPeriod.call(taskID)) {
 
+                console.log("Ending reveal")
+
                 await incentiveLayer.endRevealPeriod(taskID, {from:account, gas:100000})
 
                 logger.log({
@@ -493,6 +502,8 @@ module.exports = {
             }
 
             if (await incentiveLayer.canRunVerificationGame.call(taskID)) {
+
+                console.log("Running game")
 
                 await incentiveLayer.runVerificationGame(taskID, {from:account, gas:1000000})
 
@@ -506,7 +517,7 @@ module.exports = {
 	    
             if (await incentiveLayer.canFinalizeTask.call(taskID)) {
 
-                // console.log("Tax should be", (await incentiveLayer.getTax.call(taskID)).toString())
+                console.log("Tax should be", (await incentiveLayer.getTax.call(taskID)).toString())
 
                 await incentiveLayer.finalizeTask(taskID, {from:account, gas:1000000})
 
