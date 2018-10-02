@@ -20,7 +20,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     uint private forcedErrorThreshold = 42;
     uint private taxMultiplier = 5;
 
-    uint constant TIMEOUT = 100;
+    uint constant TIMEOUT = 10;
 
     enum CodeType {
         WAST,
@@ -396,6 +396,8 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         require(status != uint(Status.Challenged));
         require(status != uint(Status.Unresolved));
         require(block.number > t.lastBlock.add(TIMEOUT*2));
+        require(t.state != State.TaskTimeout);
+        require(t.state != State.TaskFinalized);
         slashDeposit(taskID, t.selectedSolver, s.currentChallenger);
         t.state = State.TaskTimeout;
         delete t.selectedSolver;
@@ -408,6 +410,8 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         uint8 status = IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame);
         if (status == uint(Status.Challenged)) return false;
         if (status == uint(Status.Unresolved)) return false;
+        if (t.state == State.TaskTimeout) return false;
+        if (t.state == State.TaskFinalized) return false;
         if (block.number <= t.lastBlock.add(TIMEOUT*2)) return false;
         return true;
     }
