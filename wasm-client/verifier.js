@@ -96,32 +96,35 @@ module.exports = {
             let minDeposit = result.args.minDeposit.toNumber()
             let solverHash0 = result.args.solutionHash0
             let solverHash1 = result.args.solutionHash1
+            logger.info("Getting info")
             let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))
             taskInfo.taskID = taskID
 
-	    if (Object.keys(tasks).length <= throttle) {
-		// let storageType = result.args.storageType.toNumber()
+            if (Object.keys(tasks).length <= throttle) {
+                // let storageType = result.args.storageType.toNumber()
 
-		let vm = await helpers.setupVMWithFS(taskInfo)
+                logger.info("Setting up VM")
+                let vm = await helpers.setupVMWithFS(taskInfo)
 
-		let interpreterArgs = []
-		solution = await vm.executeWasmTask(interpreterArgs)
+                logger.info("Executing task")
+                let interpreterArgs = []
+                solution = await vm.executeWasmTask(interpreterArgs)
 
-		logger.log({
+                logger.log({
                     level: 'info',
                     message: `Executed task ${taskID}. Checking solutions`
-		})
+                })
 
-		task_list.push(taskID)
+                task_list.push(taskID)
 
-		tasks[taskID] = {
+                tasks[taskID] = {
                     solverHash0: solverHash0,
                     solverHash1: solverHash1,
                     solutionHash: solution.hash,
                     vm: vm
-		}
+                }
 
-		if ((solverHash0 != solution.hash) ^ test) {
+                if ((solverHash0 != solution.hash) ^ test) {
 
                     await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
                     let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "00"
@@ -131,13 +134,13 @@ module.exports = {
                     await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000 })
 
                     logger.log({
-			level: 'info',
-			message: `Challenged solution for task ${taskID}`
+                        level: 'info',
+                        message: `Challenged solution for task ${taskID}`
                     })
 
-		}
+                }
 
-		if ((solverHash1 != solution.hash) ^ test) {
+                if ((solverHash1 != solution.hash) ^ test) {
 
                     await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
                     let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "01"
@@ -147,13 +150,13 @@ module.exports = {
                     await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000 })
 
                     logger.log({
-			level: 'info',
-			message: `Challenged solution for task ${taskID}`
+                        level: 'info',
+                        message: `Challenged solution for task ${taskID}`
                     })
 
-		}		
-		
-	    }
+                }
+
+            }
         })
 
         addEvent(incentiveLayer.EndChallengePeriod, async result => {
