@@ -67,11 +67,11 @@ module.exports = {
                 }
                 else if (result) {
                     try {
-                        handler(result)
+                        await handler(result)
                     }
                     catch (e) {
-                        console.log(e)
-                        logger.error(`Error while handling event ${result}: ${e.toString()}`)
+                        // console.log(e)
+                        logger.error(`Error while handling event ${JSON.stringify(result)}: ${e}`)
                     }
                 }
                 else console.log(err)
@@ -84,7 +84,7 @@ module.exports = {
 
         addEvent(incentiveLayer.TaskCreated, async (result) => {
 
-	    logger.log({
+	        logger.log({
                 level: 'info',
                 message: `Task has been posted. Checking for availability.`
             })
@@ -100,21 +100,21 @@ module.exports = {
 
             let solutionInfo = toSolutionInfo(await incentiveLayer.getSolutionInfo.call(taskID))
 
-	    if(Object.keys(tasks).length <= throttle) {
-		if (solutionInfo.solver == '0x0000000000000000000000000000000000000000') {
+            if (Object.keys(tasks).length <= throttle) {
+                if (solutionInfo.solver == '0x0000000000000000000000000000000000000000') {
 
-                    let secret = "0x"+helpers.makeSecret(taskID)
+                    let secret = "0x" + helpers.makeSecret(taskID)
 
                     await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
-                    
+
                     // console.log("secret", secret, web3.utils.soliditySha3(secret))
-                    incentiveLayer.registerForTask(taskID, web3.utils.soliditySha3(secret), {from: account, gas: 500000})
-                    
-                    tasks[taskID] = {minDeposit: minDeposit}
+                    await incentiveLayer.registerForTask(taskID, web3.utils.soliditySha3(secret), { from: account, gas: 500000 })
+
+                    tasks[taskID] = { minDeposit: minDeposit }
 
                     // tasks[taskID].secret = secret
-		}		
-	    }
+                }
+            }
             
         })
 
@@ -172,6 +172,10 @@ module.exports = {
                     console.log(e)
                 }
             }
+            else if (tasks[taskID]) {
+                logger.info(`I wasn't selected for task ${taskID}`)
+                delete tasks[taskID]
+            }
 
 
         })
@@ -187,7 +191,7 @@ module.exports = {
         addEvent(incentiveLayer.EndRevealPeriod, async (result) => {
             let taskID = result.args.taskID	   
 	    
-            if (tasks[taskID]) {		
+            if (tasks[taskID]) {
                 let vm = tasks[taskID].solution.vm
                 let secret = "0x"+helpers.makeSecret(taskID)
                 // console.log("secret", secret)

@@ -71,11 +71,10 @@ module.exports = {
                 }
                 else if (result) {
                     try {
-                        handler(result)
+                        await handler(result)
                     }
                     catch (e) {
-                        console.log(e)
-                        logger.error(`Error while handling event ${result}: ${e.toString()}`)
+                        logger.error(`Error while handling event ${JSON.stringify(result)}: ${e}`)
                     }
                 }
                 else console.log(err)
