@@ -421,7 +421,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
             return s.currentChallenger == msg.sender;
         }
         return false;
- }
+    }
 
     mapping (bytes32 => uint) challenges;
 
@@ -466,7 +466,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         uint cblock = challenges[keccak256(abi.encodePacked(taskID, intent, msg.sender, solution0, solution1))];
         Task storage t = tasks[taskID];
         require(t.state == State.ChallengesAccepted);
-        require(t.challengePeriod < cblock && t.challengePeriod + TIMEOUT >= cblock);
+        require(t.challengePeriod + TIMEOUT > cblock);
         uint solution = intent%2;
         bondDeposit(taskID, msg.sender, t.minDeposit);
         if (solution == 0) { // Intent determines which solution the verifier is betting is deemed incorrect

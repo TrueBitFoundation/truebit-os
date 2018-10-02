@@ -33,11 +33,11 @@ function writeFile(fname, buf) {
 
 const solverConf = { error: false, error_location: 0, stop_early: -1, deposit: 1 }
 
-let tasks = {}
-let games = {}
-
 module.exports = {
     init: async (web3, account, logger, mcFileSystem, test = false, recover = -1, throttle = 1) => {
+        let tasks = {}
+        let games = {}
+            
         logger.log({
             level: 'info',
             message: `Verifier initialized`
@@ -74,7 +74,7 @@ module.exports = {
                         await handler(result)
                     }
                     catch (e) {
-                        logger.error(`Error while handling event ${JSON.stringify(result)}: ${e}`)
+                        logger.error(`VERIFIER: Error while handling event ${JSON.stringify(result)}: ${e}`)
                     }
                 }
                 else console.log(err)

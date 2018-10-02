@@ -26,13 +26,13 @@ function setup(web3) {
     })()
 }
 
-let tasks = {}
-let games = {}
-let task_list = []
-
 module.exports = {
     init: async (web3, account, logger, mcFileSystem, test = false, recover = -1, throttle = 1) => {
 
+        let tasks = {}
+        let games = {}
+        let task_list = []
+        
         const merkleComputer = require("./merkle-computer")(logger, './../wasm-client/ocaml-offchain/interpreter/wasm')
 
         let bn = await web3.eth.getBlockNumber()
@@ -71,7 +71,7 @@ module.exports = {
                     }
                     catch (e) {
                         // console.log(e)
-                        logger.error(`Error while handling event ${JSON.stringify(result)}: ${e}`)
+                        logger.error(`SOLVER: Error while handling event ${JSON.stringify(result)}: ${e}`)
                     }
                 }
                 else console.log(err)
