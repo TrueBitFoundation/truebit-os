@@ -103,13 +103,14 @@ module.exports.accounts = async ({ os }) => {
 module.exports.balance = async ({ os, args }) => {
   const account = os.accounts[args.options.account || 0]
   let balance = await os.web3.eth.getBalance(account)
+  let block = await os.web3.eth.getBlockNumber()
   const httpProvider = os.web3.currentProvider
 	const config = await contractsConfig(os.web3)
   const tru = await contract(httpProvider, config['tru'])
   let truBalance = await tru.balanceOf(account)
   os.logger.log({
     level: 'info',
-    message: `${account}: ${os.web3.utils.fromWei(balance)} ETH, ${os.web3.utils.fromWei(truBalance.toString(10))} TRU`
+    message: `${account}: ${os.web3.utils.fromWei(balance)} ETH, ${os.web3.utils.fromWei(truBalance.toString(10))} TRU at block ${block}`
   })
   return balance
 }

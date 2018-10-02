@@ -65,7 +65,15 @@ module.exports = {
                     events.push({event:result, handler})
                     console.log("Recovering", result.event, "at block", result.blockNumber)
                 }
-                else if (result) handler(result)
+                else if (result) {
+                    try {
+                        handler(result)
+                    }
+                    catch (e) {
+                        console.log(e)
+                        logger.error(`Error while handling event ${result}: ${e.toString()}`)
+                    }
+                }
                 else console.log(err)
             })
         }
@@ -198,7 +206,7 @@ module.exports = {
             let taskID = result.args.taskID	   
 	    
             if (tasks[taskID]) {
-		delete tasks[taskID]
+		        delete tasks[taskID]
                 await incentiveLayer.unbondDeposit(taskID, {from: account, gas: 100000})
                 logger.log({
                     level: 'info',
@@ -471,6 +479,7 @@ module.exports = {
                 logger.info("Task busy")
                 return
             }
+
             if (await incentiveLayer.endChallengePeriod.call(taskID)) {
 
                 // console.log("Ending challenge")
@@ -487,7 +496,7 @@ module.exports = {
 	    
             if (await incentiveLayer.endRevealPeriod.call(taskID)) {
 
-                // console.log("Ending reveal")
+                logger.info("Ending reveal")
 
                 working(taskID)
                 await incentiveLayer.endRevealPeriod(taskID, {from:account, gas:100000})
@@ -501,7 +510,7 @@ module.exports = {
 
             if (await incentiveLayer.canRunVerificationGame.call(taskID)) {
 
-                // console.log("Running game")
+                logger.info("Running verification game")
 
                 working(taskID)
                 await incentiveLayer.runVerificationGame(taskID, {from:account, gas:1000000})
@@ -574,8 +583,24 @@ module.exports = {
 
         let ival = setInterval(async () => {
             // console.log("deposits", (await tru.balanceOf.call(incentiveLayer.address)).toString())
-            task_list.forEach(handleTimeouts)
-            game_list.forEach(handleGameTimeouts)
+            task_list.forEach(async t => {
+                try {
+                    handleTimeouts(t)
+                }
+                catch (e) {
+                    console.log(e)
+                    logger.error(`Error while handling timeouts of task ${t}: ${e.toString()}`)
+                }
+            })
+            game_list.forEach(async g => {
+                try {
+                    handleGameTimeouts(g)
+                }
+                catch (e) {
+                    console.log(e)
+                    logger.error(`Error while handling timeouts of game ${g}: ${e.toString()}`)
+                }
+            })
             if (recovery_mode) {
                 recovery_mode = false
                 recovery.analyze(account, events, recoverTask, recoverGame, disputeResolutionLayer, incentiveLayer, game_list, task_list)
