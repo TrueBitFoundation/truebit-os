@@ -391,10 +391,8 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     function taskTimeout(bytes32 taskID) public {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
-        // require(s.solutionHash0 == 0x0 && s.solutionHash1 == 0x0);
-        uint8 status = IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame);
-        require(status != uint(Status.Challenged));
-        require(status != uint(Status.Unresolved));
+        uint g_timeout = IDisputeResolutionLayer(disputeResolutionLayer).timeoutBlock(s.currentGame);
+        require(block.number > g_timeout);
         require(block.number > t.lastBlock.add(TIMEOUT*2));
         require(t.state != State.TaskTimeout);
         require(t.state != State.TaskFinalized);
@@ -406,10 +404,8 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     function isTaskTimeout(bytes32 taskID) public view returns (bool) {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
-        // require(s.solutionHash0 == 0x0 && s.solutionHash1 == 0x0);
-        uint8 status = IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame);
-        if (status == uint(Status.Challenged)) return false;
-        if (status == uint(Status.Unresolved)) return false;
+        uint g_timeout = IDisputeResolutionLayer(disputeResolutionLayer).timeoutBlock(s.currentGame);
+        if (block.number <= g_timeout) return false;
         if (t.state == State.TaskTimeout) return false;
         if (t.state == State.TaskFinalized) return false;
         if (block.number <= t.lastBlock.add(TIMEOUT*2)) return false;
