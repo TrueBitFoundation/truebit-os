@@ -20,7 +20,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     uint private forcedErrorThreshold = 42;
     uint private taxMultiplier = 5;
 
-    uint constant TIMEOUT = 10;
+    uint constant TIMEOUT = 100;
 
     enum CodeType {
         WAST,

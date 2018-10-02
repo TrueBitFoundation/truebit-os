@@ -585,7 +585,7 @@ module.exports = {
             // console.log("deposits", (await tru.balanceOf.call(incentiveLayer.address)).toString())
             task_list.forEach(async t => {
                 try {
-                    handleTimeouts(t)
+                    await handleTimeouts(t)
                 }
                 catch (e) {
                     console.log(e)
@@ -594,7 +594,7 @@ module.exports = {
             })
             game_list.forEach(async g => {
                 try {
-                    handleGameTimeouts(g)
+                    await handleGameTimeouts(g)
                 }
                 catch (e) {
                     console.log(e)
