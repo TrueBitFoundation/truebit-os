@@ -102,15 +102,19 @@ module.exports.accounts = async ({ os }) => {
 /** get balance of an account */
 module.exports.balance = async ({ os, args }) => {
   const account = os.accounts[args.options.account || 0]
-  let balance = await os.web3.eth.getBalance(account)
+  let balance = os.web3.utils.fromWei(await os.web3.eth.getBalance(account))
   let block = await os.web3.eth.getBlockNumber()
   const httpProvider = os.web3.currentProvider
 	const config = await contractsConfig(os.web3)
   const tru = await contract(httpProvider, config['tru'])
-  let truBalance = await tru.balanceOf(account)
+  const incentiveLayer = await contract(httpProvider, config['incentiveLayer'])
+  let truBalance_raw = await tru.balanceOf.call(account)
+  let truBalance = os.web3.utils.fromWei(truBalance_raw.toString(10))
+  let deposit_raw = await incentiveLayer.getDeposit.call(account)
+  let deposit = os.web3.utils.fromWei(deposit_raw.toString(10))
   os.logger.log({
     level: 'info',
-    message: `${account}: ${os.web3.utils.fromWei(balance)} ETH, ${os.web3.utils.fromWei(truBalance.toString(10))} TRU at block ${block}`
+    message: `${account}: ${balance} ETH, ${truBalance} TRU, deposit ${deposit} TRU at block ${block}`
   })
   return balance
 }
