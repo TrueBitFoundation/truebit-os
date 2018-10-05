@@ -180,6 +180,14 @@ module.exports = {
 
         })
 
+        addEvent(incentiveLayer.JackpotTriggered, async result => {
+            let taskID = result.args.taskID
+            let taskData = tasks[taskID]
+
+            if (!taskData) return
+            logger.info("Triggered jackpot!!!")
+        })
+
         addEvent(incentiveLayer.VerificationCommitted, async result => {
         })
 

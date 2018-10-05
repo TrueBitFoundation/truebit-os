@@ -53,6 +53,11 @@ contract JackpotManager {
         return currentJackpotID - 1;
     }
 
+    function getJackpotReceivers(uint jackpotID) public view returns (address[]) {
+        Jackpot storage j = jackpots[jackpotID];
+        return j.challengers;
+    }
+
     function receiveJackpotPayment(uint jackpotID, uint index) public {
         Jackpot storage j = jackpots[jackpotID];
         require(j.challengers[index] == msg.sender);        

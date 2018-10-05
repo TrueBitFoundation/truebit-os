@@ -592,8 +592,8 @@ module.exports = {
                     await handleTimeouts(t)
                 }
                 catch (e) {
-                    console.log(e)
-                    logger.error(`Error while handling timeouts of task ${t}: ${e.toString()}`)
+                    // console.log(e)
+                    logger.error(`SOLVER: Error while handling timeouts of task ${t}: ${e.toString()}`)
                 }
             })
             game_list.forEach(async g => {
@@ -601,8 +601,8 @@ module.exports = {
                     await handleGameTimeouts(g)
                 }
                 catch (e) {
-                    console.log(e)
-                    logger.error(`Error while handling timeouts of game ${g}: ${e.toString()}`)
+                    // console.log(e)
+                    logger.error(`SOLVER: Error while handling timeouts of game ${g}: ${e.toString()}`)
                 }
             })
             if (recovery_mode) {
