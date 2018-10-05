@@ -121,7 +121,8 @@ module.exports = {
                     solverHash0: solverHash0,
                     solverHash1: solverHash1,
                     solutionHash: solution.hash,
-                    vm: vm
+                    vm: vm,
+                    minDeposit: minDeposit,
                 }
 
                 if ((solverHash0 != solution.hash) ^ test) {
@@ -163,7 +164,7 @@ module.exports = {
 
             if (!taskData) return
 
-            await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
+            await depositsHelper(web3, incentiveLayer, tru, account, taskData.minDeposit)
             if (taskData.intent0) {
                 await incentiveLayer.revealIntent(taskID, taskData.solverHash0, taskData.solverHash1, taskData.intent0, { from: account, gas: 1000000 })
             } else if (taskData.intent1) {
