@@ -467,6 +467,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         Task storage t = tasks[taskID];
         require(t.state == State.ChallengesAccepted);
         require(t.challengePeriod + TIMEOUT > cblock);
+        require(cblock != 0);
         uint solution = intent%2;
         bondDeposit(taskID, msg.sender, t.minDeposit);
         if (solution == 0) { // Intent determines which solution the verifier is betting is deemed incorrect

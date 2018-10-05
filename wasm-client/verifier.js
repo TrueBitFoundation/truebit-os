@@ -126,7 +126,6 @@ module.exports = {
 
                 if ((solverHash0 != solution.hash) ^ test) {
 
-                    await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
                     let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "00"
                     // console.log("intent", intent)
                     tasks[taskID].intent0 = "0x" + intent
@@ -142,7 +141,6 @@ module.exports = {
 
                 if ((solverHash1 != solution.hash) ^ test) {
 
-                    await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
                     let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "01"
                     tasks[taskID].intent1 = "0x" + intent
                     // console.log("intent", intent)
@@ -165,6 +163,7 @@ module.exports = {
 
             if (!taskData) return
 
+            await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
             if (taskData.intent0) {
                 await incentiveLayer.revealIntent(taskID, taskData.solverHash0, taskData.solverHash1, taskData.intent0, { from: account, gas: 1000000 })
             } else if (taskData.intent1) {
