@@ -198,7 +198,7 @@ module.exports = {
 
         })
 
-        addEvent(incentiveLayer.ReceivedJackpot, async result => {
+        addEvent(incentiveLayer.ReceivedJackpot, async (result) => {
             let recv = result.args.receiver
             let amount = result.args.amount
             logger.info(`${recv} got jackpot ${amount.toString(10)}`)
