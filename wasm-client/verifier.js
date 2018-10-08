@@ -182,10 +182,26 @@ module.exports = {
 
         addEvent(incentiveLayer.JackpotTriggered, async result => {
             let taskID = result.args.taskID
+            let jackpotID = result.args.jackpotID
             let taskData = tasks[taskID]
 
             if (!taskData) return
             logger.info("Triggered jackpot!!!")
+
+            let lst = await incentiveLayer.getJackpotReceivers.call(jackpotID)
+
+            // console.log("jackpot receivers", lst)
+
+            for (let i = 0; i < lst.length; i++) {
+                if (lst[i].toLowerCase() == account.toLowerCase()) await incentiveLayer.receiveJackpotPayment(jackpotID, i, {from: account, gas: 100000})
+            }
+
+        })
+
+        addEvent(incentiveLayer.ReceivedJackpot, async result => {
+            let recv = result.args.receiver
+            let amount = result.args.amount
+            logger.info(`${recv} got jackpot ${amount.toString(10)}`)
         })
 
         addEvent(incentiveLayer.VerificationCommitted, async result => {

@@ -13,6 +13,8 @@ contract JackpotManager {
         uint redeemedCount;
     }
 
+    event ReceivedJackpot(address receiver, uint amount);
+
     mapping(uint => Jackpot) jackpots;//keeps track of versions of jackpots
 
     uint internal currentJackpotID;
@@ -60,11 +62,12 @@ contract JackpotManager {
 
     function receiveJackpotPayment(uint jackpotID, uint index) public {
         Jackpot storage j = jackpots[jackpotID];
-        require(j.challengers[index] == msg.sender);        
+        require(j.challengers[index] == msg.sender);
         
-        uint amount = j.finalAmount.div(2**(index+1));
+        uint amount = j.finalAmount.div(2**(j.challengers.length-1));
         //transfer jackpot payment
         //msg.sender.transfer(amount);
         token.mint(msg.sender, amount);
+        emit ReceivedJackpot(msg.sender, amount /*, j.finalAmount */);
     }
 }

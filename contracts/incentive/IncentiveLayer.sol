@@ -178,7 +178,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         if (bondedDeposit == 0) return 0;
 
         delete task.bondedDeposits[account];
-        jackpot = jackpot.add(bondedDeposit-toOpponent);
+        increaseJackpot(bondedDeposit-toOpponent);
         deposits[opponent] += toOpponent;
         
         return bondedDeposit;
@@ -227,6 +227,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         deposits[msg.sender] = deposits[msg.sender].sub(reward + t.tax);
     
         depositReward(id, reward, t.tax);
+        increaseJackpot(t.tax);
         
         t.initTaskHash = initTaskHash;
         t.initialReward = minDeposit;
@@ -645,7 +646,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         require (t.state == State.TaskFinalized);
         bytes32[] memory files = new bytes32[](t.uploads.length);
         for (uint i = 0; i < t.uploads.length; i++) {
-           files[i] = t.uploads[i].fileId;
+            files[i] = t.uploads[i].fileId;
         }
 
         Callback(t.owner).solved(taskID, files);

@@ -7,7 +7,6 @@ contract DepositsManager {
     using SafeMath for uint;
 
     mapping(address => uint) public deposits;
-    uint public jackpot;
     address public owner;
     TRU public token;
 
