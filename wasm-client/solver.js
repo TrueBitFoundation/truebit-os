@@ -26,13 +26,13 @@ function setup(web3) {
     })()
 }
 
-let tasks = {}
-let games = {}
-let task_list = []
-
 module.exports = {
     init: async (web3, account, logger, mcFileSystem, test = false, recover = -1, throttle = 1) => {
 
+        let tasks = {}
+        let games = {}
+        let task_list = []
+        
         const merkleComputer = require("./merkle-computer")(logger, './../wasm-client/ocaml-offchain/interpreter/wasm')
 
         let bn = await web3.eth.getBlockNumber()
@@ -54,7 +54,7 @@ module.exports = {
         const game_list = []
         const RECOVERY_BLOCKS = recover
         
-        if (recovery_mode) console.log("Recovering back to", Math.max(0,bn-RECOVERY_BLOCKS))
+        if (recovery_mode) logger.info(`Recovering back to ${Math.max(0,bn-RECOVERY_BLOCKS)}`)
 
         function addEvent(evC, handler) {
             let ev = recovery_mode ? evC({}, {fromBlock:Math.max(0,bn-RECOVERY_BLOCKS)}) : evC()
@@ -65,7 +65,15 @@ module.exports = {
                     events.push({event:result, handler})
                     console.log("Recovering", result.event, "at block", result.blockNumber)
                 }
-                else if (result) handler(result)
+                else if (result) {
+                    try {
+                        await handler(result)
+                    }
+                    catch (e) {
+                        // console.log(e)
+                        logger.error(`SOLVER: Error while handling event ${JSON.stringify(result)}: ${e}`)
+                    }
+                }
                 else console.log(err)
             })
         }
@@ -76,7 +84,7 @@ module.exports = {
 
         addEvent(incentiveLayer.TaskCreated, async (result) => {
 
-	    logger.log({
+	        logger.log({
                 level: 'info',
                 message: `Task has been posted. Checking for availability.`
             })
@@ -92,21 +100,21 @@ module.exports = {
 
             let solutionInfo = toSolutionInfo(await incentiveLayer.getSolutionInfo.call(taskID))
 
-	    if(Object.keys(tasks).length <= throttle) {
-		if (solutionInfo.solver == '0x0000000000000000000000000000000000000000') {
+            if (Object.keys(tasks).length <= throttle) {
+                if (solutionInfo.solver == '0x0000000000000000000000000000000000000000') {
 
-                    let secret = "0x"+helpers.makeSecret(taskID)
+                    let secret = "0x" + helpers.makeSecret(taskID)
 
                     await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
-                    
+
                     // console.log("secret", secret, web3.utils.soliditySha3(secret))
-                    incentiveLayer.registerForTask(taskID, web3.utils.soliditySha3(secret), {from: account, gas: 500000})
-                    
-                    tasks[taskID] = {minDeposit: minDeposit}
+                    await incentiveLayer.registerForTask(taskID, web3.utils.soliditySha3(secret), { from: account, gas: 500000 })
+
+                    tasks[taskID] = { minDeposit: minDeposit }
 
                     // tasks[taskID].secret = secret
-		}		
-	    }
+                }
+            }
             
         })
 
@@ -164,6 +172,10 @@ module.exports = {
                     console.log(e)
                 }
             }
+            else if (tasks[taskID]) {
+                logger.info(`I wasn't selected for task ${taskID}`)
+                delete tasks[taskID]
+            }
 
 
         })
@@ -179,7 +191,7 @@ module.exports = {
         addEvent(incentiveLayer.EndRevealPeriod, async (result) => {
             let taskID = result.args.taskID	   
 	    
-            if (tasks[taskID]) {		
+            if (tasks[taskID]) {
                 let vm = tasks[taskID].solution.vm
                 let secret = "0x"+helpers.makeSecret(taskID)
                 // console.log("secret", secret)
@@ -198,7 +210,7 @@ module.exports = {
             let taskID = result.args.taskID	   
 	    
             if (tasks[taskID]) {
-		delete tasks[taskID]
+		        delete tasks[taskID]
                 await incentiveLayer.unbondDeposit(taskID, {from: account, gas: 100000})
                 logger.log({
                     level: 'info',
@@ -450,6 +462,7 @@ module.exports = {
             if (busy(gameID)) return
             if (await disputeResolutionLayer.gameOver.call(gameID)) {
 		
+                working(gameID)
                 await disputeResolutionLayer.gameOver(gameID, {from: account})
 		
                 logger.log({
@@ -457,7 +470,6 @@ module.exports = {
                     message: `gameOver was called for game ${gameID}`
                 })
 
-                working(gameID)
 		
             }
         }
@@ -467,40 +479,50 @@ module.exports = {
 
             // let deposit = await incentiveLayer.getBondedDeposit.call(taskID, account)
             // console.log("Solver deposit", deposit.toNumber(), account)
-            if (busy(taskID)) return
+            if (busy(taskID)) {
+                logger.info("Task busy")
+                return
+            }
+
             if (await incentiveLayer.endChallengePeriod.call(taskID)) {
 
+                // console.log("Ending challenge")
+
+                working(taskID)
                 await incentiveLayer.endChallengePeriod(taskID, {from:account, gas: 100000})
 
                 logger.log({
                     level: 'info',
                     message: `Ended challenge period for ${taskID}`
                 })
-                working(taskID)
 		
             }
 	    
             if (await incentiveLayer.endRevealPeriod.call(taskID)) {
 
+                logger.info("Ending reveal")
+
+                working(taskID)
                 await incentiveLayer.endRevealPeriod(taskID, {from:account, gas:100000})
 
                 logger.log({
                     level: 'info',
                     message: `Ended reveal period for ${taskID}`
                 })
-                working(taskID)
 
             }
 
             if (await incentiveLayer.canRunVerificationGame.call(taskID)) {
 
+                logger.info("Running verification game")
+
+                working(taskID)
                 await incentiveLayer.runVerificationGame(taskID, {from:account, gas:1000000})
 
                 logger.log({
                     level: 'info',
                     message: `Ran verification game for ${taskID}`
                 })
-                working(taskID)
 		
             }
 	    
@@ -508,13 +530,13 @@ module.exports = {
 
                 // console.log("Tax should be", (await incentiveLayer.getTax.call(taskID)).toString())
 
+                working(taskID)
                 await incentiveLayer.finalizeTask(taskID, {from:account, gas:1000000})
 
                 logger.log({
                     level: 'info',
                     message: `Finalized task ${taskID}`
                 })
-                working(taskID)
 
             }
         }
@@ -565,8 +587,24 @@ module.exports = {
 
         let ival = setInterval(async () => {
             // console.log("deposits", (await tru.balanceOf.call(incentiveLayer.address)).toString())
-            task_list.forEach(handleTimeouts)
-            game_list.forEach(handleGameTimeouts)
+            task_list.forEach(async t => {
+                try {
+                    await handleTimeouts(t)
+                }
+                catch (e) {
+                    // console.log(e)
+                    logger.error(`SOLVER: Error while handling timeouts of task ${t}: ${e.toString()}`)
+                }
+            })
+            game_list.forEach(async g => {
+                try {
+                    await handleGameTimeouts(g)
+                }
+                catch (e) {
+                    // console.log(e)
+                    logger.error(`SOLVER: Error while handling timeouts of game ${g}: ${e.toString()}`)
+                }
+            })
             if (recovery_mode) {
                 recovery_mode = false
                 recovery.analyze(account, events, recoverTask, recoverGame, disputeResolutionLayer, incentiveLayer, game_list, task_list)

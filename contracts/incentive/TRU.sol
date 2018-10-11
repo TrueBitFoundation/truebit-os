@@ -6,7 +6,7 @@ import "../openzeppelin-solidity/BurnableToken.sol";
 contract TRU is MintableToken, BurnableToken {
     string public constant name = "TRU Token";
     string public constant symbol = "TRU";
-    uint8 public constant decimals = 8;
+    uint8 public constant decimals = 18;
 
     event Burn(address indexed from, uint256 amount);
 

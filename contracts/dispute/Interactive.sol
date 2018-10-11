@@ -127,6 +127,11 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         return gameID;
     }
 
+    function timeoutBlock(bytes32 gameID) external view returns (uint) {
+        Game storage g = games[gameID];
+        return g.clock + g.timeout;
+    }
+
     function status(bytes32 gameID) external view returns(uint8) {
         return uint8(games[gameID].status);
     }

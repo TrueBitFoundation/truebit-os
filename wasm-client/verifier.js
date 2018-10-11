@@ -33,11 +33,11 @@ function writeFile(fname, buf) {
 
 const solverConf = { error: false, error_location: 0, stop_early: -1, deposit: 1 }
 
-let tasks = {}
-let games = {}
-
 module.exports = {
     init: async (web3, account, logger, mcFileSystem, test = false, recover = -1, throttle = 1) => {
+        let tasks = {}
+        let games = {}
+            
         logger.log({
             level: 'info',
             message: `Verifier initialized`
@@ -69,7 +69,14 @@ module.exports = {
                     events.push({event:result, handler})
                     console.log("Recovering", result.event, "at block", result.blockNumber)
                 }
-                else if (result) handler(result)
+                else if (result) {
+                    try {
+                        await handler(result)
+                    }
+                    catch (e) {
+                        logger.error(`VERIFIER: Error while handling event ${JSON.stringify(result)}: ${e}`)
+                    }
+                }
                 else console.log(err)
             })
         }
@@ -89,34 +96,37 @@ module.exports = {
             let minDeposit = result.args.minDeposit.toNumber()
             let solverHash0 = result.args.solutionHash0
             let solverHash1 = result.args.solutionHash1
+            logger.info("Getting info")
             let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))
             taskInfo.taskID = taskID
 
-	    if (Object.keys(tasks).length <= throttle) {
-		// let storageType = result.args.storageType.toNumber()
+            if (Object.keys(tasks).length <= throttle) {
+                // let storageType = result.args.storageType.toNumber()
 
-		let vm = await helpers.setupVMWithFS(taskInfo)
+                logger.info("Setting up VM")
+                let vm = await helpers.setupVMWithFS(taskInfo)
 
-		let interpreterArgs = []
-		solution = await vm.executeWasmTask(interpreterArgs)
+                logger.info("Executing task")
+                let interpreterArgs = []
+                solution = await vm.executeWasmTask(interpreterArgs)
 
-		logger.log({
+                logger.log({
                     level: 'info',
                     message: `Executed task ${taskID}. Checking solutions`
-		})
+                })
 
-		task_list.push(taskID)
+                task_list.push(taskID)
 
-		tasks[taskID] = {
+                tasks[taskID] = {
                     solverHash0: solverHash0,
                     solverHash1: solverHash1,
                     solutionHash: solution.hash,
-                    vm: vm
-		}
+                    vm: vm,
+                    minDeposit: minDeposit,
+                }
 
-		if ((solverHash0 != solution.hash) ^ test) {
+                if ((solverHash0 != solution.hash) ^ test) {
 
-                    await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
                     let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "00"
                     // console.log("intent", intent)
                     tasks[taskID].intent0 = "0x" + intent
@@ -124,15 +134,14 @@ module.exports = {
                     await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000 })
 
                     logger.log({
-			level: 'info',
-			message: `Challenged solution for task ${taskID}`
+                        level: 'info',
+                        message: `Challenged solution for task ${taskID}`
                     })
 
-		}
+                }
 
-		if ((solverHash1 != solution.hash) ^ test) {
+                if ((solverHash1 != solution.hash) ^ test) {
 
-                    await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
                     let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "01"
                     tasks[taskID].intent1 = "0x" + intent
                     // console.log("intent", intent)
@@ -140,13 +149,13 @@ module.exports = {
                     await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000 })
 
                     logger.log({
-			level: 'info',
-			message: `Challenged solution for task ${taskID}`
+                        level: 'info',
+                        message: `Challenged solution for task ${taskID}`
                     })
 
-		}		
-		
-	    }
+                }
+
+            }
         })
 
         addEvent(incentiveLayer.EndChallengePeriod, async result => {
@@ -155,6 +164,7 @@ module.exports = {
 
             if (!taskData) return
 
+            await depositsHelper(web3, incentiveLayer, tru, account, taskData.minDeposit)
             if (taskData.intent0) {
                 await incentiveLayer.revealIntent(taskID, taskData.solverHash0, taskData.solverHash1, taskData.intent0, { from: account, gas: 1000000 })
             } else if (taskData.intent1) {
@@ -170,6 +180,30 @@ module.exports = {
 
         })
 
+        addEvent(incentiveLayer.JackpotTriggered, async result => {
+            let taskID = result.args.taskID
+            let jackpotID = result.args.jackpotID
+            let taskData = tasks[taskID]
+
+            if (!taskData) return
+            logger.info("Triggered jackpot!!!")
+
+            let lst = await incentiveLayer.getJackpotReceivers.call(jackpotID)
+
+            // console.log("jackpot receivers", lst)
+
+            for (let i = 0; i < lst.length; i++) {
+                if (lst[i].toLowerCase() == account.toLowerCase()) await incentiveLayer.receiveJackpotPayment(jackpotID, i, {from: account, gas: 100000})
+            }
+
+        })
+
+        addEvent(incentiveLayer.ReceivedJackpot, async (result) => {
+            let recv = result.args.receiver
+            let amount = result.args.amount
+            logger.info(`${recv} got jackpot ${amount.toString(10)}`)
+        })
+
         addEvent(incentiveLayer.VerificationCommitted, async result => {
         })
 
@@ -178,7 +212,7 @@ module.exports = {
 	    
             if (tasks[taskID]) {
                 await incentiveLayer.unbondDeposit(taskID, {from: account, gas: 100000})
-		delete tasks[taskID]
+		        delete tasks[taskID]
                 logger.log({
                     level: 'info',
                     message: `Task ${taskID} finalized. Tried to unbond deposits.`
@@ -307,6 +341,7 @@ module.exports = {
 
             if (await incentiveLayer.solverLoses.call(taskID, {from: account})) {
 
+                working(taskID)
                 logger.log({
                     level: 'info',
                     message: `Winning verification game for task ${taskID}`
@@ -314,10 +349,10 @@ module.exports = {
 
                 await incentiveLayer.solverLoses(taskID, {from: account})
 
-                working(taskID)
             }
             if (await incentiveLayer.isTaskTimeout.call(taskID, {from: account})) {
 
+                working(taskID)
                 logger.log({
                     level: 'info',
                     message: `Timeout in task ${taskID}`
@@ -325,13 +360,13 @@ module.exports = {
 
                 await incentiveLayer.taskTimeout(taskID, {from: account})
 
-                working(taskID)
             }
         }
 
         async function handleGameTimeouts(gameID) {
             // console.log("Verifier game timeout")
             if (busy(gameID)) return
+            working(gameID)
             if (await disputeResolutionLayer.gameOver.call(gameID)) {
 
                 logger.log({
@@ -340,7 +375,6 @@ module.exports = {
                 })
 
                 await disputeResolutionLayer.gameOver(gameID, { from: account })
-                working(gameID)
             }
         }
 
@@ -381,8 +415,24 @@ module.exports = {
         }
 
         let ival = setInterval(() => {
-            task_list.forEach(handleTimeouts)
-            game_list.forEach(handleGameTimeouts)
+            task_list.forEach(async t => {
+                try {
+                    await handleTimeouts(t)
+                }
+                catch (e) {
+                    console.log(e)
+                    logger.error(`Error while handling timeouts of task ${t}: ${e.toString()}`)
+                }
+            })
+            game_list.forEach(async g => {
+                try {
+                    await handleGameTimeouts(g)
+                }
+                catch (e) {
+                    console.log(e)
+                    logger.error(`Error while handling timeouts of game ${g}: ${e.toString()}`)
+                }
+            })
             if (recovery_mode) {
                 recovery_mode = false
                 recovery.analyze(account, events, recoverTask, recoverGame, disputeResolutionLayer, incentiveLayer, game_list, task_list, true)

@@ -5,7 +5,7 @@ import "./Onchain.sol";
 import "./Alu.sol";
 
 /**
-* @title
+* @title VM Interpreter
 * @author Sami Mäkelä
 */
 contract CommonOffchain is Offchain, ALU {
