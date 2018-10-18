@@ -29,6 +29,41 @@ npm run compile
 npm run deploy
 ```
 
+# Docker Installation
+
+```
+docker build . -t truebit-os:latest
+docker run -it -p 4001:4001 -p 30303:30303 -v ~/kovan:/root/.local/share/io.parity.ethereum truebit-os:latest /bin/bash
+```
+
+Then use `tmux` to create multiple sessions of the shell:
+
+Reminder commands:
+
+To split plane horizontally
+```
+ctrl+b "
+```
+
+To split plane vertically
+```
+ctrl-b %
+```
+
+In one of the sessions:
+```
+cd truebit-os/scripts
+chmod 755 kovan.sh
+./kovan.sh
+```
+
+In the other panel (`ctrl-b`+`arrow` to change panel) run this command:
+```
+ipfs swarm connect /ip4/176.9.9.249/tcp/4001/ipfs/QmS6C9YNGKVjWK2ctksqYeRo3zGoosEPRuPhCvgAVHBXtg
+```
+
+Once your kovan node is synced you are ready to follow along with the usage instructions below.
+
 ## Usage
 
 Point the truebit-os shell to the wasm client configuration file which it will use to initialize. 
