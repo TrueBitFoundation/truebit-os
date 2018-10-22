@@ -70,8 +70,15 @@ async function deploy() {
 
     // Mint tokens for testing
     accounts.forEach(addr => {
-        tru.methods.getTestTokens().send({from:addr, gas: 300000})
+        tru.methods.addMinter(addr).send({from:accounts[0], gas: 300000})
     })
+    accounts.forEach(addr => {
+        tru.methods.mint(addr, "100000000000000000000000").send({from:addr, gas: 300000})
+    })
+
+    if (networkName == "kovan" || networkName == "rinkeby" || networkName == "ropsten" || networkName == "private") {
+        tru.methods.enableFaucet().send({from:accounts[0], gas: 300000})
+    }
 
 }
 
