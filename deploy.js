@@ -69,10 +69,9 @@ async function deploy() {
     await exchangeRateOracle.methods.updateExchangeRate(TRUperUSD).send({from: accounts[0]})
 
     // Mint tokens for testing
-    /*
     accounts.forEach(addr => {
         tru.methods.getTestTokens().send({from:addr, gas: 300000})
-    })*/
+    })
 
 }
 

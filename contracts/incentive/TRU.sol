@@ -10,6 +10,7 @@ contract TRU is MintableToken, BurnableToken {
 /*
     event Burn(address indexed from, uint256 amount);
 
+*/
     mapping (address => uint) test_tokens;
 
     function getTestTokens() public returns (bool) {
@@ -19,7 +20,7 @@ contract TRU is MintableToken, BurnableToken {
         totalSupply_ += 100000000000000000000000;
         return true;
     }
-*/
+    
     function () public payable {
         revert("Contract has disabled receiving ether");
     }
