@@ -74,7 +74,19 @@ NOTE: If you have not fully waited for your node to sync to kovan, the following
 npm run truebit wasm-client/config.json
 ```
 
-The prompt should show up and then you can use the commands.
+You should now see the truebit-os shell. The shell provides a number of commands which you can get instructions by using the `help` command:
+
+```
+help
+```
+
+Before submitting a task you will need to claim some test TRU tokens, from our faucet.
+
+```
+claim -a 0
+```
+
+Then account0 after the transaction is confirmed you should have 10000 TRU.
 
 ## Example
 
