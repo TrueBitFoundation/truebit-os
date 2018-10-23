@@ -441,9 +441,11 @@ module.exports = {
         })
 
         addEvent(disputeResolutionLayer.WinnerSelected, async (result) => {
+	    //TODO: ???
         })
 
         addEvent(disputeResolutionLayer.Reported, async (result) => {
+	    //TODO: ???
         })
 
         // Timeouts

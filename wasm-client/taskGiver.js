@@ -41,8 +41,10 @@ module.exports = {
 
 		    logger.log({
 			level: 'info',
-			message: `Task has been submitted successfully with ID: ${taskID}`
+			message: `Task has been created successfully with ID: ${taskID}`
 		    })
+
+		    //setInterval(function(){ }, 3000)
 		    
 		}
 	    }
@@ -56,8 +58,15 @@ module.exports = {
 		let taskID = result.args.taskID
 
 		if (tasks[taskID]) {
+		    
+		    logger.log({
+			level: 'info',
+			message: `Solver has been selected for task: ${taskID}`
+		    })
+
 		    //TODO
 		    //Set timer for timeout
+		    
 		}
 	    }
 	})
