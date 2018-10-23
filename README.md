@@ -115,6 +115,8 @@ Finally, we can submit our task:
 task -a 0 -t testWasmTask.json
 ```
 
+If you are using the Kovan testnet you can look at the progress of your transactions [here](https://kovan.etherscan.io/address/0x9da6f9b3dfd4b4053096246ec1658ae227d80b7c).
+
 We have specified to submit a task from account 0. And the data related to the task is located at testWasmTask.json
 
 If you are running this on a development test net you will need to skip blocks to see the solution in the solutions directory.
