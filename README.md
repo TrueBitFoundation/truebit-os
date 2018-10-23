@@ -66,7 +66,9 @@ Once your kovan node is synced you are ready to follow along with the usage inst
 
 ## Usage
 
-Point the truebit-os shell to the wasm client configuration file which it will use to initialize. 
+Point the truebit-os shell to the wasm client configuration file which it will use to initialize.
+
+NOTE: If you have not fully waited for your node to sync to kovan, the following command will throw an error.
 
 ```
 npm run truebit wasm-client/config.json
