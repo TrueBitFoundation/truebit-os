@@ -69,11 +69,9 @@ async function deploy() {
     await exchangeRateOracle.methods.updateExchangeRate(TRUperUSD).send({from: accounts[0]})
 
     // Mint tokens for testing
-    accounts.forEach(addr => {
-        tru.methods.addMinter(addr).send({from:accounts[0], gas: 300000})
-    })
-    accounts.forEach(addr => {
-        tru.methods.mint(addr, "100000000000000000000000").send({from:addr, gas: 300000})
+    accounts.forEach(async addr => {
+        await tru.methods.addMinter(addr).send({from:accounts[0], gas: 300000})
+        await tru.methods.mint(addr, "100000000000000000000000").send({from:addr, gas: 300000})
     })
 
     if (networkName == "kovan" || networkName == "rinkeby" || networkName == "ropsten" || networkName == "private") {
