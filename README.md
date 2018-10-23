@@ -20,9 +20,13 @@ You will also need the latest version of solidity installed and available on you
 
 ## Installation
 
+Install instructions are catered to Linux users. However, other OS's can use this by simply installing ocaml-offchain without the `npm run deps` script.
+
 In order to get things running you'll have to go through all these commands at least once.
 
 ```bash
+cd truebit-os/
+npm i
 npm run fixperms
 npm run deps
 npm run compile
