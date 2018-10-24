@@ -8,8 +8,9 @@
     "deps": "./wasm-client/install.sh",
     "compile": "./compile.sh",
     "deploy": "node deploy.js",
-    "test": "mocha",
-    "truebit": "node ./cli/index.js"
+    "test": "nyc mocha",
+    "truebit": "node ./cli/index.js",
+    "coverage": "./node_modules/.bin/solidity-coverage"
   },
   "keywords": [
     "to",
@@ -25,13 +26,14 @@
     "ethereumjs-util": "^5.2.0",
     "figlet": "^1.2.0",
     "ipfs-api": "^14.3.7",
+    "minimist": "^1.2.0",
     "mocha": "^5.2.0",
     "npm": "^6.1.0",
+    "nyc": "^13.1.0",
     "truffle-contract": "^3.0.5",
     "vorpal": "^1.12.0",
     "web3": "^1.0.0-beta.34",
     "websocket": "^1.0.26",
-    "winston": "^3.0.0",
-    "minimist": "^1.2.0"
+    "winston": "^3.0.0"
   }
 }

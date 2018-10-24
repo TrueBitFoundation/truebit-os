@@ -9,3 +9,5 @@ build
 wasm-client/contracts.json
 wasm-client/private.json
 scripts/supersecret.txt
+
+.nyc_output
