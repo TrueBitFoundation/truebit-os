@@ -8,9 +8,9 @@
     "deps": "./wasm-client/install.sh",
     "compile": "./compile.sh",
     "deploy": "node deploy.js",
-    "test": "nyc mocha",
+    "test": "mocha",
     "truebit": "node ./cli/index.js",
-    "coverage": "./node_modules/.bin/solidity-coverage"
+    "coverage": "nyc mocha"
   },
   "keywords": [
     "to",
