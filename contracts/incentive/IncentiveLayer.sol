@@ -211,7 +211,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         // Get minDeposit required by task
         uint minDeposit = oracle.getMinDeposit(maxDifficulty);
         require(minDeposit > 0);
-	    require(reward > 0);
+	require(reward > 0);
         
         bytes32 id = keccak256(abi.encodePacked(initTaskHash, codeType, storageType, storageAddress, maxDifficulty, reward, numTasks));
         numTasks.add(1);
