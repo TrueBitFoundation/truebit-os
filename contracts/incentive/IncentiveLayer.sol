@@ -143,7 +143,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     // @return – the user's deposit bonded for the task.
     function bondDeposit(bytes32 taskID, address account, uint amount) private returns (uint) {
         Task storage task = tasks[taskID];
-        require(deposits[msg.sender] >= amount);
+        require(deposits[account] >= amount);
         deposits[account] = deposits[account].sub(amount);
         task.bondedDeposits[account] = task.bondedDeposits[account].add(amount);
         emit DepositBonded(taskID, account, amount);

@@ -2,6 +2,7 @@ const assert = require('assert')
 const fs = require('fs')
 const contractsConfig = require('../wasm-client/util/contractsConfig')
 const contract = require('../wasm-client/contractHelper')
+const mineBlocks = require('../os/lib/util/mineBlocks')
 
 function setup(web3) {
     return (async () => {
@@ -18,12 +19,14 @@ function setup(web3) {
 describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
     this.timeout(60000)
 
-    let incentiveLayer, tru, taskGiver, solver, verifier, minDeposit, accounts, taskID
+    let incentiveLayer, tru, taskGiver, solver, verifier, minDeposit, accounts, taskID, randomBits, randomBitsHash, solution0Hash, solution1Hash, web3
 
     before(async () => {
 	let os = await require('../os/kernel')('./wasm-client/config.json')
 
 	let contracts = await setup(os.web3)
+
+	web3 = os.web3
 
 	incentiveLayer = contracts[0]
 	tru = contracts[1]
@@ -36,6 +39,11 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 
 	minDeposit = 100000
 
+	randomBits = 42
+	randomBitsHash = os.web3.utils.soliditySha3(randomBits)
+	solution0Hash = os.web3.utils.soliditySha3(0x0, 0x0, 0x0, 0x0)
+	solution1Hash = os.web3.utils.soliditySha3(0x1, 0x1, 0x1, 0x1)
+
 	for(let account of accounts) {
 	    await tru.approve(incentiveLayer.address, minDeposit, { from: account })
 	}
@@ -45,16 +53,10 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
     it("participants should make a deposit", async () => {
 
 	for(let account of accounts) {
-
-	    let deposit
-
-	    deposit = (await incentiveLayer.getDeposit.call(taskGiver)).toNumber()
-
-	    if (deposit < minDeposit) {
-		await incentiveLayer.makeDeposit(minDeposit, { from: account })
-	    }	    	    
+	   
+	    await incentiveLayer.makeDeposit(minDeposit, { from: account })
 	    
-	    deposit = (await incentiveLayer.getDeposit.call(taskGiver)).toNumber()
+	    let deposit = (await incentiveLayer.getDeposit.call(account)).toNumber()
 
 	    assert(deposit > 1)
 	    
@@ -79,8 +81,8 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	assert(log.args.reward)
 
 	//confirm proper economic values
-	assert(log.args.minDeposit.toNumber() == 3)
-	assert(log.args.tax.toNumber() == (log.args.minDeposit.toNumber() * 5))
+	assert.equal(log.args.minDeposit.toNumber(), 3)
+	assert.equal(log.args.tax.toNumber(), (log.args.minDeposit.toNumber() * 5))
 
 	taskID = log.args.taskID
     })
@@ -120,6 +122,88 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	assert.equal(taskInfo.codeType, 0)
 	assert.equal(taskInfo.storageType, 0)
 	assert.equal(taskInfo.taskID, taskID)
+    })
+    
+    it("solver should register for task", async () => {
+	
+	let tx = await incentiveLayer.registerForTask(taskID, randomBitsHash, {from: solver, gas: 300000})
+
+	let log
+
+        log = tx.logs.find(log => log.event === 'DepositBonded')
+	
+        assert.equal(log.args.taskID, taskID)
+        assert.equal(log.args.account, solver.toLowerCase())
+        assert(log.args.amount.eq(3))
+
+        log = tx.logs.find(log => log.event === 'SolverSelected')
+
+        assert.equal(log.args.taskID, taskID)
+        assert.equal(log.args.solver, solver.toLowerCase())
+        assert.equal(log.args.taskData, 0x0)        
+	assert.equal(log.args.randomBitsHash, randomBitsHash)
+
+	assert.equal(log.args.minDeposit.toNumber(), 3)
+	
+    })
+
+    it("solver should commit a solution", async () => {
+	let tx = await incentiveLayer.commitSolution(taskID, solution0Hash, solution1Hash, {from: solver, gas: 300000})
+
+	let log = tx.logs.find(log => log.event === 'SolutionsCommitted')
+
+	assert(log.args.taskID)
+	assert(log.args.minDeposit)
+	assert(log.args.storageAddress == 0x0)
+	assert(log.args.storageType)
+	assert(log.args.codeType)
+    })
+
+    it("should get solution info", async () => {
+	let s = await incentiveLayer.getSolutionInfo.call(taskID) 
+
+	let solutionInfo = {
+	    taskID: s[0],
+	    solutionHash0: s[1],
+	    solutionHash1: s[2],
+	    taskInitHash: s[3],
+	    codeType: s[4],
+	    storageType: s[5],
+	    storageAddress: s[6],
+	    solver: s[7]
+	}
+
+	assert.equal(solutionInfo.taskID, taskID)
+	assert.equal(solutionInfo.solutionHash0, solution0Hash)
+	assert.equal(solutionInfo.solutionHash1, solution1Hash)
+	assert.equal(solutionInfo.taskInitHash, 0x0)
+	assert.equal(solutionInfo.codeType, 0)
+	assert.equal(solutionInfo.storageType, 0)
+	assert.equal(solutionInfo.storageAddress, 0x0)
+	assert.equal(solutionInfo.solver, solver.toLowerCase())
+    })
+
+    it("should end challenge period", async () => {
+	await mineBlocks(web3, 110)
+	
+	assert(await incentiveLayer.endChallengePeriod.call(taskID))
+	await incentiveLayer.endChallengePeriod(taskID, {from: solver})
+    })
+
+    it("should end reveal period", async () => {
+	await mineBlocks(web3, 110)
+	
+	assert(await incentiveLayer.endRevealPeriod.call(taskID))
+	await incentiveLayer.endRevealPeriod(taskID, {from: solver})
+    })
+
+    it("should reveal solution", async () => {
+	let tx = await incentiveLayer.revealSolution(taskID, randomBits, 0x0, 0x0, 0x0, 0x0, {from: solver, gas: 300000})
+
+	let log = tx.logs.find(log => log.event === 'SolutionRevealed')
+
+	assert(log.args.taskID)
+	assert(log.args.randomBits)
     })
     
     
