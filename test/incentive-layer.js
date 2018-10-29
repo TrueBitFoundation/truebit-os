@@ -19,7 +19,8 @@ function setup(web3) {
 describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
     this.timeout(60000)
 
-    let incentiveLayer, tru, taskGiver, solver, verifier, minDeposit, accounts, taskID, randomBits, randomBitsHash, solution0Hash, solution1Hash, web3
+    let incentiveLayer, tru, taskGiver, solver, verifier, accounts
+    let minDeposit, taskID, randomBits, randomBitsHash, solution0Hash, solution1Hash, web3
 
     before(async () => {
 	let os = await require('../os/kernel')('./wasm-client/config.json')
