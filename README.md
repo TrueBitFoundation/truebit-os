@@ -8,7 +8,7 @@
 
 The Truebit OS is meant to be a general purpose platform for interactive verification games. The benefit of it is that users are not locked into a particular client, but can build their own and then host it on the Truebit platform. Benefitting from the time we spend on development and research for solving problems related to running interactive verification games on a blockchain.
 
-For a simple intro and a high level overview watch this [video demo](https://www.youtube.com/watch?v=VRQwmNGHbhI)
+Check out this [example](https://github.com/TrueBitFoundation/example-app) application to learn you how to integrate Truebit into your Dapp.
 
 If you want to talk to the developers working on this project feel free to say hello on our [Gitter](https://gitter.im/TrueBitFoundation/Lobby)
 
