@@ -66,6 +66,14 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	
     })
 
+    it("should reject making a deposit of 42 with empty account", async () => {
+	return incentiveLayer.makeDeposit(42, { from: dummy })
+	    .then(
+		() => Promise.reject(new Error('Expected method to reject')),
+		err => assert(err instanceof Error)
+	    )
+    })    
+
     it("should reject making a deposit of zero", async () => {
 	return incentiveLayer.makeDeposit(minDeposit, { from: dummy })
 	    .then(
@@ -95,6 +103,14 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	assert.equal(log.args.tax.toNumber(), (log.args.minDeposit.toNumber() * 5))
 
 	taskID = log.args.taskID
+    })
+
+    it("should reject creating a task with no deposit", async () => {
+	return incentiveLayer.createTask(0x0, 0, 0, 0x0, 1, 10000, {from: dummy, gas: 300000})
+	    .then(
+		() => Promise.reject(new Error('Expected method to reject')),
+		err => assert(err instanceof Error)
+	    )
     })
 
     it("should get vm parameters", async () => {
@@ -133,6 +149,14 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	assert.equal(taskInfo.storageType, 0)
 	assert.equal(taskInfo.taskID, taskID)
     })
+
+    it("should reject registering for a task with no deposit", async () => {
+	return incentiveLayer.registerForTask(taskID, randomBitsHash, {from: dummy, gas: 300000})
+	    .then(
+		() => Promise.reject(new Error('Expected method to reject')),
+		err => assert(err instanceof Error)
+	    )
+    })    
     
     it("solver should register for task", async () => {
 	
@@ -157,6 +181,22 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	
     })
 
+    it("should reject registering for a task because solver has been selected", async () => {
+	return incentiveLayer.registerForTask(taskID, randomBitsHash, {from: verifier, gas: 300000})
+	    .then(
+		() => Promise.reject(new Error('Expected method to reject')),
+		err => assert(err instanceof Error)
+	    )
+    })
+
+    it("should reject committing solution because not selected solver", async () => {
+	return incentiveLayer.commitSolution(taskID, solution0Hash, solution1Hash, {from: verifier, gas: 300000})
+	    .then(
+		() => Promise.reject(new Error('Expected method to reject')),
+		err => assert(err instanceof Error)
+	    )
+    })
+
     it("solver should commit a solution", async () => {
 	let tx = await incentiveLayer.commitSolution(taskID, solution0Hash, solution1Hash, {from: solver, gas: 300000})
 
@@ -168,6 +208,14 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	assert(log.args.storageType)
 	assert(log.args.codeType)
     })
+
+    it("should reject committing solution again", async () => {
+	return incentiveLayer.commitSolution(taskID, solution0Hash, solution1Hash, {from: solver, gas: 300000})
+	    .then(
+		() => Promise.reject(new Error('Expected method to reject')),
+		err => assert(err instanceof Error)
+	    )
+    })    
 
     it("should get solution info", async () => {
 	let s = await incentiveLayer.getSolutionInfo.call(taskID) 
@@ -194,6 +242,8 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
     })
 
     it("should end challenge period", async () => {
+	assert(!(await incentiveLayer.endChallengePeriod.call(taskID)))
+	
 	await mineBlocks(web3, 110)
 	
 	assert(await incentiveLayer.endChallengePeriod.call(taskID))
@@ -201,11 +251,29 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
     })
 
     it("should end reveal period", async () => {
+	assert(!(await incentiveLayer.endRevealPeriod.call(taskID)))
+	
 	await mineBlocks(web3, 110)
 	
 	assert(await incentiveLayer.endRevealPeriod.call(taskID))
 	await incentiveLayer.endRevealPeriod(taskID, {from: solver})
     })
+
+    it("should reject revealing solution if not selected solver", async () => {	
+	return incentiveLayer.revealSolution(taskID, randomBits, 0x0, 0x0, 0x0, 0x0, {from: verifier, gas: 300000})
+	    .then(
+		() => Promise.reject(new Error('Expected method to reject')),
+		err => assert(err instanceof Error)
+	    )
+    })
+
+    it("should reject revealing solution if not correct random bits", async () => {	
+	return incentiveLayer.revealSolution(taskID, 12345, 0x0, 0x0, 0x0, 0x0, {from: solver, gas: 300000})
+	    .then(
+		() => Promise.reject(new Error('Expected method to reject')),
+		err => assert(err instanceof Error)
+	    )
+    })    
 
     it("should reveal solution", async () => {
 	let tx = await incentiveLayer.revealSolution(taskID, randomBits, 0x0, 0x0, 0x0, 0x0, {from: solver, gas: 300000})
@@ -215,6 +283,5 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	assert(log.args.taskID)
 	assert(log.args.randomBits)
     })
-    
     
 })
