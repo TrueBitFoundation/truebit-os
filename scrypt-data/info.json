@@ -1,1 +1,25 @@
-{"ipfshash":"QmZGf6QCViGi7VPZSp97EkvDX9NuNyspZvgpXs1Wq73u4L","codehash":"0xcb1f3611566c137482d4a5b560896d2142a13450915d8e17e7dd9c24736a164c","memsize":20}
+{
+  "ipfshash": "Qme6ojar7akHz5N3dfCmG4fymiuwaCLMTvB1o8dGKQ9w33",
+  "codehash": "0xe7f608b35d0edb1c6873fa5f3a87a19560f23aaab587c8f85aa44fd46174fc04",
+  "info": {
+    "vm": {
+      "code": "0xe7f608b35d0edb1c6873fa5f3a87a19560f23aaab587c8f85aa44fd46174fc04",
+      "stack": "0xb4c11951957c6f8f642c4af61cd6b24640fec6dc7fc607ee8206a99e92410d30",
+      "memory": "0xb4c11951957c6f8f642c4af61cd6b24640fec6dc7fc607ee8206a99e92410d30",
+      "input_size": "0xbf3c97b7d35a4c34a2cbff966ea000e6a9a3fbb0bdb2712e68e5a2843ca58ae6",
+      "input_name": "0x784630ae35c7cd667aa0db713f739b5f89862c67220856155770e139e2843f38",
+      "input_data": "0x500ecf77046414db2a2f555819b14f7257fca51fb2c29231c9f8bb52b5365d64",
+      "call_stack": "0xb4c11951957c6f8f642c4af61cd6b24640fec6dc7fc607ee8206a99e92410d30",
+      "globals": "0xb4c11951957c6f8f642c4af61cd6b24640fec6dc7fc607ee8206a99e92410d30",
+      "calltable": "0x7bf9aa8e0ce11d87877e8b7a304e8e7105531771dbff77d1b00366ecb1549624",
+      "calltypes": "0xb4c11951957c6f8f642c4af61cd6b24640fec6dc7fc607ee8206a99e92410d30",
+      "pc": 0,
+      "stack_ptr": 0,
+      "call_ptr": 0,
+      "memsize": 0
+    },
+    "hash": "0x0645ec1798f91c60be725008ff3a40bda2d37594b67fe081357fc0afdf4be663"
+  },
+  "memsize": 20,
+  "gas": 5000
+}

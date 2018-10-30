@@ -45,7 +45,8 @@ contract RewardsManager {
 
         uint tax = taxes[taskID];
         taxes[taskID] = 0;
-        token.burn(tax);
+        // No minting, so just keep the tokens here
+        // token.burn(tax); 
 
         token.transfer(to, payout);
         emit RewardClaimed(taskID, to, payout, tax);

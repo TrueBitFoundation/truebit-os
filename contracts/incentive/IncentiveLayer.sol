@@ -11,7 +11,8 @@ import "../interface/IGameMaker.sol";
 import "../interface/IDisputeResolutionLayer.sol";
 
 interface Callback {
-    function solved(bytes32 id, bytes32[] files) external;
+    function solved(bytes32 taskID, bytes32[] files) external;
+    function cancelled(bytes32 taskID) external;
 }
 
 contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
@@ -83,7 +84,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         uint randomBits;
         uint finalityCode; // 0 => not finalized, 1 => finalized, 2 => forced error occurred
         uint jackpotID;
-        uint initialReward;
+        uint cost;
         CodeType codeType;
         StorageType storageType;
         string storageAddress;
@@ -178,9 +179,11 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         if (bondedDeposit == 0) return 0;
 
         delete task.bondedDeposits[account];
-        increaseJackpot(bondedDeposit-toOpponent);
+        if (bondedDeposit > toOpponent + task.cost*2) {
+            increaseJackpot(bondedDeposit - toOpponent - task.cost*2);
+            deposits[task.owner] += task.cost*2;
+        }
         deposits[opponent] += toOpponent;
-        
         return bondedDeposit;
     }
 
@@ -222,6 +225,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         t.reward = reward;
 
         t.tax = minDeposit * taxMultiplier;
+        t.cost = reward + t.tax;
         
         require(deposits[msg.sender] >= reward + t.tax);
         deposits[msg.sender] = deposits[msg.sender].sub(reward + t.tax);
@@ -230,7 +234,6 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         increaseJackpot(t.tax);
         
         t.initTaskHash = initTaskHash;
-        t.initialReward = minDeposit;
         t.codeType = codeType;
         t.storageType = storageType;
         t.storageAddress = storageAddress;
@@ -311,35 +314,13 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         t.selectedSolver = msg.sender;
         t.randomBitsHash = randomBitsHash;
         t.state = State.SolverSelected;
+        t.lastBlock = block.number;
 
         // Burn task giver's taxes now that someone has claimed the task
         /*
         deposits[t.owner] = deposits[t.owner].sub(t.tax);
         token.burn(t.tax);
         */
-
-        emit SolverSelected(taskID, msg.sender, t.initTaskHash, t.minDeposit, t.randomBitsHash);
-        return true;
-    }
-    
-
-    // @dev – new solver registers for task if penalize old one, don't burn tokens twice
-    // 0 -> 1
-    // @param taskID – the task id.
-    // @param randomBitsHash – hash of random bits to commit to task
-    // @return – boolean
-    function registerNewSolver(bytes32 taskID, bytes32 randomBitsHash) public returns(bool) {
-        Task storage t = tasks[taskID];
-        
-        require(!(t.owner == 0x0));
-        require(t.state == State.TaskInitialized);
-        require(t.selectedSolver == 0x0);
-        
-        bondDeposit(taskID, msg.sender, t.minDeposit);
-        t.selectedSolver = msg.sender;
-        t.randomBitsHash = randomBitsHash;
-        t.state = State.SolverSelected;
-        t.lastBlock = block.number;
 
         emit SolverSelected(taskID, msg.sender, t.initTaskHash, t.minDeposit, t.randomBitsHash);
         return true;
@@ -355,6 +336,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         Task storage t = tasks[taskID];
         require(t.selectedSolver == msg.sender);
         require(t.state == State.SolverSelected);
+        require(solutionHash0 != solutionHash1);
         // require(block.number < t.taskCreationBlockNumber.add(TIMEOUT));
         Solution storage s = solutions[taskID];
         s.solutionHash0 = solutionHash0;
@@ -388,6 +370,14 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         return true;
     }        
 
+    function cancelTask(bytes32 taskID) public {
+        Task storage t = tasks[taskID];
+        t.state = State.TaskTimeout;
+        delete t.selectedSolver;
+        if (!t.owner.call(abi.encodeWithSignature("cancel(bytes32)", taskID))) {
+        }
+    }
+
     function taskTimeout(bytes32 taskID) public {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
@@ -397,8 +387,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         require(t.state != State.TaskTimeout);
         require(t.state != State.TaskFinalized);
         slashDeposit(taskID, t.selectedSolver, s.currentChallenger);
-        t.state = State.TaskTimeout;
-        delete t.selectedSolver;
+        cancelTask(taskID);
     }
 
     function isTaskTimeout(bytes32 taskID) public view returns (bool) {
@@ -415,9 +404,9 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     function solverLoses(bytes32 taskID) public returns (bool) {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
-        t.state = State.TaskTimeout;
         if (IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.ChallengerWon)) {
             slashDeposit(taskID, t.selectedSolver, s.currentChallenger);
+            cancelTask(taskID);
             return s.currentChallenger == msg.sender;
         }
         return false;
@@ -641,17 +630,6 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         return (t.state == State.TaskFinalized);
     }
     
-    function finalizedCallback(bytes32 taskID) public returns (bool) {
-        Task storage t = tasks[taskID];
-        require (t.state == State.TaskFinalized);
-        bytes32[] memory files = new bytes32[](t.uploads.length);
-        for (uint i = 0; i < t.uploads.length; i++) {
-            files[i] = t.uploads[i].fileId;
-        }
-
-        Callback(t.owner).solved(taskID, files);
-    }
-
     function canFinalizeTask(bytes32 taskID) public view returns (bool) {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
