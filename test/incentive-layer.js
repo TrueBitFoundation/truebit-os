@@ -113,6 +113,39 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	    )
     })
 
+    it("should reject creating a task with max difficulty set to zero", async () => {
+	return incentiveLayer.createTask(0x0, 0, 0, 0x0, 0, 10000, {from: taskGiver, gas: 300000})
+	    .then(
+		() => Promise.reject(new Error('Expected method to reject')),
+		err => assert(err instanceof Error)
+	    )
+    })
+
+    it("should reject creating a task with reward set to zero", async () => {
+	return incentiveLayer.createTask(0x0, 0, 0, 0x0, 1, 0, {from: taskGiver, gas: 300000})
+	    .then(
+		() => Promise.reject(new Error('Expected method to reject')),
+		err => assert(err instanceof Error)
+	    )
+    })
+
+    it("should reject creating a task with improper code type", async () => {
+	return incentiveLayer.createTask(0x0, 42, 0, 0x0, 1, 100000, {from: taskGiver, gas: 300000})
+	    .then(
+		() => Promise.reject(new Error('Expected method to reject')),
+		err => assert(err instanceof Error)
+	    )
+    })
+
+    it("should reject creating a task with improper storage type", async () => {
+	return incentiveLayer.createTask(0x0, 0, 42, 0x0, 1, 100000, {from: taskGiver, gas: 300000})
+	    .then(
+		() => Promise.reject(new Error('Expected method to reject')),
+		err => assert(err instanceof Error)
+	    )
+    })    
+    
+
     it("should get vm parameters", async () => {
 	let p = await incentiveLayer.getVMParameters.call(taskID)
 	let params = {

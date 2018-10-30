@@ -209,6 +209,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     // @return – boolean
     function createTaskAux(bytes32 initTaskHash, CodeType codeType, StorageType storageType, string storageAddress, uint maxDifficulty, uint reward) internal returns (bytes32) {
         // Get minDeposit required by task
+	require(maxDifficulty > 0);
         uint minDeposit = oracle.getMinDeposit(maxDifficulty);
         require(minDeposit > 0);
 	require(reward > 0);
@@ -248,7 +249,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     function createTask(bytes32 initTaskHash, CodeType codeType, StorageType storageType, string storageAddress, uint maxDifficulty, uint reward) public returns (bytes32) {
         bytes32 id = createTaskAux(initTaskHash, codeType, storageType, storageAddress, maxDifficulty, reward);
         defaultParameters(id);
-	    commitRequiredFiles(id);
+	commitRequiredFiles(id);
         
         return id;
     }
