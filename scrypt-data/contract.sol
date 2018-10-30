@@ -22,7 +22,7 @@ interface Filesystem {
 
 interface TrueBit {
    function createTaskWithParams(bytes32 initTaskHash, uint8 codeType, uint8 storageType, string storageAddress, uint maxDifficulty, uint reward,
-                                  uint8 stack, uint8 mem, uint8 globals, uint8 table, uint8 call) external returns (bytes32);
+                                  uint8 stack, uint8 mem, uint8 globals, uint8 table, uint8 call, uint32 limit) external returns (bytes32);
    function requireFile(bytes32 id, bytes32 hash, /* Storage */ uint8 st) external;
    function commitRequiredFiles(bytes32 id) external;
    function makeDeposit(uint _deposit) external payable returns (uint);
@@ -83,11 +83,10 @@ contract Scrypt {
       tru.approve(truebit, 1000);
       truebit.makeDeposit(1000);
       // string memory bstr = ;
-      bytes32 task = truebit.createTaskWithParams(filesystem.getInitHash(bundle), 1, 1, idToString(bundle), 1, 1, 20, 20, 8, 20, 10);
+      bytes32 task = truebit.createTaskWithParams(filesystem.getInitHash(bundle), 1, 1, idToString(bundle), 1, 1, 20, 20, 8, 20, 10, 5000);
       truebit.requireFile(task, hashName("output.data"), 0);
       truebit.commitRequiredFiles(task);
       task_to_string[task] = data;
-      
       return filesystem.getInitHash(bundle);
    }
 

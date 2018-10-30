@@ -141,7 +141,7 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
         }
     }
     
-    async function setupVMWithFS(taskInfo) {
+    async function setupVMWithFS_aux(taskInfo) {
         let taskID = taskInfo.taskID
         let storageAddress = taskInfo.storageAddress
         if (taskInfo.storageType == merkleComputer.StorageType.BLOCKCHAIN) {
@@ -210,6 +210,16 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
         }
     }
     
+    async function setupVMWithFS(taskInfo) {
+        let vm = await setupVMWithFS_aux(taskInfo)
+        let init = await vm.initializeWasmTask()
+        if (init.hash != taskInfo.initStateHash) {
+            logger.error(`Task was ill-formed: got initial state ${init.hash}, but ${taskInfo.initStateHash} was given by the task giver`)
+            throw new Error("Ill formed task")
+        }
+        return vm
+    }
+
     function makeSecret(data) {
         return web3.utils.soliditySha3(data+secret).substr(2)
     }
