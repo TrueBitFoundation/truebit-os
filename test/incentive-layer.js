@@ -19,7 +19,7 @@ function setup(web3) {
 describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
     this.timeout(60000)
 
-    let incentiveLayer, tru, taskGiver, solver, verifier, accounts
+    let incentiveLayer, tru, taskGiver, solver, verifier, accounts, dummy
     let minDeposit, taskID, randomBits, randomBitsHash, solution0Hash, solution1Hash, web3
 
     before(async () => {
@@ -35,6 +35,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	taskGiver = os.accounts[0]
 	solver = os.accounts[1]
 	verifier = os.accounts[2]
+	dummy = os.accounts[3]
 
 	accounts = [taskGiver, solver, verifier]
 
@@ -61,8 +62,16 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 
 	    assert(deposit > 1)
 	    
-	}	
+	}
 	
+    })
+
+    it("should reject making a deposit of zero", async () => {
+	return incentiveLayer.makeDeposit(minDeposit, { from: dummy })
+	    .then(
+		() => Promise.reject(new Error('Expected method to reject')),
+		err => assert(err instanceof Error)
+	    )
     })
 
     it("task giver should create a task", async () => {
