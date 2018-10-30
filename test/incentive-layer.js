@@ -316,5 +316,24 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	assert(log.args.taskID)
 	assert(log.args.randomBits)
     })
+
+    describe("forced error mechanism", async () => {
+
+	const n = 1000
+	let count = 0
+
+	before(async () => {
+	    for(let i = 0; i < n; i++) {
+		let r = Math.floor((Math.random() * 100000) + 1)
+		let hash = web3.utils.soliditySha3(r)
+		if(await incentiveLayer.isForcedError.call(r, hash)) count++
+	    }
+	})
+
+	it("should have forced error rate above 45%", () => {
+	    console.log(count + " forced errors out of " + n)
+	    assert((count / n) > 0.45)
+	})
+    })
     
 })
