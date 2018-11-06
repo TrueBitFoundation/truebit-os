@@ -40,6 +40,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         uint8 callSize;
         uint8 globalsSize;
         uint8 tableSize;
+        uint32 gasLimit;
     }
 
     event DepositBonded(bytes32 taskID, address account, uint amount);
@@ -202,6 +203,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         params.globalsSize = 8;
         params.tableSize = 8;
         params.callSize = 10;
+        params.gasLimit = 0;
     }
 
     // @dev – taskGiver creates tasks to be solved.
@@ -257,7 +259,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     }
 
     function createTaskWithParams(bytes32 initTaskHash, CodeType codeType, StorageType storageType, string storageAddress, uint maxDifficulty, uint reward,
-                                  uint8 stack, uint8 mem, uint8 globals, uint8 table, uint8 call) public returns (bytes32) {
+                                  uint8 stack, uint8 mem, uint8 globals, uint8 table, uint8 call, uint32 limit) public returns (bytes32) {
         bytes32 id = createTaskAux(initTaskHash, codeType, storageType, storageAddress, maxDifficulty, reward);
         VMParameters storage param = vmParams[id];
         require(stack > 5 && mem > 5 && globals > 5 && table > 5 && call > 5);
@@ -267,6 +269,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         param.globalsSize = globals;
         param.tableSize = table;
         param.callSize = call;
+        param.gasLimit = limit;
         
         return id;
     }
@@ -649,9 +652,9 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         return tasks[taskID].finalityCode;
     }
 
-    function getVMParameters(bytes32 taskID) public view returns (uint8, uint8, uint8, uint8, uint8) {
+    function getVMParameters(bytes32 taskID) public view returns (uint8, uint8, uint8, uint8, uint8, uint32) {
         VMParameters storage params = vmParams[taskID];
-        return (params.stackSize, params.memorySize, params.globalsSize, params.tableSize, params.callSize);
+        return (params.stackSize, params.memorySize, params.globalsSize, params.tableSize, params.callSize, params.gasLimit);
     }
 
     function getTaskInfo(bytes32 taskID) public view returns (address, bytes32, CodeType, StorageType, string, bytes32) {
