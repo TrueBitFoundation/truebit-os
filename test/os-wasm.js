@@ -1,21 +1,17 @@
 const assert = require('assert')
-
 const timeout = require('../os/lib/util/timeout')
-
 const BigNumber = require('bignumber.js')
-
 const mineBlocks = require('../os/lib/util/mineBlocks')
-
 const fs = require('fs')
-
 const logger = require('../os/logger')
 
-let os
+let os, accounting
 
 let taskSubmitter
 
 before(async () => {
     os = await require('../os/kernel')("./wasm-client/config.json")
+    accounting = await require('../os/lib/util/accounting')(os)
 })
 
 describe('Truebit OS WASM', async function() {
@@ -48,7 +44,8 @@ describe('Truebit OS WASM', async function() {
 
 	let taskID
 	
-	let originalBalance
+	let tgBalanceEth, sBalanceEth
+	let tgBalanceTru, sBalanceTru
 
 	let storageAddress, initStateHash
 	
@@ -58,12 +55,24 @@ describe('Truebit OS WASM', async function() {
 	    
 	    killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0], os.logger)
 	    killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger)
-	    originalBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
+	    tgBalanceEth = await accounting.ethBalance(os.accounts[0])
+	    sBalanceEth = await accounting.ethBalance(os.accounts[1])
+
+	    tgBalanceTru = await accounting.truBalance(os.accounts[0])
+	    sBalanceTru = await accounting.truBalance(os.accounts[1])
+	    	    
 	})
 
-	after(() => {
+	after(async () => {
 	    killTaskGiver()
 	    killSolver()
+
+	    await accounting.ethReportDif(tgBalanceEth, os.accounts[0], "TaskGiver")
+	    await accounting.ethReportDif(sBalanceEth, os.accounts[1], "Solver")
+
+	    await accounting.truReportDif(tgBalanceTru, os.accounts[0], "TaskGiver")
+	    await accounting.truReportDif(sBalanceTru, os.accounts[1], "Solver")
+	    
 	})
 	
 	it('should submit task', async () => {

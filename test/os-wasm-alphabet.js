@@ -43,10 +43,6 @@ describe('Truebit OS WASM Alphabet', async function() {
     it('should have a solver', () => {
     	assert(os.solver)
     })
-
-    // it('should have a verifier', () => {
-    // 	assert(os.verifier)
-    // })
     
     describe('Normal task lifecycle', async () => {
 	let killTaskGiver
@@ -58,6 +54,8 @@ describe('Truebit OS WASM Alphabet', async function() {
 	let originalBalance
 
 	let storageAddress, initStateHash, bundleID
+
+	let tgBalance, sBalance
 	
 
 	before(async () => {
@@ -65,11 +63,9 @@ describe('Truebit OS WASM Alphabet', async function() {
 	    
 	    killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0], os.logger)
 	    killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger, fileSystem)
-	    originalBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
-
 	})
 
-	after(() => {
+	after(async () => {
 	    killTaskGiver()
 	    killSolver()
 	})
@@ -103,16 +99,5 @@ describe('Truebit OS WASM Alphabet', async function() {
 	    assert(Object.keys(os.taskGiver.getTasks()))
 	})
 	
-	// it('should have a higher balance', async () => {
-
-	//     await mineBlocks(os.web3, 110)
-
-	//     await timeout(5000)
-
-	//     const newBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
-	//     console.log(newBalance)
-	//     console.log(originalBalance)
-	//     assert(originalBalance.isLessThan(newBalance))
-	// })
     })
 })
