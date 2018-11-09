@@ -14,9 +14,13 @@ If you want to talk to the developers working on this project feel free to say h
 
 # Getting Started
 
-An ethereum client running on port 8545, and an ipfs daemon at port 5001. For a quick start, ganarch-cli is a blockchain emulator as an alternative that saves overhead cost of running a actual ethereum node.  
+An ethereum client running on port 8545, and an ipfs daemon at port 5001. For a quick start, ganache-cli is a blockchain emulator that can be used for development.
 
-You will also need the latest version of solidity compiler installed and available on your path. Please refer to [its documentation](https://solidity.readthedocs.io/en/v0.4.21/installing-solidity.html) to install its binary package. 
+```
+npm i -g ganache-cli
+```
+
+You will also need the latest version of solidity compiler installed and available on your path. Please refer to [its documentation](https://solidity.readthedocs.io/) to install its binary package.
 
 ## Installation
 
