@@ -17,12 +17,13 @@ const ipfs = require('ipfs-api')(host, '5001', {protocol: 'http'})
 
 const fileSystem = merkleComputer.fileSystem(ipfs)
 
-let os
+let os, accounting
 
 let taskSubmitter
 
 before(async () => {
     os = await require('../os/kernel')("./wasm-client/config.json")
+    accounting = await require('../os/lib/util/accounting')(os)    
 })
 
 describe('Truebit OS WASM Alphabet', async function() {
@@ -51,11 +52,9 @@ describe('Truebit OS WASM Alphabet', async function() {
 
 	let taskID
 	
-	let originalBalance
+	let tgBalanceEth, sBalanceEth, tgBalanceTru, sBalanceTru
 
 	let storageAddress, initStateHash, bundleID
-
-	let tgBalance, sBalance
 	
 
 	before(async () => {
@@ -63,11 +62,25 @@ describe('Truebit OS WASM Alphabet', async function() {
 	    
 	    killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0], os.logger)
 	    killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger, fileSystem)
+
+	    tgBalanceEth = await accounting.ethBalance(os.accounts[0])
+	    sBalanceEth = await accounting.ethBalance(os.accounts[1])
+
+	    tgBalanceTru = await accounting.truBalance(os.accounts[0])
+	    sBalanceTru = await accounting.truBalance(os.accounts[1])
+	    
 	})
 
 	after(async () => {
 	    killTaskGiver()
 	    killSolver()
+
+	    await accounting.ethReportDif(tgBalanceEth, os.accounts[0], "TaskGiver")
+	    await accounting.ethReportDif(sBalanceEth, os.accounts[1], "Solver")
+
+	    await accounting.truReportDif(tgBalanceTru, os.accounts[0], "TaskGiver")
+	    await accounting.truReportDif(sBalanceTru, os.accounts[1], "Solver")
+	    
 	})
 
 	it('should submit task', async () => {

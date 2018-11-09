@@ -32,10 +32,6 @@ describe('Truebit OS WASM', async function() {
     it('should have a solver', () => {
     	assert(os.solver)
     })
-
-    // it('should have a verifier', () => {
-    // 	assert(os.verifier)
-    // })
     
     describe('Normal task lifecycle', async () => {
 	let killTaskGiver
