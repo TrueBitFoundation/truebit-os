@@ -47,7 +47,7 @@ async function deploy() {
     let exchangeRateOracle = await deployContract('ExchangeRateOracle', {from: accounts[0], gas: 1000000})
     let incentiveLayer = await deployContract('IncentiveLayer', {from: accounts[0], gas: 5200000}, [tru._address, exchangeRateOracle._address, interactive._address, fileSystem._address])
     
-    tru.methods.transferOwnership(incentiveLayer._address).send({from: accounts[0], gas: 1000000})
+    // tru.methods.transferOwnership(incentiveLayer._address).send({from: accounts[0], gas: 1000000})
 
     let wait = 0
     if (networkName == "kovan") wait = 10000
@@ -69,9 +69,14 @@ async function deploy() {
     await exchangeRateOracle.methods.updateExchangeRate(TRUperUSD).send({from: accounts[0]})
 
     // Mint tokens for testing
-    accounts.forEach(addr => {
-        tru.methods.getTestTokens().send({from:addr, gas: 300000})
+    accounts.forEach(async addr => {
+        await tru.methods.addMinter(addr).send({from:accounts[0], gas: 300000})
+        await tru.methods.mint(addr, "100000000000000000000000").send({from:addr, gas: 300000})
     })
+
+    if (networkName == "kovan" || networkName == "rinkeby" || networkName == "ropsten" || networkName == "private") {
+        tru.methods.enableFaucet().send({from:accounts[0], gas: 300000})
+    }
 
 }
 

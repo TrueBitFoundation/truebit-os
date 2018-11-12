@@ -238,25 +238,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
 	
     }
 
-    return {
-
-	getInitialHash: async (task) => {
-
-	    let [config, randomPath, codeBuf] = setupTaskConfiguration(task)
-
-	    let initHash
-
-	    if (task.files == []) {
-		initHash = await getInitHash(config, randomPath) 
-	    } else {
-		initHash = await getInitHash(config, randomPath)
-	    }
-
-	    return initHash
-	    
-	},
-
-        submitTask: async (task) => {
+    async function submitTask_aux(task) {
 
 	    let [config, randomPath, codeBuf] = setupTaskConfiguration(task)
 
@@ -335,6 +317,33 @@ module.exports = async (web3, logger, mcFileSystem) => {
             
             return id
 
+        }
+
+    return {
+
+	getInitialHash: async (task) => {
+
+	    let [config, randomPath, codeBuf] = setupTaskConfiguration(task)
+
+	    let initHash
+
+	    if (task.files == []) {
+		initHash = await getInitHash(config, randomPath) 
+	    } else {
+		initHash = await getInitHash(config, randomPath)
+	    }
+
+	    return initHash
+	    
+	},
+
+        submitTask: async (task) => {
+            try {
+                return await submitTask_aux(task)
+            }
+            catch (e) {
+                logger.error(`Cannot create task: ${e}`)
+            }
         }
     }
 }

@@ -21,9 +21,19 @@ contract MintableToken is StandardToken, Ownable {
     _;
   }
 
+  mapping (address => bool) minters;
+
   modifier hasMintPermission() {
-    require(msg.sender == owner);
+    require(minters[msg.sender]);
     _;
+  }
+
+  function addMinter(address a) public onlyOwner {
+    minters[a] = true;
+  }
+
+  function removeMinter(address a) public onlyOwner {
+    minters[a] = false;
   }
 
   /**

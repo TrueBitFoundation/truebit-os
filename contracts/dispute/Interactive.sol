@@ -93,6 +93,8 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
     mapping (bytes32 => Game) games;
     mapping (uint64 => CustomJudge) judges;
 
+    uint counter;
+
     // who should be able to 
     function registerJudge(uint64 id, address addr) public {
         judges[id] = CustomJudge(addr);
@@ -107,7 +109,8 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
     event SubGoal(bytes32 gameID, uint64 judge, bytes32 init_data, uint init_size, bytes32 ret_data, uint ret_size);
 
     function make(bytes32 taskID, address solver, address verifier, bytes32 startStateHash, bytes32 endStateHash, uint256 size, uint timeout) external returns (bytes32) {
-        bytes32 gameID = keccak256(abi.encodePacked(taskID, solver, verifier, startStateHash, endStateHash, size, timeout));
+        bytes32 gameID = keccak256(abi.encodePacked(taskID, solver, verifier, startStateHash, endStateHash, size, timeout, counter));
+        counter++;
         Game storage g = games[gameID];
         g.task_id = taskID;
         g.prover = solver;
