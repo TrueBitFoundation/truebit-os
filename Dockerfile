@@ -28,7 +28,7 @@ RUN wget https://dist.ipfs.io/go-ipfs/v0.4.17/go-ipfs_v0.4.17_linux-amd64.tar.gz
 RUN git clone https://github.com/TrueBitFoundation/truebit-os \
  && cd truebit-os \
  && git checkout docker \
- && npm i \
+ && npm i --production\
  && npm run deps \
  && npm run compile
 

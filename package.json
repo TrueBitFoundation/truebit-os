@@ -9,7 +9,8 @@
     "compile": "./compile.sh",
     "deploy": "node deploy.js",
     "test": "mocha",
-    "truebit": "node ./cli/index.js"
+    "truebit": "node ./cli/index.js",
+    "coverage": "nyc mocha"
   },
   "keywords": [
     "to",
@@ -27,7 +28,8 @@
     "ipfs-api": "^14.3.7",
     "minimist": "^1.2.0",
     "mocha": "^5.2.0",
-    "npm": "^6.1.0",
+    "npm": "^6.4.1",
+    "nyc": "^13.1.0",
     "truffle-contract": "^3.0.5",
     "vorpal": "^1.12.0",
     "wasm-metering": "^0.2.1",

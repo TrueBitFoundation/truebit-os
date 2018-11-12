@@ -18,6 +18,7 @@ let taskSubmitter
 
 before(async () => {
     os = await require('../os/kernel')("./wasm-client/config.json")
+    accounting = await require('../os/lib/util/accounting')(os)        
 })
 
 describe('Truebit OS WASM Challenge', async function() {
@@ -49,10 +50,10 @@ describe('Truebit OS WASM Challenge', async function() {
 	let killVerifier
 
 	let taskID
-	
-	let originalBalance
 
 	let storageAddress, initStateHash
+
+	let tgBalanceEth, sBalanceEth, tgBalanceTru, sBalanceTru, vBalanceEth, vBalanceTru	
 	
 
 	before(async () => {
@@ -61,13 +62,28 @@ describe('Truebit OS WASM Challenge', async function() {
 	    killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0], os.logger)
 	    killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger)
 	    killVerifier = await os.verifier.init(os.web3, os.accounts[2], os.logger, undefined, true, 1)
-	    originalBalance = new BigNumber(await os.web3.eth.getBalance(os.accounts[1]))
+
+	    tgBalanceEth = await accounting.ethBalance(os.accounts[0])
+	    sBalanceEth = await accounting.ethBalance(os.accounts[1])
+	    vBalanceEth = await accounting.ethBalance(os.accounts[2])	    
+
+	    tgBalanceTru = await accounting.truBalance(os.accounts[0])
+	    sBalanceTru = await accounting.truBalance(os.accounts[1])
+	    vBalanceTru = await accounting.truBalance(os.accounts[2])	 	    
 	})
 
-	after(() => {
+	after(async () => {
 	    killTaskGiver()
 	    killSolver()
 	    killVerifier()
+
+	    await accounting.ethReportDif(tgBalanceEth, os.accounts[0], "TaskGiver")
+	    await accounting.ethReportDif(sBalanceEth, os.accounts[1], "Solver")
+	    await accounting.ethReportDif(vBalanceEth, os.accounts[2], "Verifier")	    
+
+	    await accounting.truReportDif(tgBalanceTru, os.accounts[0], "TaskGiver")
+	    await accounting.truReportDif(sBalanceTru, os.accounts[1], "Solver")
+	    await accounting.truReportDif(vBalanceTru, os.accounts[2], "Verifier")	    
 	})
 
 	it('should submit task', async () => {

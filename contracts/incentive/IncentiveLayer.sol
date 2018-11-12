@@ -116,6 +116,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     mapping(bytes32 => Task) private tasks;
     mapping(bytes32 => Solution) private solutions;
     mapping(bytes32 => VMParameters) private vmParams;
+    mapping (bytes32 => uint) challenges;    
 
     ExchangeRateOracle oracle;
     address disputeResolutionLayer; //using address type because in some cases it is IGameMaker, and others IDisputeResolutionLayer
@@ -145,7 +146,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     // @return – the user's deposit bonded for the task.
     function bondDeposit(bytes32 taskID, address account, uint amount) private returns (uint) {
         Task storage task = tasks[taskID];
-        require(deposits[msg.sender] >= amount);
+        require(deposits[account] >= amount);
         deposits[account] = deposits[account].sub(amount);
         task.bondedDeposits[account] = task.bondedDeposits[account].add(amount);
         emit DepositBonded(taskID, account, amount);
@@ -214,9 +215,10 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     // @return – boolean
     function createTaskAux(bytes32 initTaskHash, CodeType codeType, StorageType storageType, string storageAddress, uint maxDifficulty, uint reward) internal returns (bytes32) {
         // Get minDeposit required by task
+	require(maxDifficulty > 0);
         uint minDeposit = oracle.getMinDeposit(maxDifficulty);
         require(minDeposit > 0);
-	    require(reward > 0);
+	require(reward > 0);
         
         bytes32 id = keccak256(abi.encodePacked(initTaskHash, codeType, storageType, storageAddress, maxDifficulty, reward, numTasks));
         numTasks.add(1);
@@ -253,7 +255,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     function createTask(bytes32 initTaskHash, CodeType codeType, StorageType storageType, string storageAddress, uint maxDifficulty, uint reward) public returns (bytes32) {
         bytes32 id = createTaskAux(initTaskHash, codeType, storageType, storageAddress, maxDifficulty, reward);
         defaultParameters(id);
-	    commitRequiredFiles(id);
+	commitRequiredFiles(id);
         
         return id;
     }
@@ -413,9 +415,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
             return s.currentChallenger == msg.sender;
         }
         return false;
-    }
-
-    mapping (bytes32 => uint) challenges;
+    }    
 
     // @dev – verifier submits a challenge to the solution provided for a task
     // verifiers can call this until task giver changes state or timeout
@@ -505,7 +505,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
             s.solution0Challengers.length = 0;
         }
 
-        if (isForcedError(t.randomBits, t.blockhash)) { // this if statement will make this function tricky to test
+        if (isForcedError(t.randomBits, t.blockhash)) {
             rewardJackpot(taskID);
         }
 
@@ -515,7 +515,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         t.lastBlock = block.number;
     }
 
-    function isForcedError(uint randomBits, bytes32 bh) internal view returns (bool) {
+    function isForcedError(uint randomBits, bytes32 bh) public view returns (bool) {
         return (uint(keccak256(abi.encodePacked(randomBits, bh)))%1000000 < forcedErrorThreshold);
     }
 
@@ -658,7 +658,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     }
 
     function getTaskInfo(bytes32 taskID) public view returns (address, bytes32, CodeType, StorageType, string, bytes32) {
-	    Task storage t = tasks[taskID];
+	Task storage t = tasks[taskID];
         return (t.owner, t.initTaskHash, t.codeType, t.storageType, t.storageAddress, taskID);
     }
 

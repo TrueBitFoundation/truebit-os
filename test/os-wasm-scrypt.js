@@ -16,9 +16,7 @@ const contractsConfig = require('../wasm-client/util/contractsConfig')
 
 const merkleComputer = require('../wasm-client/merkle-computer')()
 
-// const wasmClientConfig = JSON.parse(fs.readFileSync("./wasm-client/webasm-solidity/export/development.json"))
-
-let os
+let os, accounting
 
 const config = JSON.parse(fs.readFileSync("./wasm-client/config.json"))
 const info = JSON.parse(fs.readFileSync("./scrypt-data/info.json"))
@@ -44,8 +42,9 @@ let web3
 
 before(async () => {
     os = await require('../os/kernel')("./wasm-client/config.json")
-    account = os.accounts[0]
+    accounting = await require('../os/lib/util/accounting')(os)
     
+    account = os.accounts[0]
     web3 = os.web3
 })
 
@@ -83,8 +82,6 @@ describe('Truebit OS WASM Scrypt test', async function() {
 	let killSolver
 
 	let taskID
-	
-	let originalBalance
 
 	let storageAddress, initStateHash, bundleID, cConfig
 
@@ -93,11 +90,23 @@ describe('Truebit OS WASM Scrypt test', async function() {
             tbFilesystem = await contract(web3.currentProvider, cConfig['fileSystem'])
             tru = await contract(web3.currentProvider, cConfig['tru'])
 	    killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger, fileSystem)
+
+	    tgBalanceEth = await accounting.ethBalance(account)
+	    sBalanceEth = await accounting.ethBalance(os.accounts[1])
+
+	    tgBalanceTru = await accounting.truBalance(account)
+	    sBalanceTru = await accounting.truBalance(os.accounts[1])	    
 	})
 
-	after(() => {
-            console.log("here")
+	after(async () => {
 	    killSolver()
+
+	    await accounting.ethReportDif(tgBalanceEth, account, "TaskGiver")
+	    await accounting.ethReportDif(sBalanceEth, os.accounts[1], "Solver")
+
+	    await accounting.truReportDif(tgBalanceTru, account, "TaskGiver")
+	    await accounting.truReportDif(sBalanceTru, os.accounts[1], "Solver")
+	    
 	})
 
 	it('should upload task code', async () => {
