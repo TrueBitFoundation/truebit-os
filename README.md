@@ -6,9 +6,7 @@
   <img src="./gundam-schematic.gif"/>
 </p>
 
-The Truebit OS is meant to be a general purpose platform for interactive verification games. The benefit of it is that users are not locked into a particular client, but can build their own and then host it on the Truebit platform. Benefitting from the time we spend on development and research for solving problems related to running interactive verification games on a blockchain.
-
-Check out this [example](https://github.com/TrueBitFoundation/example-app) application to learn you how to integrate Truebit into your Dapp.
+The basic components of an operating system are a kernel designed to manage processes and resources. An OS also contains a shell to abstract over such a kernel. We have our own kernel module designed to manage processes and utilities related to using the Truebit protocol. We also provide a nice CLI (shell) to interface with this kernel. If you want to be a miner (solver/verifier) in our network you can follow the instructions below to setup your node with Docker. For technical reasons, this repository also contains all of our smart contracts.  If you are interested in interfacing with Truebit via smart contract you'll want to check out this [example](https://github.com/TrueBitFoundation/example-app) application. It demonstrates how to use Truebit-OS as a dependency in your own development process. 
 
 If you want to talk to the developers working on this project feel free to say hello on our [Gitter](https://gitter.im/TrueBitFoundation/Lobby)
 
