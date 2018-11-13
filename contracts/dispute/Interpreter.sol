@@ -79,5 +79,33 @@ contract Interpreter is CommonOffchain {
         }
         return (int64(vm_r.stack[0]), vm.pc, keccak256(abi.encodePacked(vm_r.stack)));
     }
+
+    function run3(uint limit, bytes32[] code) public returns (bytes32, uint, uint, uint, uint) {
+        vm_r.code = code;
+        vm_r.stack.length = 4;
+        vm_r.mem.length = 4;
+        vm_r.globals.length = 4;
+        vm_r.calltable.length = 4;
+        vm_r.calltypes.length = 4;
+        vm_r.call_stack.length = 4;
+        vm_r.input_size.length = 4;
+        /*
+        vm.pc = pc;
+        vm.stack_ptr = stack_ptr;
+        vm.call_ptr = call_ptr;
+        vm.memsize = memsize;
+        */
+
+        while (limit > 0) {
+            performPhase();
+            limit--;
+        }
+
+        bytes32 s_top = 0;
+        if (vm_r.stack.length > 0) s_top = bytes32(vm_r.stack[0]);
+
+        return (s_top, vm.pc, m.reg1, m.reg2, getHint(3));
+        // return (s_top, vm.pc, vm.stack_ptr, 0);
+    }
 }
 
