@@ -38,10 +38,10 @@ async function deploy() {
     console.log("Writing to", filename)
 
     let accounts = await web3.eth.getAccounts()
-    let fileSystem = await deployContract('Filesystem', {from: accounts[0], gas: 3500000})
+    let fileSystem = await deployContract('Filesystem', {from: accounts[0], gas: 5500000})
     let judge = await deployContract('Judge', {from: accounts[0], gas: 5600000})
     
-    let interactive = await deployContract('Interactive', {from: accounts[0], gas: 3500000}, [judge._address])
+    let interactive = await deployContract('Interactive', {from: accounts[0], gas: 5500000}, [judge._address])
 
     let tru = await deployContract('TRU', {from: accounts[0], gas: 2000000})
     let exchangeRateOracle = await deployContract('ExchangeRateOracle', {from: accounts[0], gas: 1000000})

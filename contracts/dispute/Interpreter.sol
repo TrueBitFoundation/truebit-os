@@ -1,4 +1,4 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.5.0;
 
 import "./CommonOffchain.sol";
 
@@ -21,8 +21,8 @@ contract Interpreter is CommonOffchain {
     *
     * @return return the wasm module's return value
     */
-    function run(bytes32[] code, bytes32[] stack, bytes32[] mem, bytes32[] globals, bytes32[] calltable,
-                 bytes32[] calltypes, bytes32[] call_stack, bytes32[] input,
+    function run(bytes32[] memory code, bytes32[] memory stack, bytes32[] memory mem, bytes32[] memory globals, bytes32[] memory calltable,
+                 bytes32[] memory calltypes, bytes32[] memory call_stack, bytes32[] memory input,
                  uint pc, uint stack_ptr, uint call_ptr, uint memsize) public returns (int64) {
         vm_r.code = code;
         vm_r.stack = stack;
@@ -41,7 +41,7 @@ contract Interpreter is CommonOffchain {
         while (vm_r.code[vm.pc] != 0x0000000000000000000000000000000000000000040006060001000106000000) {
             performPhase();
         } */
-        return int64(vm_r.stack[0]);
+        return int64(uint256(vm_r.stack[0]));
     }
 
     /**
@@ -57,8 +57,8 @@ contract Interpreter is CommonOffchain {
     *
     * @return return the top of stack, the program counter and the stack
     */
-    function run2(uint limit, bytes32[] code,
-                  uint[] roots,
+    function run2(uint limit, bytes32[] memory code,
+                  uint[] memory roots,
                  uint pc, uint stack_ptr, uint call_ptr, uint memsize) public returns (int64, uint, bytes32) {
         vm_r.code = code;
         vm_r.stack.length = roots[0];
@@ -77,10 +77,10 @@ contract Interpreter is CommonOffchain {
             performPhase();
             limit--;
         }
-        return (int64(vm_r.stack[0]), vm.pc, keccak256(abi.encodePacked(vm_r.stack)));
+        return (int64(uint256(vm_r.stack[0])), vm.pc, keccak256(abi.encodePacked(vm_r.stack)));
     }
 
-    function run3(uint limit, bytes32[] code) public returns (bytes32, uint, uint, uint, uint) {
+    function run3(uint limit, bytes32[] memory code) public returns (bytes32, uint, uint, uint, uint) {
         vm_r.code = code;
         vm_r.stack.length = 4;
         vm_r.mem.length = 4;

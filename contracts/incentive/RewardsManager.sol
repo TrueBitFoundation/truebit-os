@@ -1,4 +1,4 @@
-pragma solidity^0.4.18;
+pragma solidity ^0.5.0;
 
 import "../openzeppelin-solidity/SafeMath.sol";
 import "./TRU.sol";
@@ -19,7 +19,7 @@ contract RewardsManager {
         _;
     }
 
-    constructor(address _tru) public {
+    constructor(address payable _tru) public {
         owner = msg.sender;
         token = TRU(_tru);
     }

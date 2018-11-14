@@ -1,4 +1,4 @@
-pragma solidity ^0.4.16;
+pragma solidity ^0.5.0;
 
 contract Onchain {
 
@@ -43,7 +43,7 @@ contract Onchain {
 
     bytes32 state;
 
-    function setVM(bytes32[10] roots, uint[4] pointers) internal {
+    function setVM(bytes32[10] memory roots, uint[4] memory pointers) internal {
         vm_r.code = roots[0];
         vm_r.stack = roots[1];
         vm_r.mem = roots[2];
@@ -173,7 +173,7 @@ contract Onchain {
 
     function getRoot2_16(uint loc) internal view returns (bytes32) {
         require(proof2.length >= 2);
-        bytes32 res = keccak256(abi.encodePacked(uint128(proof2[0]), uint128(proof2[1])));
+        bytes32 res = keccak256(abi.encodePacked(uint128(uint256(proof2[0])), uint128(uint256(proof2[1]))));
         for (uint i = 2; i < proof2.length; i++) {
             loc = loc/2;
             if (loc%2 == 0) res = keccak256(abi.encodePacked(res, proof2[i]));
@@ -279,9 +279,10 @@ contract Onchain {
         state = hashMachine();
     }
 
-    function setNthByte(uint a, uint n, uint8 bte) pure internal returns (bytes16) {
+    function setNthByte(uint a, uint n, uint8 bte) pure internal returns (bytes32) {
        uint mask = uint(-1)*(2**(8*(15-n))) | uint(-1)/(2**(8*(15-n+1)));
-       return bytes16(uint128(bytes32((a&mask) | (2**(8*(15-n)))*uint256(bte))));
+       // Check 0.5.0
+       return bytes32(bytes16(uint128((a&mask) | (2**(8*(15-n)))*uint256(bte))));
     }
 
     function setInputData(uint loc, uint loc2, uint v) internal {
@@ -517,7 +518,7 @@ contract Onchain {
     }
 
     function setTableSize(uint sz) internal {
-        bytes32 res = bytes32(uint32(-1));
+        bytes32 res = bytes32(uint256(uint32(-1)));
         debugb = res;
         for (uint i = 0; i < sz; i++) res = keccak256(abi.encodePacked(res, res));
         vm_r.calltable = res;
