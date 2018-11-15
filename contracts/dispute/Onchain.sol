@@ -281,8 +281,7 @@ contract Onchain {
 
     function setNthByte(uint a, uint n, uint8 bte) pure internal returns (bytes32) {
        uint mask = uint(-1)*(2**(8*(15-n))) | uint(-1)/(2**(8*(15-n+1)));
-       // Check 0.5.0
-       return bytes32(bytes16(uint128((a&mask) | (2**(8*(15-n)))*uint256(bte))));
+       return bytes32((a&mask) | (2**(8*(15-n)))*uint256(bte));
     }
 
     function setInputData(uint loc, uint loc2, uint v) internal {
