@@ -130,28 +130,28 @@ module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath) => {
         init: (config, path) => {
             return {
                 initializeWasmTask: async (interpreterArgs = []) => {
-                    let stdout = await exec(config, ["-m", "-input"], interpreterArgs, path)
+                    let stdout = await exec(config, ["-m", "-disable-float", "-input"], interpreterArgs, path)
                     return JSON.parse(stdout)
                 },
 
                 executeWasmTask: async(interpreterArgs = []) => {
-                    let stdout = await exec(config, ["-m", "-output"], interpreterArgs, path)
+                    let stdout = await exec(config, ["-m", "-disable-float", "-output"], interpreterArgs, path)
                     return JSON.parse(stdout)
                 },
 
                 getLocation: async(stepNumber, interpreterArgs = []) => {
-                    let stdout = await exec(config, ["-m", "-location", stepNumber], interpreterArgs, path)
+                    let stdout = await exec(config, ["-m", "-disable-float", "-location", stepNumber], interpreterArgs, path)
 
                     return JSON.parse(stdout)
                 },
 
                 getStep: async(stepNumber, interpreterArgs = []) => {
-                    let stdout = await exec(config, ["-m", "-step", stepNumber], interpreterArgs, path)
+                    let stdout = await exec(config, ["-m", "-disable-float", "-step", stepNumber], interpreterArgs, path)
 
                     return JSON.parse(stdout)
                 },
                 fileProofs: async (interpreterArgs = []) => {
-                    let stdout = await exec(config, ["-m", "-input2", "-input-proofs"], interpreterArgs, path)
+                    let stdout = await exec(config, ["-m", "-disable-float", "-input2", "-input-proofs"], interpreterArgs, path)
                     return JSON.parse(stdout)
                 },
 

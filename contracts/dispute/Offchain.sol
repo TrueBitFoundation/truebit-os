@@ -1,4 +1,4 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.5.0;
 
 /**
 * @title collection of getter and setter methods for manipulating the WASM runtime and initialization
@@ -40,11 +40,34 @@ contract Offchain {
     
     uint debug;
     
-    function checkReadAccess(uint /* loc */, uint /* hint */) internal pure returns (bool) {
+    function checkReadAccess(uint loc, uint hint) internal view returns (bool) {
+        if (hint == 5) return loc < vm_r.globals.length;
+        else if (hint == 6) return loc < vm_r.stack.length;
+        else if (hint == 7) return loc < vm_r.stack.length;
+        else if (hint == 8) return loc < vm_r.stack.length;
+        else if (hint == 9) return loc < vm_r.stack.length;
+        else if (hint == 14) return loc < vm_r.call_stack.length;
+        else if (hint == 15) return loc < vm_r.mem.length;
+        else if (hint == 16) return loc < vm_r.calltable.length;
+        else if (hint == 17) return loc < vm_r.mem.length;
+        else if (hint == 18) return loc < vm_r.calltypes.length;
+        else if (hint == 19) return loc < vm_r.input_size.length;
+        else if (hint == 0x16) return loc < vm_r.stack.length;
         return true;
     }
     
-    function checkWriteAccess(uint /* loc */, uint /* hint */) internal pure returns (bool) {
+    function checkWriteAccess(uint loc, uint hint) internal view returns (bool) {
+        if (hint & 0xc0 == 0x80) return loc < vm_r.mem.length;
+        else if (hint & 0xc0 == 0xc0) return loc < vm_r.mem.length;
+        else if (hint == 2) return loc < vm_r.stack.length;
+        else if (hint == 3) return loc < vm_r.stack.length;
+        else if (hint == 4) return loc < vm_r.stack.length;
+        else if (hint == 6) return loc < vm_r.call_stack.length;
+        else if (hint == 8) return loc < vm_r.globals.length;
+        else if (hint == 9) return loc < vm_r.stack.length;
+        else if (hint == 0x0a) return loc < vm_r.input_size.length;
+        else if (hint == 0x0e) return loc < vm_r.calltable.length;
+        else if (hint == 0x0f) return loc < vm_r.calltypes.length;
         return true;
     }
     
@@ -80,6 +103,8 @@ contract Offchain {
     function setTableSize(uint sz) internal {
         vm_r.calltable.length = 0;
         vm_r.calltable.length = 2**sz;
+        vm_r.calltypes.length = 0;
+        vm_r.calltypes.length = 2**sz;
     }
 
     function setTableTypesSize(uint sz) internal {

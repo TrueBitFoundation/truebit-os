@@ -1,17 +1,18 @@
-pragma solidity ^0.4.16;
+pragma solidity ^0.5.0;
 
 interface JudgeInterface {
-    function judge(bytes32[13] res, uint q,
-                        bytes32[] _proof, bytes32[] _proof2,
-                        bytes32 vm_, bytes32 op, uint[4] regs,
-                        bytes32[10] roots, uint[4] pointers) external returns (uint);
-    function judgeCustom(bytes32 state1, bytes32 state2, bytes32 ex_state, uint ex_reg, bytes32 op, uint[4] regs, bytes32[10] roots, uint[4] pointers, bytes32[] proof) external;
+    function judge(bytes32[13] calldata res, uint q,
+                        bytes32[] calldata _proof, bytes32[] calldata _proof2,
+                        bytes32 vm_, bytes32 op, uint[4] calldata regs,
+                        bytes32[10] calldata roots, uint[4] calldata pointers) external returns (uint);
+    function judgeCustom(bytes32 state1, bytes32 state2, bytes32 ex_state, uint ex_reg, bytes32 op, uint[4] calldata regs,
+     bytes32[10] calldata roots, uint[4] calldata pointers, bytes32[] calldata proof) external;
 
-    function checkFileProof(bytes32 state, bytes32[10] roots, uint[4] pointers, bytes32[] proof, uint loc) external returns (bool);
-    function checkProof(bytes32 hash, bytes32 root, bytes32[] proof, uint loc) external returns (bool);
+    function checkFileProof(bytes32 state, bytes32[10] calldata roots, uint[4] calldata pointers, bytes32[] calldata proof, uint loc) external returns (bool);
+    function checkProof(bytes32 hash, bytes32 root, bytes32[] calldata proof, uint loc) external returns (bool);
 
-    function calcStateHash(bytes32[10] roots, uint[4] pointers) external returns (bytes32);
-    function calcIOHash(bytes32[10] roots) external returns (bytes32);
+    function calcStateHash(bytes32[10] calldata roots, uint[4] calldata pointers) external returns (bytes32);
+    function calcIOHash(bytes32[10] calldata roots) external returns (bytes32);
 }
 
 interface CustomJudge {
@@ -164,7 +165,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
     VM vm;
     Roots vm_r;
 
-    function ccStateHash(bytes32[10] roots, uint[4] pointers) public returns (bytes32) {
+    function ccStateHash(bytes32[10] memory roots, uint[4] memory pointers) public returns (bytes32) {
         vm_r.code = roots[0];
         vm_r.stack = roots[1];
         vm_r.mem = roots[2];
@@ -212,7 +213,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         return keccak256(abi.encodePacked(arr));
     }
     
-    function initialize(bytes32 gameID, bytes32[10] s_roots, uint[4] s_pointers, uint _steps, bytes32[10] e_roots, uint[4] e_pointers) public returns (bytes32[10], uint[4], bytes32, bytes32) {
+    function initialize(bytes32 gameID, bytes32[10] memory s_roots, uint[4] memory s_pointers, uint _steps, bytes32[10] memory e_roots, uint[4] memory e_pointers) public returns (bytes32[10] memory, uint[4] memory, bytes32, bytes32) {
         Game storage g = games[gameID];
         require(msg.sender == g.next && g.state == State.Started);
         // check first state here
@@ -330,7 +331,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         i2 = g.idx2;
     }
 
-    function report(bytes32 gameID, uint i1, uint i2, bytes32[] arr) public returns (bool) {
+    function report(bytes32 gameID, uint i1, uint i2, bytes32[] memory arr) public returns (bool) {
         Game storage g = games[gameID];
         require(g.state == State.Running && arr.length == g.size && i1 == g.idx1 && i2 == g.idx2 && msg.sender == g.prover && g.prover == g.next);
         g.clock = block.number;
@@ -369,7 +370,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         return g.proof[idx];
     }
 
-    function postPhases(bytes32 gameID, uint i1, bytes32[13] arr) public {
+    function postPhases(bytes32 gameID, uint i1, bytes32[13] memory arr) public {
         Game storage g = games[gameID];
         require(g.state == State.NeedPhases && msg.sender == g.prover && g.next == g.prover && g.idx1 == i1);
         require(g.proof[g.idx1] == arr[0] && g.proof[g.idx1+1] == arr[12] && arr[12] != bytes32(0));
@@ -381,7 +382,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         emit PostedPhases(gameID, i1, arr);
     }
 
-    function getResult(bytes32 gameID)  public view returns (bytes32[13]) {
+    function getResult(bytes32 gameID)  public view returns (bytes32[13] memory) {
         return games[gameID].result;
     }
     
@@ -408,7 +409,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         return games[gameID].winner;
     }
 
-    function callJudge(bytes32 gameID, uint i1, uint q, bytes32[] proof, bytes32[] proof2, bytes32 vmHash, bytes32 op, uint[4] regs, bytes32[10] roots, uint[4] pointers) public {
+    function callJudge(bytes32 gameID, uint i1, uint q, bytes32[] memory proof, bytes32[] memory proof2, bytes32 vmHash, bytes32 op, uint[4] memory regs, bytes32[10] memory roots, uint[4] memory pointers) public {
         Game storage g = games[gameID];
         require(g.state == State.SelectedPhase && g.phase == q && msg.sender == g.prover && g.idx1 == i1 && g.next == g.prover);
         // for custom judge, use another method
@@ -434,7 +435,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
     }
 
     // some register should have the input size?
-    function callCustomJudge(bytes32 gameID, uint i1, bytes32 op, uint[4] regs, bytes32 custom_result, uint custom_size, bytes32[] custom_proof, bytes32[10] roots, uint[4] pointers) public {
+    function callCustomJudge(bytes32 gameID, uint i1, bytes32 op, uint[4] memory regs, bytes32 custom_result, uint custom_size, bytes32[] memory custom_proof, bytes32[10] memory roots, uint[4] memory pointers) public {
                         
         Game storage g = games[gameID];
         require(g.state == State.SelectedPhase && g.phase == 6 && msg.sender == g.prover && g.idx1 == i1 && g.next == g.prover);
@@ -456,15 +457,15 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         emit SubGoal(gameID, uint64(regs[3]), init_data, regs[1], custom_result, custom_size);        
     }
 
-    function checkFileProof(bytes32 state, bytes32[10] roots, uint[4] pointers, bytes32[] proof, uint loc) public returns (bool) {
+    function checkFileProof(bytes32 state, bytes32[10] memory roots, uint[4] memory pointers, bytes32[] memory proof, uint loc) public returns (bool) {
         return judge.checkFileProof(state, roots, pointers, proof, loc);
     }
     
-    function checkProof(bytes32 hash, bytes32 root, bytes32[] proof, uint loc) public returns (bool) {
+    function checkProof(bytes32 hash, bytes32 root, bytes32[] memory proof, uint loc) public returns (bool) {
         return judge.checkProof(hash, root, proof, loc);
     }
 
-    function calcStateHash(bytes32[10] roots, uint[4] pointers) public returns (bytes32) {
+    function calcStateHash(bytes32[10] memory roots, uint[4] memory pointers) public returns (bytes32) {
         return judge.calcStateHash(roots, pointers);
     }
     

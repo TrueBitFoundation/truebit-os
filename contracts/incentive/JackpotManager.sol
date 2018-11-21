@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.5.0;
 
 import "../openzeppelin-solidity/SafeMath.sol";
 import "./TRU.sol";
@@ -22,7 +22,7 @@ contract JackpotManager {
 
     event JackpotIncreased(uint amount);
 
-    constructor (address _TRU) public {
+    constructor (address payable _TRU) public {
         token = TRU(_TRU);
     }
 
@@ -48,14 +48,14 @@ contract JackpotManager {
         emit JackpotIncreased(_amount);
     } 
 
-    function setJackpotReceivers(address[] _challengers) internal returns (uint) {
+    function setJackpotReceivers(address[] memory _challengers) internal returns (uint) {
         jackpots[currentJackpotID].finalAmount = jackpots[currentJackpotID].amount;
         jackpots[currentJackpotID].challengers = _challengers;
         currentJackpotID = currentJackpotID + 1;
         return currentJackpotID - 1;
     }
 
-    function getJackpotReceivers(uint jackpotID) public view returns (address[]) {
+    function getJackpotReceivers(uint jackpotID) public view returns (address[] memory) {
         Jackpot storage j = jackpots[jackpotID];
         return j.challengers;
     }

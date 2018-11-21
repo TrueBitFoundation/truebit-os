@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.5.0;
 
 import "../openzeppelin-solidity/SafeMath.sol";
 import "./TRU.sol";
@@ -14,13 +14,13 @@ contract DepositsManager {
     event DepositWithdrawn(address who, uint amount);
 
     // @dev – the constructor
-    constructor(address _tru) public {
+    constructor(address payable _tru) public {
         owner = msg.sender;
         token = TRU(_tru);
     }
     
     // @dev - fallback does nothing since we only accept TRU tokens
-    function () public payable {
+    function () external payable {
         revert();
     }
 

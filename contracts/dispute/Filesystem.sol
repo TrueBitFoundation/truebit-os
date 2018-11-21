@@ -1,7 +1,7 @@
-pragma solidity ^0.4.16;
+pragma solidity ^0.5.0;
 
 interface Consumer {
-   function consume(bytes32 id, bytes32[] dta) external;
+   function consume(bytes32 id, bytes32[] calldata dta) external;
 }
 
 /* Calculate a merkle tree in solidity */
@@ -34,7 +34,7 @@ contract Filesystem {
 	}
     }
 
-    function createFileWithContents(string name, uint nonce, bytes32[] arr, uint sz) public returns (bytes32) {
+    function createFileWithContents(string memory name, uint nonce, bytes32[] memory arr, uint sz) public returns (bytes32) {
 	bytes32 id = keccak256(abi.encodePacked(msg.sender, nonce));
 	File storage f = files[id];
 	f.data = arr;
@@ -52,7 +52,7 @@ contract Filesystem {
     }
    
     // the IPFS file should have same contents and name
-    function addIPFSFile(string name, uint size, string hash, bytes32 root, uint nonce) public returns (bytes32) {
+    function addIPFSFile(string memory name, uint size, string memory hash, bytes32 root, uint nonce) public returns (bytes32) {
 	bytes32 id = keccak256(abi.encodePacked(msg.sender, nonce));
 	File storage f = files[id];
 	f.bytesize = size;
@@ -62,7 +62,7 @@ contract Filesystem {
 	return id;
     }
 
-    function getName(bytes32 id) public view returns (string) {
+    function getName(bytes32 id) public view returns (string memory) {
 	return files[id].name;
     }
    
@@ -70,7 +70,7 @@ contract Filesystem {
 	return hashName(files[id].name);
     }
    
-    function getHash(bytes32 id) public view returns (string) {
+    function getHash(bytes32 id) public view returns (string memory) {
 	return files[id].ipfs_hash;
     }
 
@@ -82,18 +82,18 @@ contract Filesystem {
 	files[id].bytesize = sz;
     }
 
-    function getData(bytes32 id) public view returns (bytes32[]) {
+    function getData(bytes32 id) public view returns (bytes32[] memory) {
 	File storage f = files[id];
 	return f.data;
     }
    
-    function getByteData(bytes32 id) public view returns (bytes) {
+    function getByteData(bytes32 id) public view returns (bytes memory) {
 	File storage f = files[id];
 	bytes memory res = new bytes(f.bytesize);
 	for (uint i = 0; i < f.data.length; i++) {
 	    bytes32 w = f.data[i];
 	    for (uint j = 0; j < 32; j++) {
-		byte b = byte(uint(w) >> (8*j));
+		byte b = byte(uint8(uint(w) >> (8*j)));
 		if (i*32 + j < res.length) res[i*32 + j] = b;
 	    }
 	}
@@ -137,10 +137,10 @@ contract Filesystem {
 	for (uint i = 0; i < 3; i++) res1 = keccak256(abi.encodePacked(res1, zero[i]));
        
 	bytes32 res2 = hashName(getName(file_id));
-	for (i = 0; i < 3; i++) res2 = keccak256(abi.encodePacked(res2, zero[i]));
+	for (uint i = 0; i < 3; i++) res2 = keccak256(abi.encodePacked(res2, zero[i]));
        
 	bytes32 res3 = getRoot(file_id);
-	for (i = 0; i < 3; i++) res3 = keccak256(abi.encodePacked(res3, zero[i]));
+	for (uint i = 0; i < 3; i++) res3 = keccak256(abi.encodePacked(res3, zero[i]));
        
 	b.init = keccak256(abi.encodePacked(code_init, res1, res2, res3));
 
@@ -151,7 +151,7 @@ contract Filesystem {
 
     bytes32 empty_file = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;
 
-    function finalizeBundleIPFS(bytes32 id, string file, bytes32 init) public {
+    function finalizeBundleIPFS(bytes32 id, string memory file, bytes32 init) public {
 	Bundle storage b = bundles[id];
 	bytes32[] memory res1 = new bytes32[](b.files.length);
 	bytes32[] memory res2 = new bytes32[](b.files.length);
@@ -168,7 +168,7 @@ contract Filesystem {
 	b.init = keccak256(abi.encodePacked(init, calcMerkle(res1, 0, 10), calcMerkle(res2, 0, 10), calcMerkleFiles(res3, 0, 10)));
     }
 
-    function debug_finalizeBundleIPFS(bytes32 id, string file, bytes32 init) public returns (bytes32, bytes32, bytes32, bytes32, bytes32) {
+    function debug_finalizeBundleIPFS(bytes32 id, string memory file, bytes32 init) public returns (bytes32, bytes32, bytes32, bytes32, bytes32) {
 	Bundle storage b = bundles[id];
 	bytes32[] memory res1 = new bytes32[](b.files.length);
 	bytes32[] memory res2 = new bytes32[](b.files.length);
@@ -201,22 +201,22 @@ contract Filesystem {
 	return b.init;
     }
    
-    function getCode(bytes32 bid) public view returns (bytes) {
+    function getCode(bytes32 bid) public view returns (bytes memory) {
 	Bundle storage b = bundles[bid];
 	return getCodeAtAddress(b.code);
     }
 
-    function getIPFSCode(bytes32 bid) public view returns (string) {
+    function getIPFSCode(bytes32 bid) public view returns (string memory) {
 	Bundle storage b = bundles[bid];
 	return b.code_file;
     }
    
-    function getFiles(bytes32 bid) public view returns (bytes32[]) {
+    function getFiles(bytes32 bid) public view returns (bytes32[] memory) {
 	Bundle storage b = bundles[bid];
 	return b.files;
     }
    
-    function getCodeAtAddress(address a) internal view returns (bytes) {
+    function getCodeAtAddress(address a) internal view returns (bytes memory) {
         uint len;
         assembly {
 	len := extcodesize(a)
@@ -228,51 +228,52 @@ contract Filesystem {
         return bs;
     }
 
-    function makeMerkle(bytes arr, uint idx, uint level) internal pure returns (bytes32) {
-	if (level == 0) return idx < arr.length ? bytes32(uint(arr[idx])) : bytes32(0);
+    function makeMerkle(bytes memory arr, uint idx, uint level) internal pure returns (bytes32) {
+	if (level == 0) return idx < arr.length ? bytes32(uint(uint8(arr[idx]))) : bytes32(0);
 	else return keccak256(abi.encodePacked(makeMerkle(arr, idx, level-1), makeMerkle(arr, idx+(2**(level-1)), level-1)));
     }
 
-    function calcMerkle(bytes32[] arr, uint idx, uint level) internal returns (bytes32) {
+    function calcMerkle(bytes32[] memory arr, uint idx, uint level) internal returns (bytes32) {
 	if (level == 0) return idx < arr.length ? arr[idx] : bytes32(0);
 	else if (idx >= arr.length) return zero[level];
 	else return keccak256(abi.encodePacked(calcMerkle(arr, idx, level-1), calcMerkle(arr, idx+(2**(level-1)), level-1)));
     }
 
-    function fileMerkle(bytes32[] arr, uint idx, uint level) internal returns (bytes32) {
-	if (level == 0) return idx < arr.length ? keccak256(abi.encodePacked(bytes16(arr[idx]), uint128(arr[idx]))) : keccak256(abi.encodePacked(bytes16(0), bytes16(0)));
+    function fileMerkle(bytes32[] memory arr, uint idx, uint level) internal returns (bytes32) {
+//	if (level == 0) return idx < arr.length ? keccak256(abi.encodePacked(bytes16(arr[idx]), uint128(arr[idx]))) : keccak256(abi.encodePacked(bytes16(0), bytes16(0)));
+	if (level == 0) return idx < arr.length ? keccak256(abi.encodePacked(arr[idx])) : keccak256(abi.encodePacked(bytes16(0), bytes16(0)));
 	else return keccak256(abi.encodePacked(fileMerkle(arr, idx, level-1), fileMerkle(arr, idx+(2**(level-1)), level-1)));
     }
 
-    function calcMerkleFiles(bytes32[] arr, uint idx, uint level) internal returns (bytes32) {
+    function calcMerkleFiles(bytes32[] memory arr, uint idx, uint level) internal returns (bytes32) {
 	if (level == 0) return idx < arr.length ? arr[idx] : empty_file;
 	else if (idx >= arr.length) return zero_files[level];
 	else return keccak256(abi.encodePacked(calcMerkleFiles(arr, idx, level-1), calcMerkleFiles(arr, idx+(2**(level-1)), level-1)));
     }
 
     // assume 256 bytes?
-    function hashName(string name) public pure returns (bytes32) {
+    function hashName(string memory name) public pure returns (bytes32) {
 	return makeMerkle(bytes(name), 0, 8);
     }
    
     // more efficient way to store data onchain in chunks
     mapping (bytes32 => uint) chunks;
    
-    function addChunk(bytes32[] arr, uint sz) public returns (bytes32) {
+    function addChunk(bytes32[] memory arr, uint sz) public returns (bytes32) {
         require( /* arr.length == 2**sz && */ arr.length > 1);
         bytes32 hash = fileMerkle(arr, 0, sz);
         chunks[hash] = sz;
         return hash;
     }
     
-    function combineChunks(bytes32[] arr, uint part_sz, uint sz) public {
+    function combineChunks(bytes32[] memory arr, uint part_sz, uint sz) public {
         require(arr.length == 2**sz && arr.length > 1);
         bytes32 hash = calcMerkle(arr, 0, sz);
         for (uint i = 0; i < arr.length; i++) require(chunks[arr[i]] == part_sz);
         chunks[hash] = sz+part_sz;
     }
 
-    function fileFromChunk(string name, bytes32 chunk, uint size) public returns (bytes32) {
+    function fileFromChunk(string memory name, bytes32 chunk, uint size) public returns (bytes32) {
         bytes32 id = keccak256(abi.encodePacked(msg.sender, chunk));
         require(chunks[chunk] != 0);
         File storage f = files[id];
@@ -285,24 +286,24 @@ contract Filesystem {
 
 contract FSUtils {
 
-    function idToString(bytes32 id) internal pure returns (string) {
+    function idToString(bytes32 id) internal pure returns (string memory) {
 	bytes memory res = new bytes(64);
-	for (uint i = 0; i < 64; i++) res[i] = bytes1(((uint(id) / (2**(4*i))) & 0xf) + 65);
+	for (uint i = 0; i < 64; i++) res[i] = bytes1(uint8(((uint(id) / (2**(4*i))) & 0xf) + 65));
 	return string(res);
     }
 
-    function makeMerkle(bytes arr, uint idx, uint level) internal pure returns (bytes32) {
-	if (level == 0) return idx < arr.length ? bytes32(uint(arr[idx])) : bytes32(0);
+    function makeMerkle(bytes memory arr, uint idx, uint level) internal pure returns (bytes32) {
+	if (level == 0) return idx < arr.length ? bytes32(uint(uint8(arr[idx]))) : bytes32(0);
 	else return keccak256(abi.encodePacked(makeMerkle(arr, idx, level-1), makeMerkle(arr, idx+(2**(level-1)), level-1)));
     }
 
-    function calcMerkle(bytes32[] arr, uint idx, uint level) internal returns (bytes32) {
+    function calcMerkle(bytes32[] memory arr, uint idx, uint level) internal returns (bytes32) {
 	if (level == 0) return idx < arr.length ? arr[idx] : bytes32(0);
 	else return keccak256(abi.encodePacked(calcMerkle(arr, idx, level-1), calcMerkle(arr, idx+(2**(level-1)), level-1)));
     }
 
     // assume 256 bytes?
-    function hashName(string name) internal pure returns (bytes32) {
+    function hashName(string memory name) internal pure returns (bytes32) {
 	return makeMerkle(bytes(name), 0, 8);
     }
 

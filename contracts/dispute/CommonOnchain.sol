@@ -1,4 +1,4 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.5.0;
 
 import "./Offchain.sol";
 import "./Onchain.sol";
@@ -369,7 +369,7 @@ contract CommonOnchain is Onchain, ALU {
         setCallPtr(handlePointer(getHint(8), getCallPtr()));
     }
     function performUpdateMemsize() internal {
-        if (getHint(12) == 1) setMemsize(getMemsize()+getReg1());
+        if (getHint(12) == 1) setMemsize(getReg1());
     }
     
     uint phase;

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5.0;
 
 import "../openzeppelin-solidity/MintableToken.sol";
 import "../openzeppelin-solidity/BurnableToken.sol";
@@ -32,7 +32,7 @@ contract TRU is MintableToken, BurnableToken {
         return true;
     }
 
-    function () public payable {
+    function () external payable {
         revert("Contract has disabled receiving ether");
     }
 

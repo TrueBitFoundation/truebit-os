@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.5.0;
 
 import "./DepositsManager.sol";
 import "./JackpotManager.sol";
@@ -11,7 +11,7 @@ import "../interface/IGameMaker.sol";
 import "../interface/IDisputeResolutionLayer.sol";
 
 interface Callback {
-    function solved(bytes32 taskID, bytes32[] files) external;
+    function solved(bytes32 taskID, bytes32[] calldata files) external;
     function cancelled(bytes32 taskID) external;
 }
 
@@ -123,7 +123,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     Filesystem fs;
     TRU tru;
 
-    constructor (address _TRU, address _exchangeRateOracle, address _disputeResolutionLayer, address fs_addr) 
+    constructor (address payable _TRU, address _exchangeRateOracle, address _disputeResolutionLayer, address fs_addr) 
         DepositsManager(_TRU) 
         JackpotManager(_TRU)
         RewardsManager(_TRU)
@@ -193,7 +193,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     // @param taskID – the task id.
     // @param account – the user's address.
     // @return – the user's bonded deposits for a task.
-    function getBondedDeposit(bytes32 taskID, address account) constant public returns (uint) {
+    function getBondedDeposit(bytes32 taskID, address account) view public returns (uint) {
         return tasks[taskID].bondedDeposits[account];
     }
 
@@ -213,7 +213,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     // @param taskData – tbd. could be hash of the wasm file on a filesystem.
     // @param numBlocks – the number of blocks to adjust for task difficulty
     // @return – boolean
-    function createTaskAux(bytes32 initTaskHash, CodeType codeType, StorageType storageType, string storageAddress, uint maxDifficulty, uint reward) internal returns (bytes32) {
+    function createTaskAux(bytes32 initTaskHash, CodeType codeType, StorageType storageType, string memory storageAddress, uint maxDifficulty, uint reward) internal returns (bytes32) {
         // Get minDeposit required by task
 	require(maxDifficulty > 0);
         uint minDeposit = oracle.getMinDeposit(maxDifficulty);
@@ -252,7 +252,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     // @param taskData – tbd. could be hash of the wasm file on a filesystem.
     // @param numBlocks – the number of blocks to adjust for task difficulty
     // @return – boolean
-    function createTask(bytes32 initTaskHash, CodeType codeType, StorageType storageType, string storageAddress, uint maxDifficulty, uint reward) public returns (bytes32) {
+    function createTask(bytes32 initTaskHash, CodeType codeType, StorageType storageType, string memory storageAddress, uint maxDifficulty, uint reward) public returns (bytes32) {
         bytes32 id = createTaskAux(initTaskHash, codeType, storageType, storageAddress, maxDifficulty, reward);
         defaultParameters(id);
 	commitRequiredFiles(id);
@@ -260,7 +260,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         return id;
     }
 
-    function createTaskWithParams(bytes32 initTaskHash, CodeType codeType, StorageType storageType, string storageAddress, uint maxDifficulty, uint reward,
+    function createTaskWithParams(bytes32 initTaskHash, CodeType codeType, StorageType storageType, string memory storageAddress, uint maxDifficulty, uint reward,
                                   uint8 stack, uint8 mem, uint8 globals, uint8 table, uint8 call, uint32 limit) public returns (bytes32) {
         bytes32 id = createTaskAux(initTaskHash, codeType, storageType, storageAddress, maxDifficulty, reward);
         VMParameters storage param = vmParams[id];
@@ -289,14 +289,14 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         emit TaskCreated(id, t.minDeposit, t.lastBlock, t.reward, t.tax, t.codeType, t.storageType, t.storageAddress);
     }
     
-    function getUploadNames(bytes32 id) public view returns (bytes32[]) {
+    function getUploadNames(bytes32 id) public view returns (bytes32[] memory) {
         RequiredFile[] storage lst = tasks[id].uploads;
         bytes32[] memory arr = new bytes32[](lst.length);
         for (uint i = 0; i < arr.length; i++) arr[i] = lst[i].nameHash;
         return arr;
     }
 
-    function getUploadTypes(bytes32 id) public view returns (StorageType[]) {
+    function getUploadTypes(bytes32 id) public view returns (StorageType[] memory) {
         RequiredFile[] storage lst = tasks[id].uploads;
         StorageType[] memory arr = new StorageType[](lst.length);
         for (uint i = 0; i < arr.length; i++) arr[i] = lst[i].fileStorage;
@@ -311,9 +311,9 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     function registerForTask(bytes32 taskID, bytes32 randomBitsHash) public returns(bool) {
         Task storage t = tasks[taskID];
         
-        require(!(t.owner == 0x0));
+        require(!(t.owner == address(0x0)));
         require(t.state == State.TaskInitialized);
-        require(t.selectedSolver == 0x0);
+        require(t.selectedSolver == address(0x0));
         
         bondDeposit(taskID, msg.sender, t.minDeposit);
         t.selectedSolver = msg.sender;
@@ -368,7 +368,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         
         // Reset task data to selected another solver
         t.state = State.TaskInitialized;
-        t.selectedSolver = 0x0;
+        t.selectedSolver = address(0x0);
         t.lastBlock = block.number;
         emit TaskCreated(taskID, t.minDeposit, t.lastBlock, t.reward, 1, t.codeType, t.storageType, t.storageAddress);
 
@@ -379,8 +379,9 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         Task storage t = tasks[taskID];
         t.state = State.TaskTimeout;
         delete t.selectedSolver;
-        if (!t.owner.call(abi.encodeWithSignature("cancel(bytes32)", taskID))) {
-        }
+        bool ok;
+        bytes memory res;
+        (ok, res) = t.owner.call(abi.encodeWithSignature("cancel(bytes32)", taskID));
     }
 
     function taskTimeout(bytes32 taskID) public {
@@ -568,7 +569,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         solutions[taskID].currentGame = gameID;
     }
     
-    function uploadFile(bytes32 id, uint num, bytes32 file_id, bytes32[] name_proof, bytes32[] data_proof, uint file_num) public returns (bool) {
+    function uploadFile(bytes32 id, uint num, bytes32 file_id, bytes32[] memory name_proof, bytes32[] memory data_proof, uint file_num) public returns (bool) {
         Task storage t = tasks[id];
         Solution storage s = solutions[id];
         RequiredFile storage file = t.uploads[num];
@@ -579,13 +580,13 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         return true;
     }
     
-    function getLeaf(bytes32[] proof, uint loc) internal pure returns (uint) {
+    function getLeaf(bytes32[] memory proof, uint loc) internal pure returns (uint) {
         require(proof.length >= 2);
         if (loc%2 == 0) return uint(proof[0]);
         else return uint(proof[1]);
     }
     
-    function getRoot(bytes32[] proof, uint loc) internal pure returns (bytes32) {
+    function getRoot(bytes32[] memory proof, uint loc) internal pure returns (bytes32) {
         require(proof.length >= 2);
         bytes32 res = keccak256(abi.encodePacked(proof[0], proof[1]));
         for (uint i = 2; i < proof.length; i++) {
@@ -597,7 +598,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         return res;
     }
     
-    function checkProof(bytes32 hash, bytes32 root, bytes32[] proof, uint loc) internal pure returns (bool) {
+    function checkProof(bytes32 hash, bytes32 root, bytes32[] memory proof, uint loc) internal pure returns (bool) {
         return uint(hash) == getLeaf(proof, loc) && root == getRoot(proof, loc);
     }
 
@@ -622,8 +623,9 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         t.finalityCode = 1; // Task has been completed
 
         payReward(taskID, t.selectedSolver);
-        if (!t.owner.call(abi.encodeWithSignature("solved(bytes32,bytes32[])", taskID, files))) {
-        }
+        bool ok;
+        bytes memory res;
+        (ok, res) = t.owner.call(abi.encodeWithSignature("solved(bytes32,bytes32[])", taskID, files));
         emit TaskFinalized(taskID);
         // Callback(t.owner).solved(taskID, files);
     }
@@ -657,12 +659,12 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         return (params.stackSize, params.memorySize, params.globalsSize, params.tableSize, params.callSize, params.gasLimit);
     }
 
-    function getTaskInfo(bytes32 taskID) public view returns (address, bytes32, CodeType, StorageType, string, bytes32) {
+    function getTaskInfo(bytes32 taskID) public view returns (address, bytes32, CodeType, StorageType, string memory, bytes32) {
 	Task storage t = tasks[taskID];
         return (t.owner, t.initTaskHash, t.codeType, t.storageType, t.storageAddress, taskID);
     }
 
-    function getSolutionInfo(bytes32 taskID) public view returns(bytes32, bytes32, bytes32, bytes32, CodeType, StorageType, string, address) {
+    function getSolutionInfo(bytes32 taskID) public view returns(bytes32, bytes32, bytes32, bytes32, CodeType, StorageType, string memory, address) {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
         return (taskID, s.solutionHash0, s.solutionHash1, t.initTaskHash, t.codeType, t.storageType, t.storageAddress, t.selectedSolver);
