@@ -98,7 +98,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         
         // uint lastBlock; // Used to check timeout
         uint timeoutBlock;
-        uint challengePeriod;
+        uint challengeTimeout;
     }
 
     struct Solution {
@@ -314,7 +314,8 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     // @return – boolean
     function registerForTask(bytes32 taskID, bytes32 randomBitsHash) public returns(bool) {
         Task storage t = tasks[taskID];
-        
+        VMParameters storage vm = vmParams[taskID];
+
         require(!(t.owner == address(0x0)));
         require(t.state == State.TaskInitialized);
         require(t.selectedSolver == address(0x0));
@@ -323,7 +324,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         t.selectedSolver = msg.sender;
         t.randomBitsHash = randomBitsHash;
         t.state = State.SolverSelected;
-        t.timeoutBlock = block.number + (1+t.gas/RUN_RATE);
+        t.timeoutBlock = block.number + (1+vm.gasLimit/RUN_RATE);
 
         // Burn task giver's taxes now that someone has claimed the task
         /*
@@ -352,8 +353,9 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         s.solutionHash1 = solutionHash1;
         s.solverConvicted = false;
         t.state = State.SolutionCommitted;
-        t.timeoutBlock = block.number + BASIC_TIMEOUT + IPFS_TIMEOUT + (1+t.gas/RUN_RATE);
-        t.challengePeriod = block.number; // Start of challenge period
+        VMParameters storage vm = vmParams[taskID];
+        t.timeoutBlock = block.number + BASIC_TIMEOUT + IPFS_TIMEOUT + (1+vm.gasLimit/RUN_RATE);
+        t.challengeTimeout = t.timeoutBlock; // End of challenge period
         emit SolutionsCommitted(taskID, t.minDeposit, t.codeType, t.storageType, t.storageAddress, solutionHash0, solutionHash1);
         return true;
     }
@@ -572,8 +574,10 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
 
     function verificationGame(bytes32 taskID, address solver, address challenger, bytes32 solutionHash) internal {
         Task storage t = tasks[taskID];
+        VMParameters storage params = vmParams[taskID];
         uint size = 1;
-        bytes32 gameID = IGameMaker(disputeResolutionLayer).make(taskID, solver, challenger, t.initTaskHash, solutionHash, size, BASIC_TIMEOUT+(1+t.gas/INTERPRET_RATE));
+        uint timeout = BASIC_TIMEOUT+(1+params.gasLimit/INTERPRET_RATE);
+        bytes32 gameID = IGameMaker(disputeResolutionLayer).make(taskID, solver, challenger, t.initTaskHash, solutionHash, size, timeout);
         solutions[taskID].currentGame = gameID;
     }
     
