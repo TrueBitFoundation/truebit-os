@@ -81,6 +81,20 @@ function execQueue() {
     execQueue()
 }
 
+function doExec(e, args, path) {
+    return new Promise(function (resolve, reject) {
+        singletonExec(e, args, { cwd: path }, function (error, stdout, stderr) {
+            if (stdout) {
+                resolve(stdout)
+            } else {
+                console.error(stderr)
+                reject(error)
+            }
+        })
+    })
+}
+    
+
 module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath) => {
 
 
@@ -135,6 +149,20 @@ module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath) => {
                 },
 
                 executeWasmTask: async(interpreterArgs = []) => {
+                    if (config.code_type != CodeType.WAST) {
+                        let jitout = await doExec("node", ["../jit.js"].concat(config.files), path)
+                        // logger.info(`solving with JIT: ${jitout}`)
+                        let stdout = await exec(config, ["-m", "-disable-float", "-input", "-input2"], interpreterArgs, path)
+                        // logger.info(`solved task ${stdout}`)
+                        return JSON.parse(stdout)
+                    }
+                    else {
+                        let stdout = await exec(config, ["-m", "-disable-float", "-output"], interpreterArgs, path)
+                        return JSON.parse(stdout)
+                    }
+                },
+
+                getOutputVM: async(interpreterArgs = []) => {
                     let stdout = await exec(config, ["-m", "-disable-float", "-output"], interpreterArgs, path)
                     return JSON.parse(stdout)
                 },

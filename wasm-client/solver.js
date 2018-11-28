@@ -250,9 +250,10 @@ module.exports = {
                 //Initialize verification game
                 let vm = tasks[taskID].vm
 
-                let solution = tasks[taskID].solution
+                // let solution = tasks[taskID].solution
 
                 let initWasm = await vm.initializeWasmTask(tasks[taskID].interpreterArgs)
+                let solution = await vm.getOutputVM(tasks[taskID].interpreterArgs)
 
                 let lowStep = 0
                 let highStep = solution.steps + 1
