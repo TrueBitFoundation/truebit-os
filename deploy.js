@@ -80,7 +80,8 @@ async function deploy() {
         interactive: exportContract(interactive),
         tru: exportContract(tru),
         exchangeRateOracle: exportContract(exchangeRateOracle),
-        incentiveLayer: exportContract(incentiveLayer)
+        incentiveLayer: exportContract(incentiveLayer),
+	jackpotManager: exportContract(jackpotManager)
     }))
 
     // Set exchange rate oracle for testing, main net should come from external data source (dex, oraclize, etc..)
