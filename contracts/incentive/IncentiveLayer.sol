@@ -15,10 +15,9 @@ interface Callback {
     function cancelled(bytes32 taskID) external;
 }
 
-contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
+contract IncentiveLayer is DepositsManager, RewardsManager {
 
     uint private numTasks = 0;
-    uint private forcedErrorThreshold = 500000; // should mean 100000/1000000 probability
     uint private taxMultiplier = 5;
 
     uint constant BASIC_TIMEOUT = 50;
@@ -126,10 +125,10 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
     address disputeResolutionLayer; //using address type because in some cases it is IGameMaker, and others IDisputeResolutionLayer
     Filesystem fs;
     TRU tru;
+    address jackpotManager; //using address because sometimes it is IForcedError, and others BaseJackpotManager
 
-    constructor (address payable _TRU, address _exchangeRateOracle, address _disputeResolutionLayer, address fs_addr) 
-        DepositsManager(_TRU) 
-        JackpotManager(_TRU)
+    constructor (address payable _TRU, address _exchangeRateOracle, address _disputeResolutionLayer, address fs_addr, address _jackpotManager) 
+        DepositsManager(_TRU)
         RewardsManager(_TRU)
         public 
     {
@@ -137,6 +136,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         oracle = ExchangeRateOracle(_exchangeRateOracle);
         fs = Filesystem(fs_addr);
         tru = TRU(_TRU);
+	jackpotManager = _jackpotManager;
     }
 
     function getBalance(address addr) public view returns (uint) {
@@ -186,7 +186,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
 
         delete task.bondedDeposits[account];
         if (bondedDeposit > toOpponent + task.cost*2) {
-            increaseJackpot(bondedDeposit - toOpponent - task.cost*2);
+            BaseJackpotManager(jackpotManager).increaseJackpot(bondedDeposit - toOpponent - task.cost*2);
             deposits[task.owner] += task.cost*2;
         }
         deposits[opponent] += toOpponent;
@@ -239,7 +239,7 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         deposits[msg.sender] = deposits[msg.sender].sub(reward + t.tax);
     
         depositReward(id, reward, t.tax);
-        increaseJackpot(t.tax);
+        BaseJackpotManager(jackpotManager).increaseJackpot(t.tax);
         
         t.initTaskHash = initTaskHash;
         t.codeType = codeType;
@@ -511,12 +511,11 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         
         if (s.solution0Correct) {
             s.solution1Challengers.length = 0;
-        }
-        else {
+        } else {
             s.solution0Challengers.length = 0;
         }
 
-        if (isForcedError(t.randomBits, t.blockhash)) {
+        if (IForcedError(jackpotManager).isForcedError(t.randomBits, t.blockhash)) {
             rewardJackpot(taskID);
         }
 
@@ -526,14 +525,11 @@ contract IncentiveLayer is JackpotManager, DepositsManager, RewardsManager {
         t.timeoutBlock = block.number;
     }
 
-    function isForcedError(uint randomBits, bytes32 bh) public view returns (bool) {
-        return (uint(keccak256(abi.encodePacked(randomBits, bh)))%1000000 < forcedErrorThreshold);
-    }
 
     function rewardJackpot(bytes32 taskID) internal {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
-        t.jackpotID = setJackpotReceivers(s.allChallengers);
+        t.jackpotID = BaseJackpotManager(jackpotManager).setJackpotReceivers(s.allChallengers);
         emit JackpotTriggered(taskID, t.jackpotID);
 
         // payReward(taskID, t.owner);//Still compensating solver even though solution wasn't thoroughly verified, task giver recommended to not use solution
