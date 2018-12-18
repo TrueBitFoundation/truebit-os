@@ -87,6 +87,8 @@ interface IForcedError {
 }
 
 contract JackpotManager is BaseJackpotManager, IForcedError {
+
+    constructor (address payable _TRU) BaseJackpotManager(_TRU) public {}
     
     function isForcedError(uint randomBits, bytes32 bh) external view returns (bool) {
         return (uint(keccak256(abi.encodePacked(randomBits, bh))) % 1000000 < forcedErrorThreshold);
@@ -95,6 +97,8 @@ contract JackpotManager is BaseJackpotManager, IForcedError {
 }
 
 contract AlwaysJackpotManager is BaseJackpotManager, IForcedError {
+
+    constructor (address payable _TRU) BaseJackpotManager(_TRU) public {}
     
     function isForcedError(uint randomBits, bytes32 bh) external view returns (bool) {
         return true;
@@ -103,6 +107,8 @@ contract AlwaysJackpotManager is BaseJackpotManager, IForcedError {
 }
 
 contract NeverJackpotManager is BaseJackpotManager, IForcedError {
+
+    constructor (address payable _TRU) BaseJackpotManager(_TRU) public {}
     
     function isForcedError(uint randomBits, bytes32 bh) external view returns (bool) {
         return false;
