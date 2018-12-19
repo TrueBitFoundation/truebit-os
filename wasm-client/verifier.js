@@ -438,7 +438,7 @@ module.exports = {
                 recovery_mode = false
                 recovery.analyze(account, events, recoverTask, recoverGame, disputeResolutionLayer, incentiveLayer, game_list, task_list, true)
             }
-        }, 1000)
+        }, 2000)
 
         return () => {
             try {

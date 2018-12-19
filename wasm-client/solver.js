@@ -66,7 +66,7 @@ module.exports = {
                     // console.log(result)
                     if (result && recovery_mode) {
 			events.push({event:result, handler})
-			console.log("Recovering", result.event, "at block", result.blockNumber)
+			console.log("SOLVER: Recovering", result.event, "at block", result.blockNumber)
                     }
                     else if (result) {
 			try {
@@ -74,7 +74,7 @@ module.exports = {
 			}
 			catch (e) {
                             // console.log(e)
-                            logger.error(`SOLVER: Error while handling event ${JSON.stringify(result)}: ${e}`)
+                            logger.error(`SOLVER: Error while handling ${name} event ${JSON.stringify(result)}: ${e}`)
 			}
                     }
                     else console.log(err)
@@ -137,7 +137,7 @@ module.exports = {
 
                 logger.log({
                     level: 'info',
-                    message: `Solving task ${taskID}`
+                    message: `SOLVER: Solving task ${taskID}`
                 })
 
                 let vm = await helpers.setupVMWithFS(taskInfo)
@@ -148,7 +148,7 @@ module.exports = {
                 let solution = await vm.executeWasmTask(interpreterArgs)
                 tasks[taskID].solution = solution
 
-                logger.info("Committing solution", solution)
+                logger.info("SOLVER: Committing solution", solution)
 
                 let random_hash = "0x" + helpers.makeSecret(taskID)
 
@@ -163,7 +163,7 @@ module.exports = {
 
                     logger.log({
                         level: 'info',
-                        message: `Submitted solution for task ${taskID} successfully`
+                        message: `SOLVER: Submitted solution for task ${taskID} successfully`
                     })
 
                     tasks[taskID]["solution"] = solution
@@ -171,12 +171,12 @@ module.exports = {
                     tasks[taskID]["interpreterArgs"] = interpreterArgs
 
                 } catch(e) {
-		    logger.info(`Unsuccessful submission for task ${taskID}`)
+		    logger.info(`SOLVER: Unsuccessful submission for task ${taskID}`)
                     console.log(e)
                 }
             }
             else if (tasks[taskID]) {
-                logger.info(`I wasn't selected for task ${taskID}`)
+                logger.info(`SOLVER: I wasn't selected for task ${taskID}`)
                 delete tasks[taskID]
             }
 
@@ -188,7 +188,7 @@ module.exports = {
         })
 
         addEvent("SolutionRevealed", incentiveLayer.SolutionRevealed, async result => {
-            logger.info("Revealed correct solution")
+            logger.info("SOLVER: Revealed correct solution")
         })
 
         addEvent("EndRevealPeriod", incentiveLayer.EndRevealPeriod, async (result) => {
@@ -228,7 +228,7 @@ module.exports = {
             let addr = result.args.account
 
             if (account.toLowerCase() == addr.toLowerCase()) {
-                logger.info("Oops, I was slashed, hopefully this was a test")
+                logger.info("SOLVER: Oops, I was slashed, hopefully this was a test")
             }
 
         })
@@ -247,7 +247,7 @@ module.exports = {
 
                 logger.log({
                     level: 'info',
-                    message: `Solution to task ${taskID} has been challenged`
+                    message: `SOLVER: Solution to task ${taskID} has been challenged`
                 })
 
                 //Initialize verification game
@@ -282,7 +282,7 @@ module.exports = {
 
                 logger.log({
                     level: 'info',
-                    message: `Game ${gameID} has been initialized`
+                    message: `SOLVER: Game ${gameID} has been initialized`
                 })
 
                 let indices = toIndices(await disputeResolutionLayer.getIndices.call(gameID))
@@ -296,7 +296,7 @@ module.exports = {
 
                 logger.log({
                     level: 'info',
-                    message: `Reported state hash for step: ${stepNumber} game: ${gameID} low: ${indices.low} high: ${indices.high}`
+                    message: `SOLVER: Reported state hash for step: ${stepNumber} game: ${gameID} low: ${indices.low} high: ${indices.high}`
                 })
 
             }
@@ -313,7 +313,7 @@ module.exports = {
 
                 logger.log({
                     level: 'info',
-                    message: `Received query Task: ${taskID} Game: ${gameID}`
+                    message: `SOLVER: Received query Task: ${taskID} Game: ${gameID}`
                 })
 
                 if(lowStep + 1 != highStep) {
@@ -323,7 +323,7 @@ module.exports = {
 
                     await disputeResolutionLayer.report(gameID, lowStep, highStep, [stateHash], {from: account})
 
-                    logger.info(`Reported state for step ${stepNumber}`)
+                    logger.info(`SOLVER: Reported state for step ${stepNumber}`)
 
                 } else {
                     //Final step -> post phases
@@ -345,7 +345,7 @@ module.exports = {
 
                     logger.log({
                         level: 'info',
-                        message: `Phases have been posted for game ${gameID}`
+                        message: `SOLVER: Phases have been posted for game ${gameID}`
                     })
 
                 }
@@ -363,7 +363,7 @@ module.exports = {
 
                 logger.log({
                     level: 'info',
-                    message: `Phase ${phase} for game  ${gameID}`
+                    message: `SOLVER: Phase ${phase} for game ${gameID}`
                 })
 
 
@@ -448,10 +448,9 @@ module.exports = {
 	    //TODO: ???
         })
 
-        addEvent("Reported", disputeResolutionLayer.Reported, async (result) => {
-	    //TODO: ???
-	    logger.error(`SOLVER: Reported, but no implementation to carry out. FIXME??`)
-        })
+        // addEvent("Reported", disputeResolutionLayer.Reported, async (result) => {
+	//     //TODO: ???
+        // })
 
         // Timeouts
 
@@ -474,7 +473,7 @@ module.exports = {
 		
                 logger.log({
                     level: 'info',
-                    message: `gameOver was called for game ${gameID}`
+                    message: `SOLVER: gameOver was called for game ${gameID}`
                 })
 
 		
@@ -504,8 +503,10 @@ module.exports = {
                 })
 		
             }
+
+	    let endReveal = await incentiveLayer.endRevealPeriod.call(taskID)
 	    
-            if (await incentiveLayer.endRevealPeriod.call(taskID)) {
+            if (endReveal) {
 
                 working(taskID)
                 await incentiveLayer.endRevealPeriod(taskID, {from:account, gas:100000})
@@ -513,7 +514,7 @@ module.exports = {
                 logger.log({
                     level: 'info',
                     message: `SOLVER: Ended reveal period for ${taskID}`
-                })
+                })	
 
             }
 
@@ -552,7 +553,7 @@ module.exports = {
 
             logger.log({
                 level: 'info',
-                message: `RECOVERY: Solving task ${taskID}`
+                message: `SOLVER RECOVERY: Solving task ${taskID}`
             })
 
             let vm = await helpers.setupVMWithFS(taskInfo)
@@ -568,11 +569,11 @@ module.exports = {
         async function recoverGame(gameID) {
             let taskID = await disputeResolutionLayer.getTask.call(gameID)
 
-            if (!tasks[taskID]) logger.error(`FAILURE: haven't recovered task ${taskID} for game ${gameID}`)
+            if (!tasks[taskID]) logger.error(`SOLVER FAILURE: haven't recovered task ${taskID} for game ${gameID}`)
 
             logger.log({
                 level: 'info',
-                message: `RECOVERY: Solution to task ${taskID} has been challenged`
+                message: `SOLVER RECOVERY: Solution to task ${taskID} has been challenged`
             })
 
             //Initialize verification game
@@ -612,7 +613,7 @@ module.exports = {
                 recovery_mode = false
                 recovery.analyze(account, events, recoverTask, recoverGame, disputeResolutionLayer, incentiveLayer, game_list, task_list)
             }
-        }, 1000)
+        }, 2000)
 
         return () => {
             try {
@@ -625,5 +626,3 @@ module.exports = {
         }
     }
 }
-
-

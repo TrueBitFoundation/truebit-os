@@ -385,7 +385,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         return true;
     }        
 
-    function cancelTask(bytes32 taskID) public {
+    function cancelTask(bytes32 taskID) internal {
         Task storage t = tasks[taskID];
         t.state = State.TaskTimeout;
         delete t.selectedSolver;
