@@ -3,7 +3,7 @@ pragma solidity ^0.5.0;
 import "./DepositsManager.sol";
 import "./JackpotManager.sol";
 import "./TRU.sol";
-import "../dispute/Filesystem.sol";
+import "../filesystem/Filesystem.sol";
 import "./ExchangeRateOracle.sol";
 import "./RewardsManager.sol";
 
