@@ -8,6 +8,8 @@ contract FileManager {
 
     bytes32[] zero;
     bytes32[] zero_files;
+
+    bytes32 empty_file = 0x290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563;    
     
     struct File {
 	uint bytesize;
