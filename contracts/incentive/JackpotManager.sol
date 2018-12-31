@@ -1,9 +1,10 @@
 pragma solidity ^0.5.0;
 
 import "../openzeppelin-solidity/SafeMath.sol";
+import "../openzeppelin-solidity/Ownable.sol";
 import "./TRU.sol";
 
-contract JackpotManager {
+contract BaseJackpotManager is Ownable {
     using SafeMath for uint;
 
     struct Jackpot {
@@ -19,11 +20,13 @@ contract JackpotManager {
 
     uint internal currentJackpotID;
     TRU public token;
+    uint internal forcedErrorThreshold;
 
     event JackpotIncreased(uint amount);
 
     constructor (address payable _TRU) public {
         token = TRU(_TRU);
+	forcedErrorThreshold = 500000; // should mean 100000/1000000 probability	
     }
 
     // @dev – returns the current jackpot
@@ -48,7 +51,9 @@ contract JackpotManager {
         emit JackpotIncreased(_amount);
     } 
 
-    function setJackpotReceivers(address[] memory _challengers) internal returns (uint) {
+    //TODO: Need a modifier that whitelists msg.senders for this call
+    
+    function setJackpotReceivers(address[] memory _challengers) public returns (uint) {
         jackpots[currentJackpotID].finalAmount = jackpots[currentJackpotID].amount;
         jackpots[currentJackpotID].challengers = _challengers;
         currentJackpotID = currentJackpotID + 1;
@@ -63,11 +68,50 @@ contract JackpotManager {
     function receiveJackpotPayment(uint jackpotID, uint index) public {
         Jackpot storage j = jackpots[jackpotID];
         require(j.challengers[index] == msg.sender);
-        
+
+        //transfer jackpot payment	
         uint amount = j.finalAmount.div(2**(j.challengers.length-1));
-        //transfer jackpot payment
-        // token.mint(msg.sender, amount);
         token.transfer(msg.sender, amount);
-        emit ReceivedJackpot(msg.sender, amount /*, j.finalAmount */);
+	
+        emit ReceivedJackpot(msg.sender, amount);
     }
+
+    function setForcedErrorThreshold(uint _forcedErrorThreshold) public onlyOwner {
+	forcedErrorThreshold = _forcedErrorThreshold;
+    }
+    
+}
+
+interface IForcedError {
+    function isForcedError(uint randomBits, bytes32 bh) external view returns (bool);
+}
+
+contract JackpotManager is BaseJackpotManager, IForcedError {
+
+    constructor (address payable _TRU) BaseJackpotManager(_TRU) public {}
+    
+    function isForcedError(uint randomBits, bytes32 bh) external view returns (bool) {
+        return (uint(keccak256(abi.encodePacked(randomBits, bh))) % 1000000 < forcedErrorThreshold);
+    }
+    
+}
+
+contract AlwaysJackpotManager is BaseJackpotManager, IForcedError {
+
+    constructor (address payable _TRU) BaseJackpotManager(_TRU) public {}
+    
+    function isForcedError(uint randomBits, bytes32 bh) external view returns (bool) {
+        return true;
+    }
+    
+}
+
+contract NeverJackpotManager is BaseJackpotManager, IForcedError {
+
+    constructor (address payable _TRU) BaseJackpotManager(_TRU) public {}
+    
+    function isForcedError(uint randomBits, bytes32 bh) external view returns (bool) {
+        return false;
+    }
+    
 }

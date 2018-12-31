@@ -23,7 +23,8 @@ function setup(web3) {
         let fileSystem = await contract(httpProvider, config['fileSystem'])
         let disputeResolutionLayer = await contract(httpProvider, config['interactive'])
         let tru = await contract(httpProvider, config['tru'])
-        return [incentiveLayer, fileSystem, disputeResolutionLayer, tru]
+	let jackpotManager = await contract(httpProvider, config['jackpotManager'])
+        return [incentiveLayer, fileSystem, disputeResolutionLayer, tru, jackpotManager]
     })()
 }
 
@@ -43,7 +44,7 @@ module.exports = {
             message: `Verifier initialized`
         })
 
-        let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3)
+        let [incentiveLayer, fileSystem, disputeResolutionLayer, tru, jackpotManager] = await setup(web3)
 
         const config = await contractsConfig(web3)
         const WAIT_TIME = config.WAIT_TIME || 0
@@ -60,59 +61,61 @@ module.exports = {
         let events = []
         const RECOVERY_BLOCKS = recover
 
-        function addEvent(evC, handler) {
-            let ev = recovery_mode ? evC({}, {fromBlock:Math.max(0,bn-RECOVERY_BLOCKS)}) : evC()
-            clean_list.push(ev)
-            ev.watch(async (err, result) => {
-                // console.log(result)
-                if (result && recovery_mode) {
-                    events.push({event:result, handler})
-                    console.log("Recovering", result.event, "at block", result.blockNumber)
-                }
-                else if (result) {
-                    try {
-                        await handler(result)
-                    }
-                    catch (e) {
-                        logger.error(`VERIFIER: Error while handling event ${JSON.stringify(result)}: ${e}`)
-                    }
-                }
-                else console.log(err)
-            })
+        function addEvent(name, evC, handler) {
+
+	    if (!evC) {
+		logger.error(`VERIFIER: ${name} event is undefined when given to addEvent`)
+	    } else {
+		let ev = recovery_mode ? evC({}, {fromBlock:Math.max(0,bn-RECOVERY_BLOCKS)}) : evC()
+		clean_list.push(ev)
+		ev.watch(async (err, result) => {
+                    // console.log(result)
+                    if (result && recovery_mode) {
+			events.push({event:result, handler})
+			console.log("Recovering", result.event, "at block", result.blockNumber)
+                    } else if (result) {
+			try {
+                            await handler(result)
+			} catch (e) {
+                            logger.error(`VERIFIER: Error while handling ${name} event ${JSON.stringify(result)}: ${e}`)
+			}
+                    } else {
+			console.log(err)
+		    }
+		})		
+	    }	    
         }
 
         //INCENTIVE
 
         //Solution committed event
-        addEvent(incentiveLayer.SolutionsCommitted, async result => {
+        addEvent("SolutionsCommitted", incentiveLayer.SolutionsCommitted, async result => {
 
             logger.log({
                 level: 'info',
-                message: `Solution has been posted`
+                message: `VERIFIER: Solution has been posted`
             })
 
             let taskID = result.args.taskID
-            // let storageAddress = result.args.storageAddress
             let minDeposit = result.args.minDeposit.toNumber()
             let solverHash0 = result.args.solutionHash0
             let solverHash1 = result.args.solutionHash1
-            logger.info("Getting info")
+
             let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))
             taskInfo.taskID = taskID
 
             if (Object.keys(tasks).length <= throttle) {
-                // let storageType = result.args.storageType.toNumber()
 
-                logger.info("Setting up VM")
+                logger.info("VERIFIER: Setting up VM")
                 let vm = await helpers.setupVMWithFS(taskInfo)
 
-                logger.info("Executing task")
+                logger.info("VERIFIER: Executing task")
                 let interpreterArgs = []
                 solution = await vm.executeWasmTask(interpreterArgs)
 
                 logger.log({
                     level: 'info',
-                    message: `Executed task ${taskID}. Checking solutions`
+                    message: `VERIFIER: Executed task ${taskID}. Checking solutions`
                 })
 
                 task_list.push(taskID)
@@ -135,7 +138,7 @@ module.exports = {
 
                     logger.log({
                         level: 'info',
-                        message: `Challenged solution for task ${taskID}`
+                        message: `VERIFIER: Challenged solution for task ${taskID}`
                     })
 
                 }
@@ -150,7 +153,7 @@ module.exports = {
 
                     logger.log({
                         level: 'info',
-                        message: `Challenged solution for task ${taskID}`
+                        message: `VERIFIER: Challenged solution for task ${taskID}`
                     })
 
                 }
@@ -158,7 +161,7 @@ module.exports = {
             }
         })
 
-        addEvent(incentiveLayer.EndChallengePeriod, async result => {
+        addEvent("EndChallengePeriod", incentiveLayer.EndChallengePeriod, async result => {
             let taskID = result.args.taskID
             let taskData = tasks[taskID]
 
@@ -175,39 +178,39 @@ module.exports = {
 
             logger.log({
                 level: 'info',
-                message: `Revealing challenge intent for ${taskID}`
+                message: `VERIFIER: Revealing challenge intent for ${taskID}`
             })
 
         })
 
-        addEvent(incentiveLayer.JackpotTriggered, async result => {
+        addEvent("JackpotTriggered", incentiveLayer.JackpotTriggered, async result => {
             let taskID = result.args.taskID
             let jackpotID = result.args.jackpotID
             let taskData = tasks[taskID]
 
             if (!taskData) return
-            logger.info("Triggered jackpot!!!")
+            logger.info("VERIFIER: Jackpot!!!")
 
             let lst = await incentiveLayer.getJackpotReceivers.call(jackpotID)
 
-            // console.log("jackpot receivers", lst)
-
+	    //TODO: I think this will fail with multiple verifiers
+	    //Should check if jackpot receiver is self then receiveJackpotPayment
             for (let i = 0; i < lst.length; i++) {
                 if (lst[i].toLowerCase() == account.toLowerCase()) await incentiveLayer.receiveJackpotPayment(jackpotID, i, {from: account, gas: 100000})
             }
 
         })
 
-        addEvent(incentiveLayer.ReceivedJackpot, async (result) => {
+        addEvent("ReceivedJackpot", jackpotManager.ReceivedJackpot, async (result) => {
             let recv = result.args.receiver
             let amount = result.args.amount
-            logger.info(`${recv} got jackpot ${amount.toString(10)}`)
+            logger.info(`VERIFIER: ${recv} got jackpot ${amount.toString(10)}`)
         })
 
-        addEvent(incentiveLayer.VerificationCommitted, async result => {
+        addEvent("VerificationCommitted", incentiveLayer.VerificationCommitted, async result => {
         })
 
-        addEvent(incentiveLayer.TaskFinalized, async (result) => {
+        addEvent("TaskFinalized", incentiveLayer.TaskFinalized, async (result) => {
             let taskID = result.args.taskID	   
 	    
             if (tasks[taskID]) {
@@ -215,25 +218,25 @@ module.exports = {
 		        delete tasks[taskID]
                 logger.log({
                     level: 'info',
-                    message: `Task ${taskID} finalized. Tried to unbond deposits.`
+                    message: `VERIFIER: Task ${taskID} finalized. Tried to unbond deposits.`
                   })
 
             }
 
         })
 
-        addEvent(incentiveLayer.SlashedDeposit, async (result) => {
+        addEvent("SlashedDeposit", incentiveLayer.SlashedDeposit, async (result) => {
             let addr = result.args.account
 
             if (account.toLowerCase() == addr.toLowerCase()) {
-                logger.info("Oops, I was slashed, hopefully this was a test")
+                logger.info("VERIFIER: Oops, I was slashed, hopefully this was a test")
             }
 
         })
 
         // DISPUTE
 
-        addEvent(disputeResolutionLayer.StartChallenge, async result => {
+        addEvent("StartChallenge", disputeResolutionLayer.StartChallenge, async result => {
             let challenger = result.args.c
 
             if (challenger.toLowerCase() == account.toLowerCase()) {
@@ -250,11 +253,11 @@ module.exports = {
             }
         })
 
-        addEvent(disputeResolutionLayer.Queried, async result => {
-        })
+	
+        // addEvent("Queried", disputeResolutionLayer.Queried, async result => {})
         
-        addEvent(disputeResolutionLayer.Reported, async result => {
-                let gameID = result.args.gameID
+        addEvent("Reported", disputeResolutionLayer.Reported, async result => {
+            let gameID = result.args.gameID
 
             if (games[gameID]) {
 
@@ -264,7 +267,7 @@ module.exports = {
 
                 logger.log({
                     level: 'info',
-                    message: `Report received game: ${gameID} low: ${lowStep} high: ${highStep}`
+                    message: `VERIFIER: Report received game: ${gameID} low: ${lowStep} high: ${highStep}`
                 })
 
                 let stepNumber = midpoint(lowStep, highStep)
@@ -286,14 +289,14 @@ module.exports = {
             }
         })
 
-        addEvent(disputeResolutionLayer.PostedPhases, async result => {
+        addEvent("PostedPhases", disputeResolutionLayer.PostedPhases, async result => {
             let gameID = result.args.gameID
 
             if (games[gameID]) {
 
                 logger.log({
                     level: 'info',
-                    message: `Phases posted for game: ${gameID}`
+                    message: `VERIFIER: Phases posted for game: ${gameID}`
                 })
 
                 let lowStep = result.args.idx1
@@ -334,8 +337,6 @@ module.exports = {
         }
 
         async function handleTimeouts(taskID) {
-            // let deposit = await incentiveLayer.getBondedDeposit.call(taskID, account)
-            // console.log("Verifier deposit", deposit.toNumber(), account)
 
             if (busy(taskID)) return
 
@@ -344,7 +345,7 @@ module.exports = {
                 working(taskID)
                 logger.log({
                     level: 'info',
-                    message: `Winning verification game for task ${taskID}`
+                    message: `VERIFIER: Winning verification game for task ${taskID}`
                 })
 
                 await incentiveLayer.solverLoses(taskID, {from: account})
@@ -355,7 +356,7 @@ module.exports = {
                 working(taskID)
                 logger.log({
                     level: 'info',
-                    message: `Timeout in task ${taskID}`
+                    message: `VERIFIER: Timeout in task ${taskID}`
                 })
 
                 await incentiveLayer.taskTimeout(taskID, {from: account})
@@ -437,7 +438,7 @@ module.exports = {
                 recovery_mode = false
                 recovery.analyze(account, events, recoverTask, recoverGame, disputeResolutionLayer, incentiveLayer, game_list, task_list, true)
             }
-        }, 1000)
+        }, 2000)
 
         return () => {
             try {
