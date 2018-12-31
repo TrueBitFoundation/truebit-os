@@ -31,7 +31,7 @@ contract BundleManager is FileManager {
 	Bundle storage b = bundles[bundleID];
 	File storage f = files[codeFileID];
 
-	b.codeFileId = codeFileId;
+	b.codeFileId = codeFileID;
 
 	bytes32[] memory res1 = new bytes32[](b.files.length);
 	bytes32[] memory res2 = new bytes32[](b.files.length);
@@ -65,7 +65,7 @@ contract BundleManager is FileManager {
 		calcMerkle(res1, 0, 10),
 		calcMerkle(res2, 0, 10),
 		calcMerkleFiles(res3, 0, 10),
-		keccak256(abi.encodePacked(init, calcMerkle(res1, 0, 10), calcMerkle(res2, 0, 10), calcMerkleFiles(res3, 0, 10)))
+		keccak256(abi.encodePacked(f.root, calcMerkle(res1, 0, 10), calcMerkle(res2, 0, 10), calcMerkleFiles(res3, 0, 10)))
 		);
     }
        
@@ -73,17 +73,12 @@ contract BundleManager is FileManager {
 	Bundle storage b = bundles[bid];
 	return b.init;
     }
-   
-    function getCode(bytes32 bid) public view returns (bytes memory) {
-	Bundle storage b = bundles[bid];
-	return getCodeAtAddress(b.code);
-    }
 
-    function getIPFSCode(bytes32 bid) public view returns (string memory) {
-	Bundle storage b = bundles[bid];
-	return b.code_file;
+    function getCodeFileID(bytes32 bundleID) public view returns (bytes32) {
+	Bundle storage b = bundles[bundleID];
+	return b.codeFileId;
     }
-   
+      
     function getFiles(bytes32 bid) public view returns (bytes32[] memory) {
 	Bundle storage b = bundles[bid];
 	return b.files;

@@ -1,10 +1,12 @@
 pragma solidity ^0.5.0;
 
+import "./FSUtils.sol";
+
 interface Consumer {
    function consume(bytes32 id, bytes32[] calldata dta) external;
 }
 
-contract FileManager {
+contract FileManager is FSUtils {
 
     bytes32[] zero;
     bytes32[] zero_files;
@@ -19,7 +21,7 @@ contract FileManager {
 	string ipfs_hash;
 	address contractAddress;
 	bytes32 root;
-	uint type;// 0: eth_bytes, 1: contract, 2: ipfs
+	uint fileType;// 0: eth_bytes, 1: contract, 2: ipfs
     }
     
     mapping (bytes32 => File) files;
@@ -43,7 +45,7 @@ contract FileManager {
     function createFileWithContents(string memory name, uint nonce, bytes32[] memory arr, uint sz) public returns (bytes32) {
 	bytes32 id = keccak256(abi.encodePacked(msg.sender, nonce));
 	File storage f = files[id];
-	f.type = 0;
+	f.fileType = 0;
 	f.data = arr;
 	f.name = name;
 	f.bytesize = sz;
@@ -54,7 +56,7 @@ contract FileManager {
 	return id;
     }
 
-    function addContractFile(string memory name, uint nonce, address _address, bytes32 root) public returns (bytes32) {
+    function addContractFile(string memory name, uint nonce, address _address, bytes32 root, uint size) public returns (bytes32) {
 	bytes32 id = keccak256(abi.encodePacked(msg.sender, nonce));
 	File storage f = files[id];
 
@@ -62,7 +64,7 @@ contract FileManager {
 	f.contractAddress = _address;
 	f.bytesize = size;
 	f.root = root;
-	f.type = 1;
+	f.fileType = 1;
 
 	return id;
     }
@@ -75,7 +77,7 @@ contract FileManager {
 	f.name = name;
 	f.ipfs_hash = hash;
 	f.root = root;
-	f.type = 2;
+	f.fileType = 2;
 	return id;
     }
 
@@ -83,8 +85,8 @@ contract FileManager {
 	return files[id].name;
     }
 
-    function getType(bytes32 id) public view returns (uint) {
-	return files[id].type;
+    function getFileType(bytes32 id) public view returns (uint) {
+	return files[id].fileType;
     }
    
     function getNameHash(bytes32 id) public view returns (bytes32) {
@@ -134,6 +136,31 @@ contract FileManager {
     function getLeaf(bytes32 id, uint loc) public view returns (bytes32) {
 	File storage f = files[id];
 	return f.data[loc];
+    }
+
+    // Merkle methods
+
+    function makeMerkle(bytes memory arr, uint idx, uint level) internal pure returns (bytes32) {
+	if (level == 0) return idx < arr.length ? bytes32(uint(uint8(arr[idx]))) : bytes32(0);
+	else return keccak256(abi.encodePacked(makeMerkle(arr, idx, level-1), makeMerkle(arr, idx+(2**(level-1)), level-1)));
+    }
+
+    function calcMerkle(bytes32[] memory arr, uint idx, uint level) internal returns (bytes32) {
+	if (level == 0) return idx < arr.length ? arr[idx] : bytes32(0);
+	else if (idx >= arr.length) return zero[level];
+	else return keccak256(abi.encodePacked(calcMerkle(arr, idx, level-1), calcMerkle(arr, idx+(2**(level-1)), level-1)));
+    }
+
+    function fileMerkle(bytes32[] memory arr, uint idx, uint level) internal returns (bytes32) {
+//	if (level == 0) return idx < arr.length ? keccak256(abi.encodePacked(bytes16(arr[idx]), uint128(arr[idx]))) : keccak256(abi.encodePacked(bytes16(0), bytes16(0)));
+	if (level == 0) return idx < arr.length ? keccak256(abi.encodePacked(arr[idx])) : keccak256(abi.encodePacked(bytes16(0), bytes16(0)));
+	else return keccak256(abi.encodePacked(fileMerkle(arr, idx, level-1), fileMerkle(arr, idx+(2**(level-1)), level-1)));
+    }
+
+    function calcMerkleFiles(bytes32[] memory arr, uint idx, uint level) internal returns (bytes32) {
+	if (level == 0) return idx < arr.length ? arr[idx] : empty_file;
+	else if (idx >= arr.length) return zero_files[level];
+	else return keccak256(abi.encodePacked(calcMerkleFiles(arr, idx, level-1), calcMerkleFiles(arr, idx+(2**(level-1)), level-1)));
     }
     
 }
