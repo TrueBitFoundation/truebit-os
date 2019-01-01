@@ -23,19 +23,6 @@ const info = JSON.parse(fs.readFileSync("./scrypt-data/info.json"))
 const ipfs = require('ipfs-api')(config.ipfs.host, '5001', {protocol: 'http'})
 const fileSystem = merkleComputer.fileSystem(ipfs)
 
-function arrange(arr) {
-    let res = []
-    let acc = ""
-    arr.forEach(function (b) { acc += b; if (acc.length == 64) { res.push("0x"+acc); acc = "" } })
-    if (acc != "") res.push("0x"+acc)
-    console.log(res)
-    return res
-}
-
-function stringToBytes(str) {
-    return "0x" + Buffer.from(str).toString("hex")
-}
-
 let account
 let web3
 
@@ -65,19 +52,6 @@ describe('Truebit OS WASM Scrypt test', async function() {
     
     let tbFilesystem, tru
     
-    async function createFile(fname, buf) {
-        var nonce = await web3.eth.getTransactionCount(config.base)
-        var arr = []
-        for (var i = 0; i < buf.length; i++) {
-            if (buf[i] > 15) arr.push(buf[i].toString(16))
-            else arr.push("0" + buf[i].toString(16))
-        }
-        console.log("Nonce", nonce, {arr:arrange(arr)})
-        var tx = await filesystem.createFileWithContents(fname, nonce, arrange(arr), buf.length, {from:account})
-        var id = await filesystem.calcId.call(nonce, {from:account})
-        return id
-    }
-
     describe('Normal task lifecycle', async () => {
 	let killSolver
 
@@ -111,9 +85,18 @@ describe('Truebit OS WASM Scrypt test', async function() {
 
 	it('should upload task code', async () => {
             let codeBuf = fs.readFileSync("./scrypt-data/task.wasm")
-            let ipfsHash = (await fileSystem.upload(codeBuf, "task.wasm"))[0].hash
+	    let ipfsFile = (await fileSystem.upload(codeBuf, "task.wasm"))[0]
+	    
+            let ipfsHash = ipfsFile.hash
+	    let size = ipfsFile.size
+	    let name = ipfsFile.path
+
+	    let merkleRoot = merkleComputer.merkleRoot(os.web3, codeBuf)
+	    let nonce = Math.floor(Math.random()*Math.pow(2, 60))
             
             assert.equal(ipfsHash, info.ipfshash)
+
+	    await tbFilesystem.addIPFSFile(name, size, ipfsHash, merkleRoot, nonce, {from: account, gas: 300000})
 	})
 	
 	let scrypt_contract

@@ -17,6 +17,8 @@ interface Filesystem {
    function getInitHash(bytes32 bid) external view returns (bytes32);
    
    function debug_finalizeBundleIPFS(bytes32 id, string file, bytes32 init) external returns (bytes32, bytes32, bytes32, bytes32, bytes32);
+
+   function addIPFSFile(string memory name, uint size, string memory hash, bytes32 root, uint nonce) external returns (bytes32);
    
 }
 

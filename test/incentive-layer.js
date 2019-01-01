@@ -86,15 +86,14 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	const maxDifficulty = 1
 	const reward = 10000
 	
-	let tx = await incentiveLayer.createTask(0x0, 0, 0, 0x0, maxDifficulty, reward, {from: taskGiver, gas: 300000})
+	let tx = await incentiveLayer.createTask(0x0, 0, 0x0, maxDifficulty, reward, {from: taskGiver, gas: 300000})
 
 	let log = tx.logs.find(log => log.event === 'TaskCreated')
 
 	//confirm existence of params in event
 	assert(log.args.taskID)	
 	assert(log.args.codeType)
-	assert(log.args.storageType)
-	assert(log.args.storageAddress == 0x0)
+	assert(log.args.codeFileId == 0x0)
 	assert(log.args.blockNumber)
 	assert(log.args.reward)
 
@@ -106,7 +105,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
     })
 
     it("should reject creating a task with no deposit", async () => {
-	return incentiveLayer.createTask(0x0, 0, 0, 0x0, 1, 10000, {from: dummy, gas: 300000})
+	return incentiveLayer.createTask(0x0, 0, 0x0, 1, 10000, {from: dummy, gas: 300000})
 	    .then(
 		() => Promise.reject(new Error('Expected method to reject')),
 		err => assert(err instanceof Error)
@@ -114,7 +113,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
     })
 
     it("should reject creating a task with max difficulty set to zero", async () => {
-	return incentiveLayer.createTask(0x0, 0, 0, 0x0, 0, 10000, {from: taskGiver, gas: 300000})
+	return incentiveLayer.createTask(0x0, 0, 0x0, 0, 10000, {from: taskGiver, gas: 300000})
 	    .then(
 		() => Promise.reject(new Error('Expected method to reject')),
 		err => assert(err instanceof Error)
@@ -122,7 +121,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
     })
 
     it("should reject creating a task with reward set to zero", async () => {
-	return incentiveLayer.createTask(0x0, 0, 0, 0x0, 1, 0, {from: taskGiver, gas: 300000})
+	return incentiveLayer.createTask(0x0, 0, 0x0, 1, 0, {from: taskGiver, gas: 300000})
 	    .then(
 		() => Promise.reject(new Error('Expected method to reject')),
 		err => assert(err instanceof Error)
@@ -130,20 +129,12 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
     })
 
     it("should reject creating a task with improper code type", async () => {
-	return incentiveLayer.createTask(0x0, 42, 0, 0x0, 1, 100000, {from: taskGiver, gas: 300000})
+	return incentiveLayer.createTask(0x0, 42, 0x0, 1, 100000, {from: taskGiver, gas: 300000})
 	    .then(
 		() => Promise.reject(new Error('Expected method to reject')),
 		err => assert(err instanceof Error)
 	    )
     })
-
-    it("should reject creating a task with improper storage type", async () => {
-	return incentiveLayer.createTask(0x0, 0, 42, 0x0, 1, 100000, {from: taskGiver, gas: 300000})
-	    .then(
-		() => Promise.reject(new Error('Expected method to reject')),
-		err => assert(err instanceof Error)
-	    )
-    })    
     
 
     it("should get vm parameters", async () => {
@@ -171,15 +162,14 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	    taskGiver: t[0],
 	    taskInitHash: t[1],
 	    codeType: t[2],
-	    storageType: t[3],
-	    storageAddress: t[4],
-	    taskID: t[5]
+	    codeFileId: t[3],
+	    taskID: t[4]
 	}
 
 	assert.equal(taskInfo.taskGiver, taskGiver.toLowerCase())
 	assert.equal(taskInfo.taskInitHash, 0x0)
 	assert.equal(taskInfo.codeType, 0)
-	assert.equal(taskInfo.storageType, 0)
+	assert.equal(taskInfo.codeFileId, 0x0)
 	assert.equal(taskInfo.taskID, taskID)
     })
 
@@ -237,8 +227,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 
 	assert(log.args.taskID)
 	assert(log.args.minDeposit)
-	assert(log.args.storageAddress == 0x0)
-	assert(log.args.storageType)
+	assert(log.args.codeFileId == 0x0)
 	assert(log.args.codeType)
     })
 
@@ -259,9 +248,8 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	    solutionHash1: s[2],
 	    taskInitHash: s[3],
 	    codeType: s[4],
-	    storageType: s[5],
-	    storageAddress: s[6],
-	    solver: s[7]
+	    codeFileId: s[5],
+	    solver: s[6]
 	}
 
 	assert.equal(solutionInfo.taskID, taskID)
@@ -269,8 +257,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	assert.equal(solutionInfo.solutionHash1, solution1Hash)
 	assert.equal(solutionInfo.taskInitHash, 0x0)
 	assert.equal(solutionInfo.codeType, 0)
-	assert.equal(solutionInfo.storageType, 0)
-	assert.equal(solutionInfo.storageAddress, 0x0)
+	assert.equal(solutionInfo.codeFileId, 0x0)
 	assert.equal(solutionInfo.solver, solver.toLowerCase())
     })
 
