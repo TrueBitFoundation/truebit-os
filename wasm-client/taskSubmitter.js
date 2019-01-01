@@ -61,12 +61,10 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
     const typeTable = {
         "WAST": merkleComputer.CodeType.WAST,
-        "WASM": merkleComputer.CodeType.WASM,
-        "BLOCKCHAIN": merkleComputer.StorageType.BLOCKCHAIN,
-        "IPFS": merkleComputer.StorageType.IPFS
+        "WASM": merkleComputer.CodeType.WASM
     }
     
-        //Two filesystems (which may be confusing)
+    //Two filesystems (which may be confusing)
     //tbFileSystem is the Truebit filesystem contract
     //mcFileSystem is a module for ipfs helpers from merkleComputer module
 
@@ -89,27 +87,6 @@ module.exports = async (web3, logger, mcFileSystem) => {
         return initHash
     }
 
-    async function makeSimpleBundle(bundlePayload) {
-        if(!bundlePayload.fileHash) {
-            bundlePayload["fileHash"] = "0x00"
-        }
-
-        verifyBundlePayloadFormat(bundlePayload)
-
-        let randomNum = Math.floor(Math.random()*Math.pow(2, 60))
-
-        let bundleID = await tbFileSystem.calcId.call(randomNum, {from: bundlePayload.from})
-        let tx = await tbFileSystem.makeSimpleBundle(
-            randomNum,
-            bundlePayload.contractAddress,
-            bundlePayload.initHash,
-            bundlePayload.fileHash,
-            {from: bundlePayload.from, gas: bundlePayload.gas}
-        )
-
-        return bundleID
-    }
-
     async function getCodeRoot(config, path) {	
 
         vm = merkleComputer.init(config, path)
@@ -121,21 +98,36 @@ module.exports = async (web3, logger, mcFileSystem) => {
         return codeRoot
     }
 
+    async function makeBundle(account) {
+	let bundleNonce = Math.floor(Math.random()*Math.pow(2, 60))
+	let bundleId = await tbFileSystem.calcId.call(bundleNonce, {from: account})
+
+	await tbFileSystem.makeBundle(bundleNonce, {from: account, gas: 300000})
+
+	return bundleId
+    }
+
     async function uploadIPFS(codeBuf, config, from, dirPath) {
         assert(Buffer.isBuffer(codeBuf))
 
-        let bundleID = await tbFileSystem.makeBundle.call(
-            Math.floor(Math.random()*Math.pow(2, 60)),
-            {from: from}
-        )
+        let bundleID = await makeBundle(from)
 
-        let ipfsHash = (await mcFileSystem.upload(codeBuf, "task.wast"))[0].hash
+	let ipfsFile = (await mcFileSystem.upload(codeBuf, "task.wast"))[0]
+	console.log(ipfsFile)
+
+        let ipfsHash = ipfsFile.hash
+	let size = ipfsFile.size
+	let name = ipfsFile.path
 
         let randomNum = Math.floor(Math.random()*Math.pow(2, 60))
         let size = codeBuf.byteLength
         let codeRoot = await getCodeRoot(config, dirPath)
 
-        await tbFileSystem.finalizeBundleIPFS(bundleID, ipfsHash, codeRoot, {from: from, gas: 1500000})
+	let codeFileId = await tbFileSystem.calcId.call(randomNum, {from: from}) 
+
+	await tbFileSystem.addIPFSFile(name, size, ipfsHash, codeRoot, randomNum, {from: from, gas: 300000})
+
+	await tbFileSystem.finalizeBundle(bundleId, codeFileId)
 
         let initHash = await tbFileSystem.getInitHash.call(bundleID)
 
@@ -145,10 +137,20 @@ module.exports = async (web3, logger, mcFileSystem) => {
     async function uploadIPFSFiles(codeBuf, config, from, dirPath) {
         assert(Buffer.isBuffer(codeBuf))
 
-        let bundleID = await tbFileSystem.makeBundle.call(
-            Math.floor(Math.random()*Math.pow(2, 60)),
-            {from: from}
-        )
+	let bundleID = await makeBundle(from)
+
+	let ipfsFile = (await mcFileSystem.upload(codeBuf, "task.wast"))[0]
+
+        let ipfsHash = ipfsFile.hash
+	let codeName = ipfsFile.path
+	let codeSize = ipfsFile.size
+
+        let randomNum = Math.floor(Math.random()*Math.pow(2, 60))
+        let codeRoot = await getCodeRoot(config, dirPath)
+
+	let codeFileId = await tbFileSystem.calcId(randomNum, {from: from})
+
+	await tbFileSystem.addIPFSFile(codeName, codeSize, ipfsHash, codeRoot, randomNum, {from: from, gas: 300000})	
 
         let newFiles = []
 
@@ -167,14 +169,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
             let fileIPFSHash = (await mcFileSystem.upload(fileBuf, "bundle/" + fileName))[0].hash
 
-            let fileID = await tbFileSystem.addIPFSFile.call(
-                fileName,
-                fileSize,
-                fileIPFSHash,
-                fileRoot,
-                fileNonce,
-                {from: from}
-            )
+	    let fileID = await tbFileSystem.calcId.call(fileNonce, {from: from})
 
             await tbFileSystem.addIPFSFile(
                 fileName,
@@ -190,13 +185,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
         config.files = newFiles
 
-        let ipfsHash = (await mcFileSystem.upload(codeBuf, "task.wast"))[0].hash
-
-        let randomNum = Math.floor(Math.random()*Math.pow(2, 60))
-        let size = codeBuf.byteLength
-        let codeRoot = await getCodeRoot(config, dirPath)
-
-        await tbFileSystem.finalizeBundleIPFS(bundleID, ipfsHash, codeRoot, {from: from, gas: 1500000})
+        await tbFileSystem.finalizeBundle(bundleID, codeFileId, {from: from, gas: 1500000})
 
         let initHash = await tbFileSystem.getInitHash.call(bundleID)
 
@@ -240,86 +229,82 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
     async function submitTask_aux(task) {
 
-	    let [config, randomPath, codeBuf] = setupTaskConfiguration(task)
+	let [config, randomPath, codeBuf] = setupTaskConfiguration(task)
 
-            if(task.storageType == "IPFS") {
+        if (task.storageType == "IPFS") {
 
-                if(task.files == []) {
-                    let [bundleID, initHash] = await uploadIPFS(codeBuf, config, task.from, randomPath)
+            if (task.files == []) {
+		let [bundleID, initHash] = await uploadIPFS(codeBuf, config, task.from, randomPath)
 
-                    task["storageAddress"] = bundleID
-                    task["initHash"] = initHash
-
-                } else {
-                    let [bundleID, initHash] = await uploadIPFSFiles(codeBuf, config, task.from, randomPath)
-                    task["storageAddress"] = bundleID
-                    task["initHash"] = initHash
-                }
-
-		logger.log({
-		    level: 'info',
-		    message: `Uploaded data to IPFS`
-		})		
-
-            } else { //store file on blockchain
-
-                let contractAddress = await uploadOnchain(codeBuf, {from: task.from, gas: 400000})
-
-		logger.log({
-		    level: 'info',
-		    message: `Uploaded data onchain`
-		})
-
-		
-
-                task["initHash"] = await getInitHash(config, randomPath)
-
-                let bundleID = await makeSimpleBundle({
-                    from: task.from,
-                    gas: 350000,
-                    initHash: task.initHash,
-                    contractAddress: contractAddress
-                })
-
-		logger.log({
-		    level: 'info',
-		    message: `Registered deployed contract with truebit filesystem`
-		})
-
+		task["storageAddress"] = bundleID
+		task["initHash"] = initHash
+            } else {
+                let [bundleID, initHash] = await uploadIPFSFiles(codeBuf, config, task.from, randomPath)
                 task["storageAddress"] = bundleID
+                task["initHash"] = initHash
             }
-
-            //translate storage type	    
-            task["storageType"] = typeTable[task.storageType]
-            
-            //bond minimum deposit
-            task["minDeposit"] = web3.utils.toWei(task.minDeposit, 'ether')
-            await depositsHelper(web3, incentiveLayer, tru, task.from, task.minDeposit)
-	    
-	    logger.log({ level: 'info', message: `Minimum deposit was met`})
-
-	    if(isString(task.maxDiffulty)) task.maxDifficulty = parseInt(task.maxDifficulty)
-	    if(isString(task.reward)) task.reward = parseInt(task.reward)
-	    
-
-            var id = await incentiveLayer.createTask(
-                task.initHash,
-                task.codeType,
-                task.storageType,
-                task.storageAddress,
-                task.maxDifficulty, 
-                task.reward,
-                {gas: 1000000, from: task.from}
-            )
 
 	    logger.log({
 		level: 'info',
-		message: 'Task was created'
+		message: `Uploaded data to IPFS`
 	    })
-            
-            return id
 
+        } else { //store file on blockchain
+
+            let contractAddress = await uploadOnchain(codeBuf, {from: task.from, gas: 400000})
+
+	    logger.log({
+		level: 'info',
+		message: `Uploaded data onchain`
+	    })
+
+	    let codeRoot = await getCodeRoot(config, randomPath)	    
+	    let codeFileNonce = Math.floor(Math.random()*Math.pow(2, 60))
+	    let codeFileId = await tbFileSystem.calcId.call(codeFileNonce)
+	    
+	    let size = Buffer.byteLength(codeBuf, 'utf8');
+
+	    await tbFileSystem.addContractFile("task.wasm", codeFileNonce, contractAddress, codeRoot, size, {from: task.from, gas: 300000})
+
+	    let bundleId = await makeBundle(task.from)
+
+	    await tbFileSystem.finalizeBundle(bundleId, codeFileId, {from: task.from, gas: 300000})	    
+
+	    logger.log({
+		level: 'info',
+		message: `Registered deployed contract with truebit filesystem`
+	    })
+
+            task["bundleID"] = bundleId
+	    task["initHash"] = await tbFileSystem.getInitHash.call(bundleId)
         }
+        
+        //bond minimum deposit
+        task["minDeposit"] = web3.utils.toWei(task.minDeposit, 'ether')
+        await depositsHelper(web3, incentiveLayer, tru, task.from, task.minDeposit)
+	
+	logger.log({ level: 'info', message: `Minimum deposit was met`})
+
+	if(isString(task.maxDiffulty)) task.maxDifficulty = parseInt(task.maxDifficulty)
+	if(isString(task.reward)) task.reward = parseInt(task.reward)
+
+        let id = await incentiveLayer.createTask(
+            task.initHash,
+            task.codeType,
+            task.bundleID,
+            task.maxDifficulty, 
+            task.reward,
+            {gas: 1000000, from: task.from}
+        )
+
+	logger.log({
+	    level: 'info',
+	    message: 'Task was created'
+	})
+        
+        return id
+
+    }
 
     return {
 
@@ -327,13 +312,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
 	    let [config, randomPath, codeBuf] = setupTaskConfiguration(task)
 
-	    let initHash
-
-	    if (task.files == []) {
-		initHash = await getInitHash(config, randomPath) 
-	    } else {
-		initHash = await getInitHash(config, randomPath)
-	    }
+	    let initHash = await getInitHash(config, randomPath) 
 
 	    return initHash
 	    

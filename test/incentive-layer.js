@@ -134,8 +134,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 		() => Promise.reject(new Error('Expected method to reject')),
 		err => assert(err instanceof Error)
 	    )
-    })
-    
+    })    
 
     it("should get vm parameters", async () => {
 	let p = await incentiveLayer.getVMParameters.call(taskID)

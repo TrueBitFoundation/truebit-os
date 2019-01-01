@@ -37,10 +37,6 @@ contract FileManager is FSUtils {
 	}
     }
 
-    function calcId(uint nonce) public view returns (bytes32) {
-	return keccak256(abi.encodePacked(msg.sender, nonce));
-    }
-
     //Creates file out of bytes data
     function createFileWithContents(string memory name, uint nonce, bytes32[] memory arr, uint sz) public returns (bytes32) {
 	bytes32 id = keccak256(abi.encodePacked(msg.sender, nonce));
