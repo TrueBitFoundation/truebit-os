@@ -268,7 +268,9 @@ module.exports = async (web3, logger, mcFileSystem) => {
 		logger.log({
 		    level: 'info',
 		    message: `Uploaded data onchain`
-		})		
+		})
+
+		
 
                 task["initHash"] = await getInitHash(config, randomPath)
 

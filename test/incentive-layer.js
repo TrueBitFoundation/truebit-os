@@ -93,7 +93,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	//confirm existence of params in event
 	assert(log.args.taskID)	
 	assert(log.args.codeType)
-	assert(log.args.codeFileId == 0x0)
+	assert(log.args.bundleId == 0x0)
 	assert(log.args.blockNumber)
 	assert(log.args.reward)
 
@@ -162,14 +162,14 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	    taskGiver: t[0],
 	    taskInitHash: t[1],
 	    codeType: t[2],
-	    codeFileId: t[3],
+	    bundleId: t[3],
 	    taskID: t[4]
 	}
 
 	assert.equal(taskInfo.taskGiver, taskGiver.toLowerCase())
 	assert.equal(taskInfo.taskInitHash, 0x0)
 	assert.equal(taskInfo.codeType, 0)
-	assert.equal(taskInfo.codeFileId, 0x0)
+	assert.equal(taskInfo.bundleId, 0x0)
 	assert.equal(taskInfo.taskID, taskID)
     })
 
@@ -227,7 +227,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 
 	assert(log.args.taskID)
 	assert(log.args.minDeposit)
-	assert(log.args.codeFileId == 0x0)
+	assert(log.args.bundleId == 0x0)
 	assert(log.args.codeType)
     })
 
@@ -248,7 +248,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	    solutionHash1: s[2],
 	    taskInitHash: s[3],
 	    codeType: s[4],
-	    codeFileId: s[5],
+	    bundleId: s[5],
 	    solver: s[6]
 	}
 
@@ -257,7 +257,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	assert.equal(solutionInfo.solutionHash1, solution1Hash)
 	assert.equal(solutionInfo.taskInitHash, 0x0)
 	assert.equal(solutionInfo.codeType, 0)
-	assert.equal(solutionInfo.codeFileId, 0x0)
+	assert.equal(solutionInfo.bundleId, 0x0)
 	assert.equal(solutionInfo.solver, solver.toLowerCase())
     })
 
