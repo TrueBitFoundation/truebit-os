@@ -84,11 +84,11 @@ function execQueue() {
 function doExec(e, args, path) {
     return new Promise(function (resolve, reject) {
         singletonExec(e, args, { cwd: path }, function (error, stdout, stderr) {
-            if (stdout) {
-                resolve(stdout)
-            } else {
-                console.error(stderr)
+            if (error) {
+                console.error("error", error, stderr)
                 reject(error)
+            } else {
+                resolve(stdout)
             }
         })
     })
@@ -103,14 +103,12 @@ module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath) => {
         return new Promise(function (resolve, reject) {
             logger.info("Executing: " + wasmInterpreterPath + " " + args.join(" "))
             singletonExec(wasmInterpreterPath, args, {cwd:path}, function (error, stdout, stderr) {
-//            execFile(wasmInterpreterPath, args, {cwd:path}, function (error, stdout, stderr) {
-                    //if (stderr) console.log(stderr)
-                //if (stdout) console.log(stdout)
-                if (stdout) {
-                    resolve(stdout)
-                } else {
-                    console.error(stderr)
+                if (error) {
+                    console.error("error", error, stderr)
                     reject(error)
+                } else {
+                    console.log("success")
+                    resolve(stdout)
                 }
             })
         })
@@ -141,6 +139,21 @@ module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath) => {
         StorageType: StorageType,
         phaseTable: phaseTable,
 
+        run: (args, path) => {
+            return new Promise(function (resolve, reject) {
+                logger.info("Executing: " + wasmInterpreterPath + " " + args.join(" "))
+                singletonExec(wasmInterpreterPath, args, {cwd:path}, function (error, stdout, stderr) {
+                    if (error) {
+                        console.error("error", error, stderr)
+                        reject(error)
+                    } else {
+                        console.log("success")
+                        resolve(stdout)
+                    }
+                })
+            })
+        },
+
         init: (config, path) => {
             return {
                 initializeWasmTask: async (interpreterArgs = []) => {
@@ -149,8 +162,9 @@ module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath) => {
                 },
 
                 executeWasmTask: async(interpreterArgs = []) => {
-                    if (config.code_type != CodeType.WAST) {
-                        let jitout = await doExec("node", ["../jit.js"].concat(config.files), path)
+                    if (config.code_type != CodeType.WAST && config.jit_path) {
+                        let jit_args = [].concat.apply([], config.files.map(a => ["--file", a]));
+                        let jitout = await doExec("node", [config.jit_path].concat(jit_args), path)
                         // logger.info(`solving with JIT: ${jitout}`)
                         let stdout = await exec(config, ["-m", "-disable-float", "-input", "-input2"], interpreterArgs, path)
                         // logger.info(`solved task ${stdout}`)

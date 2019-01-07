@@ -38,6 +38,9 @@ module.exports = async (incentiveLayer, merkleComputer, taskID, wasmCodeBuffer, 
             meterType: 'i32'
         })
         wasmCodeBuffer = meteredWasm
+        await writeFile(randomPath + "/metered.wasm", wasmCodeBuffer)
+        await merkleComputer.run(["-limit-stack", "metered.wasm"], randomPath)
+        wasmCodeBuffer = fs.readFileSync(randomPath + "/stacklimit.wasm")
     }
 
     await writeFile(filePath, wasmCodeBuffer)
