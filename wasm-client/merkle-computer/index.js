@@ -84,12 +84,8 @@ function execQueue() {
 function doExec(e, args, path) {
     return new Promise(function (resolve, reject) {
         singletonExec(e, args, { cwd: path }, function (error, stdout, stderr) {
-            if (error) {
-                console.error("error", error, stderr)
-                reject(error)
-            } else {
-                resolve(stdout)
-            }
+            if (error) console.error("error", error, stderr)
+            resolve(stdout)
         })
     })
 }
@@ -103,13 +99,8 @@ module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath) => {
         return new Promise(function (resolve, reject) {
             logger.info("Executing: " + wasmInterpreterPath + " " + args.join(" "))
             singletonExec(wasmInterpreterPath, args, {cwd:path}, function (error, stdout, stderr) {
-                if (error) {
-                    console.error("error", error, stderr)
-                    reject(error)
-                } else {
-                    console.log("success")
-                    resolve(stdout)
-                }
+                if (error) console.error("error", error, stderr)
+                resolve(stdout)
             })
         })
     }
@@ -143,13 +134,8 @@ module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath) => {
             return new Promise(function (resolve, reject) {
                 logger.info("Executing: " + wasmInterpreterPath + " " + args.join(" "))
                 singletonExec(wasmInterpreterPath, args, {cwd:path}, function (error, stdout, stderr) {
-                    if (error) {
-                        console.error("error", error, stderr)
-                        reject(error)
-                    } else {
-                        console.log("success")
+                        if (error) console.error("error", error, stderr)
                         resolve(stdout)
-                    }
                 })
             })
         },
