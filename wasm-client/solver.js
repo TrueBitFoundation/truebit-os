@@ -145,18 +145,10 @@ module.exports = {
                 let solution = await vm.executeWasmTask(interpreterArgs)
                 tasks[taskID].solution = solution
 
-                logger.info("Committing solution", solution)
-
-                let random_hash = "0x" + helpers.makeSecret(taskID)
+                logger.info(`Committing solution ${solution.hash} (hashed ${web3.utils.soliditySha3(solution.hash)})`)
 
                 try {
-
-                    let b = parseInt(random_hash.substr(64), 16) % 2 == 0
-                    // console.log("secret", random_hash, random_hash.substr(64), b)
-                    let s1 = b ? solution.hash : random_hash
-                    let s2 = b ? random_hash : solution.hash
-
-                    await incentiveLayer.commitSolution(taskID, s1, s2, {from: account, gas: 1000000})
+                    await incentiveLayer.commitSolution(taskID, web3.utils.soliditySha3(solution.hash), {from: account, gas: 1000000})
 
                     logger.log({
                         level: 'info',
@@ -194,7 +186,7 @@ module.exports = {
             if (tasks[taskID]) {
                 let vm = tasks[taskID].solution.vm
                 let secret = "0x"+helpers.makeSecret(taskID)
-                // console.log("secret", secret)
+                console.log("secret", secret)
                 await incentiveLayer.revealSolution(taskID, secret, vm.code, vm.input_size, vm.input_name, vm.input_data, {from: account, gas: 1000000})
                 await helpers.uploadOutputs(taskID, tasks[taskID].vm)
 		

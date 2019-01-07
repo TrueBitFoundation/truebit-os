@@ -27,10 +27,6 @@ function setup(web3) {
     })()
 }
 
-function writeFile(fname, buf) {
-    return new Promise(function (cont, err) { fs.writeFile(fname, buf, function (err, res) { cont() }) })
-}
-
 const solverConf = { error: false, error_location: 0, stop_early: -1, deposit: 1 }
 
 module.exports = {
@@ -95,7 +91,6 @@ module.exports = {
             // let storageAddress = result.args.storageAddress
             let minDeposit = result.args.minDeposit.toNumber()
             let solverHash0 = result.args.solutionHash0
-            let solverHash1 = result.args.solutionHash1
             logger.info("Getting info")
             let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))
             taskInfo.taskID = taskID
@@ -117,20 +112,22 @@ module.exports = {
 
                 task_list.push(taskID)
 
+                let myHash = web3.utils.soliditySha3(solution.hash)
+                if (test) myHash = "0x"+helpers.makeSecret(myHash)
+
                 tasks[taskID] = {
                     solverHash0: solverHash0,
-                    solverHash1: solverHash1,
                     solutionHash: solution.hash,
                     vm: vm,
                     minDeposit: minDeposit,
                 }
 
-                if ((solverHash0 != solution.hash) ^ test) {
+                logger.info(`my solution ${solution.hash}, my hash ${myHash}`)
 
-                    let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "00"
+                // let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "00"
                     // console.log("intent", intent)
-                    tasks[taskID].intent0 = "0x" + intent
-                    let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2)
+                    // tasks[taskID].intent0 = "0x" + intent
+                    let hash_str = taskID + account.substr(2) + myHash.substr(2)
                     await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000 })
 
                     logger.log({
@@ -138,22 +135,6 @@ module.exports = {
                         message: `Challenged solution for task ${taskID}`
                     })
 
-                }
-
-                if ((solverHash1 != solution.hash) ^ test) {
-
-                    let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "01"
-                    tasks[taskID].intent1 = "0x" + intent
-                    // console.log("intent", intent)
-                    let hash_str = taskID + intent + account.substr(2) + solverHash0.substr(2) + solverHash1.substr(2)
-                    await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000 })
-
-                    logger.log({
-                        level: 'info',
-                        message: `Challenged solution for task ${taskID}`
-                    })
-
-                }
 
             }
         })
@@ -165,13 +146,13 @@ module.exports = {
             if (!taskData) return
 
             await depositsHelper(web3, incentiveLayer, tru, account, taskData.minDeposit)
-            if (taskData.intent0) {
-                await incentiveLayer.revealIntent(taskID, taskData.solverHash0, taskData.solverHash1, taskData.intent0, { from: account, gas: 1000000 })
-            } else if (taskData.intent1) {
-                await incentiveLayer.revealIntent(taskID, taskData.solverHash0, taskData.solverHash1, taskData.intent1, { from: account, gas: 1000000 })
-            } else {
-                throw `intent0 nor intent1 were truthy for task ${taskID}`
-            }
+
+            let myHash = web3.utils.soliditySha3(taskData.solutionHash)
+            if (test) myHash = "0x" + helpers.makeSecret(myHash)
+
+            logger.info(`my solution ${taskData.solutionHash}, my hash ${myHash}`)
+
+            await incentiveLayer.revealIntent(taskID, myHash, { from: account, gas: 1000000 })
 
             logger.log({
                 level: 'info',
