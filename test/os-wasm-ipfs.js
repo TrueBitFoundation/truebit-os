@@ -6,16 +6,7 @@ const BigNumber = require('bignumber.js')
 
 const mineBlocks = require('../os/lib/util/mineBlocks')
 
-const fs = require('fs')
-
 const logger = require('../os/logger')
-
-const merkleComputer = require('../wasm-client/merkle-computer')()
-
-const host = "localhost"
-const ipfs = require('ipfs-api')(host, '5001', {protocol: 'http'})
-
-const fileSystem = merkleComputer.fileSystem(ipfs)
 
 let os, accounting
 
@@ -63,10 +54,10 @@ describe('Truebit OS WASM IPFS', async function() {
 	
 
 	before(async () => {
-	    taskSubmitter = await require('../wasm-client/taskSubmitter')(os.web3, os.logger, fileSystem)
+	    taskSubmitter = await require('../wasm-client/taskSubmitter')(os.web3, os.logger, os.fileSystem)
 	    
 	    killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0], os.logger)
-	    killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger, fileSystem)
+	    killSolver = await os.solver.init(os, os.accounts[1])
 
 	    tgBalanceEth = await accounting.ethBalance(os.accounts[0])
 	    sBalanceEth = await accounting.ethBalance(os.accounts[1])

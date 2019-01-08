@@ -90,9 +90,7 @@ function doExec(e, args, path) {
     })
 }
     
-
-module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath) => {
-
+module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath, jit_path) => {
 
     function exec(config, lst, interpreterArgs, path) {
         let args = buildArgs(lst, config).concat(interpreterArgs)
@@ -148,12 +146,12 @@ module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath) => {
                 },
 
                 executeWasmTask: async(interpreterArgs = []) => {
-                    if (config.code_type != CodeType.WAST && config.jit_path) {
+                    if (config.code_type != CodeType.WAST && jit_path) {
                         let jit_args = [].concat.apply([], config.files.map(a => ["--file", a]));
-                        let jitout = await doExec("node", [config.jit_path].concat(jit_args), path)
-                        // logger.info(`solving with JIT: ${jitout}`)
+                        let jitout = await doExec("node", [jit_path].concat(jit_args), path)
+                        logger.info(`solving with JIT: ${jitout}`)
                         let stdout = await exec(config, ["-m", "-disable-float", "-input", "-input2"], interpreterArgs, path)
-                        // logger.info(`solved task ${stdout}`)
+                        logger.info(`solved task ${stdout}`)
                         return JSON.parse(stdout)
                     }
                     else {

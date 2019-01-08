@@ -42,12 +42,12 @@ module.exports.initTaskGiver = ({ os, account }) => {
 
 /** initialize solver with account address  */
 module.exports.initSolver = ({ os, account, test, recover }) => {
-    return os.solver.init(os.web3, account, os.logger, os.fileSystem, test, recover, os.throttle)
+    return os.solver.init(os, account, test, recover)
 }
 
 /** initialize verifier with account address  */
 module.exports.initVerifier = ({ os, account, test, recover }) => {
-    return os.verifier.init(os.web3, account, os.logger, os.fileSystem, test, recover, os.throttle)
+    return os.verifier.init(os, account, test, recover)
 }
 
 /** submit a task  */

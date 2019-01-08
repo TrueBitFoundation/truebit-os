@@ -27,7 +27,10 @@ function setup(web3) {
 }
 
 module.exports = {
-    init: async (web3, account, logger, mcFileSystem, test = false, recover = -1, throttle = 1) => {
+    init: async (os, account, test = false, recover = -1) => {
+
+        let {web3, logger, throttle} = os
+        let mcFileSystem = os.fileSystem
 
         let tasks = {}
         let games = {}
@@ -78,7 +81,7 @@ module.exports = {
             })
         }
         
-        let helpers = fsHelpers.init(fileSystem, web3, mcFileSystem, logger, incentiveLayer, account)
+        let helpers = fsHelpers.init(fileSystem, web3, mcFileSystem, logger, incentiveLayer, account, os.config)
 
         // console.log(incentiveLayer.TaskCreated)
 

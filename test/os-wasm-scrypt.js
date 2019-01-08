@@ -14,14 +14,10 @@ var truffle_contract = require("truffle-contract");
 
 const contractsConfig = require('../wasm-client/util/contractsConfig')
 
-const merkleComputer = require('../wasm-client/merkle-computer')()
-
 let os, accounting
 
 const config = JSON.parse(fs.readFileSync("./wasm-client/config.json"))
 const info = JSON.parse(fs.readFileSync("./scrypt-data/info.json"))
-const ipfs = require('ipfs-api')(config.ipfs.host, '5001', {protocol: 'http'})
-const fileSystem = merkleComputer.fileSystem(ipfs)
 
 function arrange(arr) {
     let res = []
@@ -89,7 +85,7 @@ describe('Truebit OS WASM Scrypt test', async function() {
 	    cConfig = await contractsConfig(web3)
             tbFilesystem = await contract(web3.currentProvider, cConfig['fileSystem'])
             tru = await contract(web3.currentProvider, cConfig['tru'])
-	    killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger, fileSystem)
+	    killSolver = await os.solver.init(os, os.accounts[1])
 
 	    tgBalanceEth = await accounting.ethBalance(account)
 	    sBalanceEth = await accounting.ethBalance(os.accounts[1])
@@ -111,7 +107,7 @@ describe('Truebit OS WASM Scrypt test', async function() {
 
 	it('should upload task code', async () => {
             let codeBuf = fs.readFileSync("./scrypt-data/task.wasm")
-            let ipfsHash = (await fileSystem.upload(codeBuf, "task.wasm"))[0].hash
+            let ipfsHash = (await os.fileSystem.upload(codeBuf, "task.wasm"))[0].hash
             
             assert.equal(ipfsHash, info.ipfshash)
 	})

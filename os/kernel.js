@@ -38,7 +38,8 @@ module.exports = async (configPath) => {
 	accounts: accounts,
 	logger: logger,
 	fileSystem: ipfsFileSystemHelper(config),
-	throttle: config["throttle"]
+    throttle: config["throttle"],
+    config: config
     }
 
 }

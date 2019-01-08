@@ -39,9 +39,9 @@ function getLeaf(lst, loc) {
     return res
 }
 
-exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer, account) {
+exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer, account, config) {
     
-    const merkleComputer = require("./merkle-computer")(logger, './../wasm-client/ocaml-offchain/interpreter/wasm')
+    const merkleComputer = require("./merkle-computer")(logger, './../wasm-client/ocaml-offchain/interpreter/wasm', config.jit_path)
 
     async function loadMixedCode(fileid) {
         var hash = await fileSystem.getIPFSCode.call(fileid)

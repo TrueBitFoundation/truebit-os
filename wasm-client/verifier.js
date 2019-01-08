@@ -30,7 +30,10 @@ function setup(web3) {
 const solverConf = { error: false, error_location: 0, stop_early: -1, deposit: 1 }
 
 module.exports = {
-    init: async (web3, account, logger, mcFileSystem, test = false, recover = -1, throttle = 1) => {
+    init: async (os, account, test = false, recover = -1) => {
+
+        let {web3, logger, throttle} = os
+        let mcFileSystem = os.fileSystem
         let tasks = {}
         let games = {}
             
@@ -44,7 +47,7 @@ module.exports = {
         const config = await contractsConfig(web3)
         const WAIT_TIME = config.WAIT_TIME || 0
 
-        let helpers = fsHelpers.init(fileSystem, web3, mcFileSystem, logger, incentiveLayer, account)
+        let helpers = fsHelpers.init(fileSystem, web3, mcFileSystem, logger, incentiveLayer, account, os.config)
 
         const clean_list = []
         let game_list = []

@@ -50,7 +50,7 @@ describe('Truebit OS WASM', async function() {
 	    taskSubmitter = await require('../wasm-client/taskSubmitter')(os.web3, os.logger)
 	    
 	    killTaskGiver = await os.taskGiver.init(os.web3, os.accounts[0], os.logger)
-	    killSolver = await os.solver.init(os.web3, os.accounts[1], os.logger)
+	    killSolver = await os.solver.init(os, os.accounts[1])
 	    tgBalanceEth = await accounting.ethBalance(os.accounts[0])
 	    sBalanceEth = await accounting.ethBalance(os.accounts[1])
 
