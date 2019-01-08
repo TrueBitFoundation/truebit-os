@@ -5,8 +5,7 @@ module.exports = (data) => {
 	resultHash1: data[2],
 	initStateHash: data[3],
 	codeType: data[4].toNumber(),
-	storageType: data[5].toNumber(),
-	storageAddress: data[6],
-	solver: data[7]
+	bundleId: data[5],
+	solver: data[6]
     }
 }

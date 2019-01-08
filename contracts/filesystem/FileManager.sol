@@ -77,6 +77,22 @@ contract FileManager is FSUtils {
 	return id;
     }
 
+    function getCode(bytes32 id) public view returns (bytes memory) {
+        return getCodeAtAddress(files[id].contractAddress);
+    }
+
+    function getCodeAtAddress(address a) internal view returns (bytes memory) {
+      uint len;
+      assembly {
+          len := extcodesize(a)
+      }
+      bytes memory bs = new bytes(len);
+      assembly {
+          extcodecopy(a, add(bs,32), 0, len)
+      }
+      return bs;
+    }
+
     function getName(bytes32 id) public view returns (string memory) {
 	return files[id].name;
     }

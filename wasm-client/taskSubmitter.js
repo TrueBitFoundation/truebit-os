@@ -116,7 +116,6 @@ module.exports = async (web3, logger, mcFileSystem) => {
 	console.log(ipfsFile)
 
         let ipfsHash = ipfsFile.hash
-	let size = ipfsFile.size
 	let name = ipfsFile.path
 
         let randomNum = Math.floor(Math.random()*Math.pow(2, 60))
@@ -136,7 +135,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
     async function uploadIPFSFiles(codeBuf, config, from, dirPath) {
         assert(Buffer.isBuffer(codeBuf))
-
+	
 	let bundleID = await makeBundle(from)
 
 	let ipfsFile = (await mcFileSystem.upload(codeBuf, "task.wast"))[0]
