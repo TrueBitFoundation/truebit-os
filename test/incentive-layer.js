@@ -44,7 +44,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	randomBits = 42
 	randomBitsHash = os.web3.utils.soliditySha3(randomBits)
 	solution0Hash = os.web3.utils.soliditySha3(0x0, 0x0, 0x0, 0x0)
-	solution1Hash = os.web3.utils.soliditySha3(0x1, 0x1, 0x1, 0x1)
+	solutionCommit = os.web3.utils.soliditySha3(solution0Hash)
 
 	for(let account of accounts) {
 	    await tru.approve(incentiveLayer.address, minDeposit, { from: account })
@@ -223,7 +223,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
     })
 
     it("should reject committing solution because not selected solver", async () => {
-	return incentiveLayer.commitSolution(taskID, solution0Hash, solution1Hash, {from: verifier, gas: 300000})
+	return incentiveLayer.commitSolution(taskID, solutionCommit, {from: verifier, gas: 300000})
 	    .then(
 		() => Promise.reject(new Error('Expected method to reject')),
 		err => assert(err instanceof Error)
@@ -231,7 +231,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
     })
 
     it("solver should commit a solution", async () => {
-	let tx = await incentiveLayer.commitSolution(taskID, solution0Hash, solution1Hash, {from: solver, gas: 300000})
+		let tx = await incentiveLayer.commitSolution(taskID, solutionCommit, {from: solver, gas: 300000})
 
 	let log = tx.logs.find(log => log.event === 'SolutionsCommitted')
 
@@ -243,35 +243,11 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
     })
 
     it("should reject committing solution again", async () => {
-	return incentiveLayer.commitSolution(taskID, solution0Hash, solution1Hash, {from: solver, gas: 300000})
+	return incentiveLayer.commitSolution(taskID, solutionCommit, {from: solver, gas: 300000})
 	    .then(
 		() => Promise.reject(new Error('Expected method to reject')),
 		err => assert(err instanceof Error)
 	    )
-    })    
-
-    it("should get solution info", async () => {
-	let s = await incentiveLayer.getSolutionInfo.call(taskID) 
-
-	let solutionInfo = {
-	    taskID: s[0],
-	    solutionHash0: s[1],
-	    solutionHash1: s[2],
-	    taskInitHash: s[3],
-	    codeType: s[4],
-	    storageType: s[5],
-	    storageAddress: s[6],
-	    solver: s[7]
-	}
-
-	assert.equal(solutionInfo.taskID, taskID)
-	assert.equal(solutionInfo.solutionHash0, solution0Hash)
-	assert.equal(solutionInfo.solutionHash1, solution1Hash)
-	assert.equal(solutionInfo.taskInitHash, 0x0)
-	assert.equal(solutionInfo.codeType, 0)
-	assert.equal(solutionInfo.storageType, 0)
-	assert.equal(solutionInfo.storageAddress, 0x0)
-	assert.equal(solutionInfo.solver, solver.toLowerCase())
     })
 
     it("should end challenge period", async () => {
@@ -317,7 +293,31 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	assert(log.args.randomBits)
     })
 
-    describe("forced error mechanism", async () => {
+    it("should get solution info", async () => {
+		let s = await incentiveLayer.getSolutionInfo.call(taskID) 
+	
+		let solutionInfo = {
+			taskID: s[0],
+			solutionHash0: s[1],
+			solutionCommit: s[2],
+			taskInitHash: s[3],
+			codeType: s[4],
+			storageType: s[5],
+			storageAddress: s[6],
+			solver: s[7]
+		}
+	
+		assert.equal(solutionInfo.taskID, taskID)
+		assert.equal(solutionInfo.solutionCommit, solutionCommit)
+		assert.equal(solutionInfo.solutionHash0, solution0Hash)
+		assert.equal(solutionInfo.taskInitHash, 0x0)
+		assert.equal(solutionInfo.codeType, 0)
+		assert.equal(solutionInfo.storageType, 0)
+		assert.equal(solutionInfo.storageAddress, 0x0)
+		assert.equal(solutionInfo.solver, solver.toLowerCase())
+		})
+	
+	describe("forced error mechanism", async () => {
 
 	const n = 1000
 	let count = 0

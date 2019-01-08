@@ -122,7 +122,7 @@ module.exports = {
                     minDeposit: minDeposit,
                 }
 
-                logger.info(`my solution ${solution.hash}, my hash ${myHash}`)
+                // logger.info(`my solution ${solution.hash}, my hash ${myHash}`)
 
                 // let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "00"
                     // console.log("intent", intent)
@@ -150,7 +150,7 @@ module.exports = {
             let myHash = web3.utils.soliditySha3(taskData.solutionHash)
             if (test) myHash = "0x" + helpers.makeSecret(myHash)
 
-            logger.info(`my solution ${taskData.solutionHash}, my hash ${myHash}`)
+            // logger.info(`my solution ${taskData.solutionHash}, my hash ${myHash}`)
 
             await incentiveLayer.revealIntent(taskID, myHash, { from: account, gas: 1000000 })
 
