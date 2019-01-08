@@ -148,6 +148,9 @@ module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath, jit_
                 executeWasmTask: async(interpreterArgs = []) => {
                     if (config.code_type != CodeType.WAST && jit_path) {
                         let jit_args = [].concat.apply([], config.files.map(a => ["--file", a]));
+                        jit_args.push("--memory-size")
+                        let mem_size = Math.pow(2, config.vm_parameters.mem-13)
+                        jit_args.push(mem_size)
                         let jitout = await doExec("node", [jit_path].concat(jit_args), path)
                         logger.info(`solving with JIT: ${jitout}`)
                         let stdout = await exec(config, ["-m", "-disable-float", "-input", "-input2"], interpreterArgs, path)
