@@ -70,44 +70,71 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
     }
     
     async function createIPFSFile(fname, buf) {
-        var hash = await uploadIPFS(fname, buf)
-        var info = merkleComputer.merkleRoot(buf)
-        var nonce = await web3.eth.getTransactionCount(base)
+        let hash = await uploadIPFS(fname, buf)
+        let info = merkleComputer.merkleRoot(buf)
+        let nonce = await web3.eth.getTransactionCount(base)
         logger.info("Adding ipfs file", {name:new_name, size:info.size, ipfs_hash:hash.hash, data:info.root, nonce:nonce})
         await fileSystem.addIPFSFile(new_name, info.size, hash.hash, info.root, nonce, {from: account, gas: 200000})
-        var id = await fileSystem.calcId.call(nonce, {from: account, gas: 200000})
+        let id = await fileSystem.calcId.call(nonce, {from: account, gas: 200000})
         return id
+    }
+
+    async function createContractFile(fname, buf) {
+	let contractAddress = await merkleComputer.uploadOnchain(buf, web3, {from: account, gas: 30000})
+	let nonce = await web3.eth.getTransactionCount(base)
+	let info = merkleComputer.merkleRoot(buf)
+
+	await fileSystem.addContractFile(fname, nonce, contractAddress, info.root, info.size, {from: account, gas: 200000})
+
+	let fileID = await fileSystem.calcId.call(nonce, {from: account})
+
+	return fileID
+    }
+
+    async function uploadFile(fname, buf, type) {
+	let fileID
+	
+	if(type == 0) {
+	    //Write to bytes
+	    fileID = await createFile(fname, buf)
+	} else if(type == 1) {
+	    //Write to contract
+	    fileID = await createContractFile(fname, buf)
+	} else if(type == 2) {
+	    //Write to IPFS
+	    fileID = await createIPFSFile(fname, buf)
+	} else {
+	    throw new Error("Invalid file type")
+	}
+
+	return fileID
     }
     
     async function uploadOutputs(task_id, vm) {
-        var lst = await incentiveLayer.getUploadNames.call(task_id)
-        var types = await incentiveLayer.getUploadTypes.call(task_id)
-        // console.log("Uploading", {names:lst, types:types})
+        let lst = await incentiveLayer.getUploadNames.call(task_id)
+        let types = await incentiveLayer.getUploadTypes.call(task_id)
+        console.log("Uploading", {names:lst, types:types})
         if (lst.length == 0) return
-        var proofs = await vm.fileProofs() // common.exec(config, ["-m", "-input-proofs", "-input2"])
+        let proofs = await vm.fileProofs() // common.exec(config, ["-m", "-input-proofs", "-input2"])
         // var proofs = JSON.parse(proofs)
         // console.log("Uploading", {names:lst, types:types, proofs: proofs})
-        for (var i = 0; i < lst.length; i++) {
+        for (let i = 0; i < lst.length; i++) {
             // find proof with correct hash
             console.log("Findind upload proof", {hash:lst[i], kind:types[i]})
-            var hash = lst[i]
-            var proof = proofs.find(el => getLeaf(el.name, el.loc) == hash)
+            let hash = lst[i]
+            let proof = proofs.find(el => getLeaf(el.name, el.loc) == hash)
+	    
             if (!proof) {
                 logger.error("Cannot find proof for a file")
                 continue
             }
+	    
             // console.log("Found proof", proof)
-            // upload the file to ipfs or blockchain
-            var fname = proof.file.substr(0, proof.file.length-4)
-            var buf = await vm.readFile(proof.file)
-            var file_id
-            if (parseInt(types[i]) == 1) file_id = await createIPFSFile(fname, buf)
-            else {
-                // console.log("Create file", {fname:fname, data:buf})
-                file_id = await createFile(fname, buf)
-            }
-            // console.log("Uploading file", {id:file_id, fname:fname})
-            // console.log("result", await incentiveLayer.uploadFile.call(task_id, i, file_id, proof.name, proof.data, proof.loc, {from: account, gas: 1000000}))
+            let fname = proof.file.substr(0, proof.file.length-4)
+            let buf = await vm.readFile(proof.file)
+
+	    let fileID = await uploadFile(fname, buf, types[i].toNumber())
+
             await incentiveLayer.uploadFile(task_id, i, file_id, proof.name, proof.data, proof.loc, {from: account, gas: 1000000})
         }
     }

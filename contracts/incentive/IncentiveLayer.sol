@@ -63,7 +63,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
     
     struct RequiredFile {
         bytes32 nameHash;
-        //StorageType fileStorage;
+        int fileType;
         bytes32 fileId;
     }
     
@@ -272,10 +272,10 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         return id;
     }
 
-    function requireFile(bytes32 id, bytes32 hash) public {
+    function requireFile(bytes32 id, bytes32 hash, int fileType) public {
         Task storage t = tasks[id];
         require (!t.requiredCommitted && msg.sender == t.owner);
-        t.uploads.push(RequiredFile(hash, 0));
+        t.uploads.push(RequiredFile(hash, fileType, 0));
     }
     
     function commitRequiredFiles(bytes32 id) public {
@@ -292,12 +292,12 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         return arr;
     }
 
-    /* function getUploadTypes(bytes32 id) public view returns ([] memory) { */
-    /*     RequiredFile[] storage lst = tasks[id].uploads; */
-    /*     StorageType[] memory arr = new StorageType[](lst.length); */
-    /*     for (uint i = 0; i < arr.length; i++) arr[i] = lst[i].fileStorage; */
-    /*     return arr; */
-    /* } */
+    function getUploadTypes(bytes32 id) public view returns (int[] memory) {
+        RequiredFile[] storage lst = tasks[id].uploads;
+        int[] memory arr = new int[](lst.length);
+        for (uint i = 0; i < arr.length; i++) arr[i] = lst[i].fileType;
+        return arr;
+    }
     
     // @dev – solver registers for tasks, if first to register than automatically selected solver
     // 0 -> 1
