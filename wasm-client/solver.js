@@ -59,37 +59,40 @@ module.exports = {
         
         if (recovery_mode) logger.info(`Recovering back to ${Math.max(0,bn-RECOVERY_BLOCKS)}`)
 
-        function addEvent(evC, handler) {
-            let ev = recovery_mode ? evC({}, {fromBlock:Math.max(0,bn-RECOVERY_BLOCKS)}) : evC()
-            clean_list.push(ev)
-            ev.watch(async (err, result) => {
-                // console.log(result)
-                if (result && recovery_mode) {
-                    events.push({event:result, handler})
-                    console.log("Recovering", result.event, "at block", result.blockNumber)
-                }
-                else if (result) {
-                    try {
-                        await handler(result)
+        function addEvent(name, evC, handler) {
+	    if (!evC) {
+		logger.error(`SOLVER: ${name} event is undefined when given to addEvent`)		
+	    } else {
+		let ev = recovery_mode ? evC({}, {fromBlock:Math.max(0,bn-RECOVERY_BLOCKS)}) : evC()
+		clean_list.push(ev)
+		ev.watch(async (err, result) => {
+                    // console.log(result)
+                    if (result && recovery_mode) {
+			events.push({event:result, handler})
+			console.log("SOLVER: Recovering", result.event, "at block", result.blockNumber)
                     }
-                    catch (e) {
-                        // console.log(e)
-                        logger.error(`SOLVER: Error while handling event ${JSON.stringify(result)}: ${e}`)
+                    else if (result) {
+			try {
+                            await handler(result)
+			}
+			catch (e) {
+                            // console.log(e)
+                            logger.error(`SOLVER: Error while handling ${name} event ${JSON.stringify(result)}: ${e}`)
+			}
                     }
-                }
-                else console.log(err)
-            })
+                    else console.log(err)
+		})
+		
+	    }
         }
         
         let helpers = fsHelpers.init(fileSystem, web3, mcFileSystem, logger, incentiveLayer, account, os.config)
 
-        // console.log(incentiveLayer.TaskCreated)
-
-        addEvent(incentiveLayer.TaskCreated, async (result) => {
+        addEvent("TaskCreated", incentiveLayer.TaskCreated, async (result) => {
 
 	        logger.log({
                 level: 'info',
-                message: `Task has been posted. Checking for availability.`
+                message: `SOLVER: Task has been posted. Checking for availability.`
             })
 	    
             let taskID = result.args.taskID
@@ -121,7 +124,7 @@ module.exports = {
             
         })
 
-        addEvent(incentiveLayer.SolverSelected, async (result) => {
+        addEvent("SolverSelected", incentiveLayer.SolverSelected, async (result) => {
             let taskID = result.args.taskID
             let solver = result.args.solver            
 
@@ -137,7 +140,7 @@ module.exports = {
 
                 logger.log({
                     level: 'info',
-                    message: `Solving task ${taskID}`
+                    message: `SOLVER: Solving task ${taskID}`
                 })
 
                 let vm = await helpers.setupVMWithFS(taskInfo)
@@ -148,14 +151,14 @@ module.exports = {
                 let solution = await vm.executeWasmTask(interpreterArgs)
                 tasks[taskID].solution = solution
 
-                logger.info(`Committing solution ${solution.hash} (hashed ${web3.utils.soliditySha3(solution.hash)})`)
+                logger.info(`SOLVER: Committing solution ${solution.hash} (hashed ${web3.utils.soliditySha3(solution.hash)})`)
 
                 try {
                     await incentiveLayer.commitSolution(taskID, web3.utils.soliditySha3(solution.hash), {from: account, gas: 1000000})
 
                     logger.log({
                         level: 'info',
-                        message: `Submitted solution for task ${taskID} successfully`
+                        message: `SOLVER: Submitted solution for task ${taskID} successfully`
                     })
 
                     tasks[taskID]["solution"] = solution
@@ -163,27 +166,27 @@ module.exports = {
                     tasks[taskID]["interpreterArgs"] = interpreterArgs
 
                 } catch(e) {
-                    //TODO: Add logging unsuccessful submission attempt
+		    logger.info(`SOLVER: Unsuccessful submission for task ${taskID}`)
                     console.log(e)
                 }
             }
             else if (tasks[taskID]) {
-                logger.info(`I wasn't selected for task ${taskID}`)
+                logger.info(`SOLVER: I wasn't selected for task ${taskID}`)
                 delete tasks[taskID]
             }
 
 
         })
 
-        addEvent(incentiveLayer.SolutionsCommitted, async result => {
-            logger.info("Committed a solution pair")
+        addEvent("SolutionsCommitted", incentiveLayer.SolutionsCommitted, async result => {
+            logger.info("SOLVER: Committed a solution pair")
         })
 
-        addEvent(incentiveLayer.SolutionRevealed, async result => {
-            logger.info("Revealed correct solution")
+        addEvent("SolutionRevealed", incentiveLayer.SolutionRevealed, async result => {
+            logger.info("SOLVER: Revealed correct solution")
         })
 
-        addEvent(incentiveLayer.EndRevealPeriod, async (result) => {
+        addEvent("EndRevealPeriod", incentiveLayer.EndRevealPeriod, async (result) => {
             let taskID = result.args.taskID	   
 	    
             if (tasks[taskID]) {
@@ -195,13 +198,13 @@ module.exports = {
 		
                 logger.log({
 		    level: 'info',
-		    message: `Revealed solution for task: ${taskID}. Outputs have been uploaded.`
+		    message: `SOLVER: Revealed solution for task: ${taskID}. Outputs have been uploaded.`
 		})
             }
 	    
         })
 
-        addEvent(incentiveLayer.TaskFinalized, async (result) => {
+        addEvent("TaskFinalized", incentiveLayer.TaskFinalized, async (result) => {
             let taskID = result.args.taskID	   
 	    
             if (tasks[taskID]) {
@@ -209,25 +212,25 @@ module.exports = {
                 await incentiveLayer.unbondDeposit(taskID, {from: account, gas: 100000})
                 logger.log({
                     level: 'info',
-                    message: `Task ${taskID} finalized. Tried to unbond deposits.`
+                    message: `SOLVER: Task ${taskID} finalized. Tried to unbond deposits.`
                 })
 
             }
 
         })
 
-        addEvent(incentiveLayer.SlashedDeposit, async (result) => {
+        addEvent("SlashedDeposit", incentiveLayer.SlashedDeposit, async (result) => {
             let addr = result.args.account
 
             if (account.toLowerCase() == addr.toLowerCase()) {
-                logger.info("Oops, I was slashed, hopefully this was a test")
+                logger.info("SOLVER: Oops, I was slashed, hopefully this was a test")
             }
 
         })
 
         // DISPUTE
 
-        addEvent(disputeResolutionLayer.StartChallenge, async (result) => {
+        addEvent("StartChallenge", disputeResolutionLayer.StartChallenge, async (result) => {
             let solver = result.args.p
             let gameID = result.args.gameID	   
 	    
@@ -239,7 +242,7 @@ module.exports = {
 
                 logger.log({
                     level: 'info',
-                    message: `Solution to task ${taskID} has been challenged`
+                    message: `SOLVER: Solution to task ${taskID} has been challenged`
                 })
 
                 //Initialize verification game
@@ -274,7 +277,7 @@ module.exports = {
 
                 logger.log({
                     level: 'info',
-                    message: `Game ${gameID} has been initialized`
+                    message: `SOLVER: Game ${gameID} has been initialized`
                 })
 
                 let indices = toIndices(await disputeResolutionLayer.getIndices.call(gameID))
@@ -288,13 +291,13 @@ module.exports = {
 
                 logger.log({
                     level: 'info',
-                    message: `Reported state hash for step: ${stepNumber} game: ${gameID} low: ${indices.low} high: ${indices.high}`
+                    message: `SOLVER: Reported state hash for step: ${stepNumber} game: ${gameID} low: ${indices.low} high: ${indices.high}`
                 })
 
             }
         })
 
-        addEvent(disputeResolutionLayer.Queried, async (result) => {
+        addEvent("Queried", disputeResolutionLayer.Queried, async (result) => {
             let gameID = result.args.gameID
             let lowStep = result.args.idx1.toNumber()
             let highStep = result.args.idx2.toNumber()
@@ -305,7 +308,7 @@ module.exports = {
 
                 logger.log({
                     level: 'info',
-                    message: `Received query Task: ${taskID} Game: ${gameID}`
+                    message: `SOLVER: Received query Task: ${taskID} Game: ${gameID}`
                 })
 
                 if(lowStep + 1 != highStep) {
@@ -315,7 +318,7 @@ module.exports = {
 
                     await disputeResolutionLayer.report(gameID, lowStep, highStep, [stateHash], {from: account})
 
-                    logger.info(`Reported state for step ${stepNumber}`)
+                    logger.info(`SOLVER: Reported state for step ${stepNumber}`)
 
                 } else {
                     //Final step -> post phases
@@ -337,7 +340,7 @@ module.exports = {
 
                     logger.log({
                         level: 'info',
-                        message: `Phases have been posted for game ${gameID}`
+                        message: `SOLVER: Phases have been posted for game ${gameID}`
                     })
 
                 }
@@ -345,7 +348,7 @@ module.exports = {
             }
         })
 
-        addEvent(disputeResolutionLayer.SelectedPhase, async (result) => {
+        addEvent("SelectedPhase", disputeResolutionLayer.SelectedPhase, async (result) => {
             let gameID = result.args.gameID
             if (games[gameID]) {
                 let taskID = games[gameID].taskID
@@ -355,7 +358,7 @@ module.exports = {
 
                 logger.log({
                     level: 'info',
-                    message: `Phase ${phase} for game  ${gameID}`
+                    message: `SOLVER: Phase ${phase} for game ${gameID}`
                 })
 
 
@@ -430,19 +433,19 @@ module.exports = {
 
                 logger.log({
                     level: 'info',
-                    message: `Judge called for game ${gameID}`
+                    message: `SOLVER: Judge called for game ${gameID}`
                 })
 
             }
         })
 
-        addEvent(disputeResolutionLayer.WinnerSelected, async (result) => {
+        addEvent("WinnerSelected", disputeResolutionLayer.WinnerSelected, async (result) => {
 	    //TODO: ???
         })
 
-        addEvent(disputeResolutionLayer.Reported, async (result) => {
-	    //TODO: ???
-        })
+        // addEvent("Reported", disputeResolutionLayer.Reported, async (result) => {
+	//     //TODO: ???
+        // })
 
         // Timeouts
 
@@ -465,7 +468,7 @@ module.exports = {
 		
                 logger.log({
                     level: 'info',
-                    message: `gameOver was called for game ${gameID}`
+                    message: `SOLVER: gameOver was called for game ${gameID}`
                 })
 
 		
@@ -478,7 +481,7 @@ module.exports = {
             // let deposit = await incentiveLayer.getBondedDeposit.call(taskID, account)
             // console.log("Solver deposit", deposit.toNumber(), account)
             if (busy(taskID)) {
-                logger.info("Task busy")
+                logger.info("SOLVER: Task busy")
                 return
             }
 
@@ -491,35 +494,33 @@ module.exports = {
 
                 logger.log({
                     level: 'info',
-                    message: `Ended challenge period for ${taskID}`
+                    message: `SOLVER: Ended challenge period for ${taskID}`
                 })
 		
             }
-	    
-            if (await incentiveLayer.endRevealPeriod.call(taskID)) {
 
-                logger.info("Ending reveal")
+	    let endReveal = await incentiveLayer.endRevealPeriod.call(taskID)
+	    
+            if (endReveal) {
 
                 working(taskID)
                 await incentiveLayer.endRevealPeriod(taskID, {from:account, gas:100000})
 
                 logger.log({
                     level: 'info',
-                    message: `Ended reveal period for ${taskID}`
-                })
+                    message: `SOLVER: Ended reveal period for ${taskID}`
+                })	
 
             }
 
             if (await incentiveLayer.canRunVerificationGame.call(taskID)) {
-
-                logger.info("Running verification game")
 
                 working(taskID)
                 await incentiveLayer.runVerificationGame(taskID, {from:account, gas:1000000})
 
                 logger.log({
                     level: 'info',
-                    message: `Ran verification game for ${taskID}`
+                    message: `SOLVER: Ran verification game for ${taskID}`
                 })
 		
             }
@@ -533,7 +534,7 @@ module.exports = {
 
                 logger.log({
                     level: 'info',
-                    message: `Finalized task ${taskID}`
+                    message: `SOLVER: Finalized task ${taskID}`
                 })
 
             }
@@ -547,7 +548,7 @@ module.exports = {
 
             logger.log({
                 level: 'info',
-                message: `RECOVERY: Solving task ${taskID}`
+                message: `SOLVER RECOVERY: Solving task ${taskID}`
             })
 
             let vm = await helpers.setupVMWithFS(taskInfo)
@@ -563,11 +564,11 @@ module.exports = {
         async function recoverGame(gameID) {
             let taskID = await disputeResolutionLayer.getTask.call(gameID)
 
-            if (!tasks[taskID]) logger.error(`FAILURE: haven't recovered task ${taskID} for game ${gameID}`)
+            if (!tasks[taskID]) logger.error(`SOLVER FAILURE: haven't recovered task ${taskID} for game ${gameID}`)
 
             logger.log({
                 level: 'info',
-                message: `RECOVERY: Solution to task ${taskID} has been challenged`
+                message: `SOLVER RECOVERY: Solution to task ${taskID} has been challenged`
             })
 
             //Initialize verification game
@@ -607,7 +608,7 @@ module.exports = {
                 recovery_mode = false
                 recovery.analyze(account, events, recoverTask, recoverGame, disputeResolutionLayer, incentiveLayer, game_list, task_list)
             }
-        }, 1000)
+        }, 2000)
 
         return () => {
             try {
@@ -615,10 +616,8 @@ module.exports = {
                 clean_list.forEach(ev => ev.stopWatching(empty))
                 clearInterval(ival)
             } catch(e) {
-                console.log("Error when stopped watching events")
+                console.log("SOLVER: Error when stopped watching events")
             }
         }
     }
 }
-
-

@@ -45,7 +45,26 @@ async function deploy() {
 
     let tru = await deployContract('TRU', {from: accounts[0], gas: 2000000})
     let exchangeRateOracle = await deployContract('ExchangeRateOracle', {from: accounts[0], gas: 1000000})
-    let incentiveLayer = await deployContract('IncentiveLayer', {from: accounts[0], gas: 5200000}, [tru._address, exchangeRateOracle._address, interactive._address, fileSystem._address])
+
+    let jackpotManager
+
+    if (process.env.NODE_ENV == 'production') {
+	jackpotManager = await deployContract('JackpotManager', {from: accounts[0], gas: 1000000}, [tru._address])
+    } else {
+	jackpotManager = await deployContract('NeverJackpotManager', {from: accounts[0], gas: 1000000}, [tru._address])
+	//jackpotManager = await deployContract('AlwaysJackpotManager', {from: accounts[0], gas: 500000}, [tru._address])
+    }
+    
+    let incentiveLayer = await deployContract(
+	'IncentiveLayer',
+	{from: accounts[0], gas: 5200000},
+	[tru._address,
+	 exchangeRateOracle._address,
+	 interactive._address,
+	 fileSystem._address,
+	 jackpotManager._address
+	]
+    )
     
     // tru.methods.transferOwnership(incentiveLayer._address).send({from: accounts[0], gas: 1000000})
 
@@ -61,7 +80,8 @@ async function deploy() {
         interactive: exportContract(interactive),
         tru: exportContract(tru),
         exchangeRateOracle: exportContract(exchangeRateOracle),
-        incentiveLayer: exportContract(incentiveLayer)
+        incentiveLayer: exportContract(incentiveLayer),
+	jackpotManager: exportContract(jackpotManager)
     }))
 
     // Set exchange rate oracle for testing, main net should come from external data source (dex, oraclize, etc..)
