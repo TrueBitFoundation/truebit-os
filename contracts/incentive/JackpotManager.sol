@@ -65,7 +65,7 @@ contract BaseJackpotManager is Ownable {
         return j.challengers;
     }
 
-    function receiveJackpotPayment(uint jackpotID, uint index) public {
+    function receiveJackpotPayment(uint jackpotID, uint index, address sender) public {
         Jackpot storage j = jackpots[jackpotID];
         require(j.challengers[index] == msg.sender);
 
@@ -100,7 +100,7 @@ contract AlwaysJackpotManager is BaseJackpotManager, IForcedError {
 
     constructor (address payable _TRU) BaseJackpotManager(_TRU) public {}
     
-    function isForcedError(uint randomBits, bytes32 bh) external view returns (bool) {
+    function isForcedError(uint, bytes32) external view returns (bool) {
         return true;
     }
     
@@ -110,7 +110,7 @@ contract NeverJackpotManager is BaseJackpotManager, IForcedError {
 
     constructor (address payable _TRU) BaseJackpotManager(_TRU) public {}
     
-    function isForcedError(uint randomBits, bytes32 bh) external view returns (bool) {
+    function isForcedError(uint, bytes32) external view returns (bool) {
         return false;
     }
     

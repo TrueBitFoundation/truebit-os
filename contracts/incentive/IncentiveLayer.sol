@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
 import "./DepositsManager.sol";
-import "./JackpotManager.sol";
+// import "./JackpotManager.sol";
 import "./TRU.sol";
 import "../dispute/Filesystem.sol";
 import "./ExchangeRateOracle.sol";
@@ -46,7 +46,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
     }
 
     event DepositBonded(bytes32 taskID, address account, uint amount);
-    event JackpotTriggered(bytes32 taskID, uint jackpotID);
+    event JackpotTriggered(bytes32 taskID);
     event DepositUnbonded(bytes32 taskID, address account, uint amount);
     event SlashedDeposit(bytes32 taskID, address account, address opponent, uint amount);
     event TaskCreated(bytes32 taskID, uint minDeposit, uint blockNumber, uint reward, uint tax, CodeType codeType, StorageType storageType, string storageAddress);
@@ -126,9 +126,8 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
     address disputeResolutionLayer; //using address type because in some cases it is IGameMaker, and others IDisputeResolutionLayer
     Filesystem fs;
     TRU tru;
-    address jackpotManager; //using address because sometimes it is IForcedError, and others BaseJackpotManager
 
-    constructor (address payable _TRU, address _exchangeRateOracle, address _disputeResolutionLayer, address fs_addr, address _jackpotManager) 
+    constructor (address payable _TRU, address _exchangeRateOracle, address _disputeResolutionLayer, address fs_addr) 
         DepositsManager(_TRU)
         RewardsManager(_TRU)
         public 
@@ -137,7 +136,6 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         oracle = ExchangeRateOracle(_exchangeRateOracle);
         fs = Filesystem(fs_addr);
         tru = TRU(_TRU);
-	jackpotManager = _jackpotManager;
     }
 
     function getBalance(address addr) public view returns (uint) {
@@ -156,6 +154,26 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         task.bondedDeposits[account] = task.bondedDeposits[account].add(amount);
         emit DepositBonded(taskID, account, amount);
         return task.bondedDeposits[account];
+    }
+
+    function getJackpotReceivers(bytes32 taskID) public view returns (address[] memory) {
+        Solution storage s = solutions[taskID];
+        return s.allChallengers;
+    }
+
+    event ReceivedJackpot(address receiver, uint amount);
+
+    function receiveJackpotPayment(bytes32 taskID, uint index) public {
+        Solution storage s = solutions[taskID];
+        Task storage t = tasks[taskID];
+        require(s.allChallengers[index] == msg.sender);
+        s.allChallengers[index] = address(0);
+
+        //transfer jackpot payment	
+        uint amount = t.tax.div(s.allChallengers.length);
+        token.transfer(msg.sender, amount);
+	
+        emit ReceivedJackpot(msg.sender, amount);
     }
 
     // @dev – unlocks a user's bonded deposits from a task.
@@ -187,7 +205,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
 
         delete task.bondedDeposits[account];
         if (bondedDeposit > toOpponent + task.cost*2) {
-            BaseJackpotManager(jackpotManager).increaseJackpot(bondedDeposit - toOpponent - task.cost*2);
+            // BaseJackpotManager(jackpotManager).increaseJackpot(bondedDeposit - toOpponent - task.cost*2);
             deposits[task.owner] += task.cost*2;
         }
         deposits[opponent] += toOpponent;
@@ -240,7 +258,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         deposits[msg.sender] = deposits[msg.sender].sub(reward + t.tax);
     
         depositReward(id, reward, t.tax);
-        BaseJackpotManager(jackpotManager).increaseJackpot(t.tax);
+        // BaseJackpotManager(jackpotManager).increaseJackpot(t.tax);
         
         t.initTaskHash = initTaskHash;
         t.codeType = codeType;
@@ -518,8 +536,8 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
     function rewardJackpot(bytes32 taskID) internal {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
-        t.jackpotID = BaseJackpotManager(jackpotManager).setJackpotReceivers(s.allChallengers);
-        emit JackpotTriggered(taskID, t.jackpotID);
+        // t.jackpotID = BaseJackpotManager(jackpotManager).setJackpotReceivers(s.allChallengers);
+        emit JackpotTriggered(taskID);
 
         // payReward(taskID, t.owner);//Still compensating solver even though solution wasn't thoroughly verified, task giver recommended to not use solution
     }

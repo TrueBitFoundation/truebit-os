@@ -23,8 +23,7 @@ function setup(web3) {
         let fileSystem = await contract(httpProvider, config['fileSystem'])
         let disputeResolutionLayer = await contract(httpProvider, config['interactive'])
         let tru = await contract(httpProvider, config['tru'])
-	let jackpotManager = await contract(httpProvider, config['jackpotManager'])
-        return [incentiveLayer, fileSystem, disputeResolutionLayer, tru, jackpotManager]
+        return [incentiveLayer, fileSystem, disputeResolutionLayer, tru]
     })()
 }
 
@@ -43,7 +42,7 @@ module.exports = {
             message: `Verifier initialized`
         })
 
-        let [incentiveLayer, fileSystem, disputeResolutionLayer, tru, jackpotManager] = await setup(web3)
+        let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3)
 
         const config = await contractsConfig(web3)
         const WAIT_TIME = config.WAIT_TIME || 0
@@ -167,23 +166,22 @@ module.exports = {
 
         addEvent("JackpotTriggered", incentiveLayer.JackpotTriggered, async result => {
             let taskID = result.args.taskID
-            let jackpotID = result.args.jackpotID
             let taskData = tasks[taskID]
 
             if (!taskData) return
             logger.info("VERIFIER: Jackpot!!!")
 
-            let lst = await incentiveLayer.getJackpotReceivers.call(jackpotID)
+            let lst = await incentiveLayer.getJackpotReceivers.call(taskID)
 
-	    //TODO: I think this will fail with multiple verifiers
-	    //Should check if jackpot receiver is self then receiveJackpotPayment
+            console.log("Got receivers")
+
             for (let i = 0; i < lst.length; i++) {
-                if (lst[i].toLowerCase() == account.toLowerCase()) await incentiveLayer.receiveJackpotPayment(jackpotID, i, {from: account, gas: 100000})
+                if (lst[i].toLowerCase() == account.toLowerCase()) await incentiveLayer.receiveJackpotPayment(taskID, i, {from: account, gas: 100000})
             }
 
         })
 
-        addEvent("ReceivedJackpot", jackpotManager.ReceivedJackpot, async (result) => {
+        addEvent("ReceivedJackpot", incentiveLayer.ReceivedJackpot, async (result) => {
             let recv = result.args.receiver
             let amount = result.args.amount
             logger.info(`VERIFIER: ${recv} got jackpot ${amount.toString(10)}`)
