@@ -491,7 +491,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         require(t.challengeTimeout > cblock);
         require(cblock != 0);
         bondDeposit(taskID, msg.sender, t.minDeposit);
-        if (solution0 != solutions[taskID].solutionCommit) { // Intent determines which solution the verifier is betting is deemed incorrect
+        if (keccak256(abi.encodePacked(solution0)) != solutions[taskID].solutionCommit) { // Intent determines which solution the verifier is betting is deemed incorrect
             solutions[taskID].solution0Challengers.push(msg.sender);
         }
         uint position = solutions[taskID].allChallengers.length;
@@ -534,8 +534,8 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
 
 
     function rewardJackpot(bytes32 taskID) internal {
-        Task storage t = tasks[taskID];
-        Solution storage s = solutions[taskID];
+        // Task storage t = tasks[taskID];
+        // Solution storage s = solutions[taskID];
         // t.jackpotID = BaseJackpotManager(jackpotManager).setJackpotReceivers(s.allChallengers);
         emit JackpotTriggered(taskID);
 

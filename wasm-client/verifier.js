@@ -116,7 +116,7 @@ module.exports = {
 
                 task_list.push(taskID)
 
-                let myHash = web3.utils.soliditySha3(solution.hash)
+                let myHash = solution.hash
                 if (test) myHash = "0x"+helpers.makeSecret(myHash)
 
                 tasks[taskID] = {
@@ -150,7 +150,7 @@ module.exports = {
 
             await depositsHelper(web3, incentiveLayer, tru, account, taskData.minDeposit)
 
-            let myHash = web3.utils.soliditySha3(taskData.solutionHash)
+            let myHash = taskData.solutionHash
             if (test) myHash = "0x" + helpers.makeSecret(myHash)
 
             // logger.info(`my solution ${taskData.solutionHash}, my hash ${myHash}`)
@@ -172,8 +172,6 @@ module.exports = {
             logger.info("VERIFIER: Jackpot!!!")
 
             let lst = await incentiveLayer.getJackpotReceivers.call(taskID)
-
-            console.log("Got receivers")
 
             for (let i = 0; i < lst.length; i++) {
                 if (lst[i].toLowerCase() == account.toLowerCase()) await incentiveLayer.receiveJackpotPayment(taskID, i, {from: account, gas: 100000})
