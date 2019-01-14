@@ -19,35 +19,39 @@ module.exports.version = ({ os }) => {
 
 /** initialize and await os and attach taskSubmitter  */
 module.exports.setup = configPath => {
-    return (async () => {
-	const os = await require('../os/kernel')(configPath)
-	let baseName = configPath.split("/")[0]
-	os.taskSubmitter = await require("../" + baseName + "/taskSubmitter")(
-	    os.web3,
-	    os.logger,
-	    os.fileSystem
-	)
-	os.logger.log({
-	    level: 'info',
-	    message: 'Truebit OS has been initialized with config at ' + configPath
-	})
-	return os
-    })()
+  return (async () => {
+    const os = await require('../os/kernel')(configPath)
+    os.logger.log({
+      level: 'info',
+      message: 'Truebit OS has been initialized with config at ' + configPath
+    })
+    return os
+  })()
 }
 
 /** initialize taskGiver with account address  */
 module.exports.initTaskGiver = ({ os, account }) => {
-    return os.taskGiver.init(os.web3, account, os.logger)
+  return os.taskGiver.init(os.web3, account, os.logger)
 }
 
 /** initialize solver with account address  */
 module.exports.initSolver = ({ os, account, test, recover }) => {
-    return os.solver.init(os, account, test, recover)
+  return os.solver.init(os, account, test, recover)
 }
 
 /** initialize verifier with account address  */
 module.exports.initVerifier = ({ os, account, test, recover }) => {
-    return os.verifier.init(os, account, test, recover)
+  return os.verifier.init(os, account, test, recover)
+}
+
+/** initialize solver with account address  */
+module.exports.ss_initSolver = ({ os, account, test, recover }) => {
+  return os.ss_solver.init(os, account, test, recover)
+}
+
+/** initialize verifier with account address  */
+module.exports.ss_initVerifier = ({ os, account, test, recover }) => {
+  return os.ss_verifier.init(os, account, test, recover)
 }
 
 /** submit a task  */
@@ -63,6 +67,24 @@ module.exports.taskGiver = async ({ os, args }) => {
         let taskData = JSON.parse(data)
         taskData['from'] = account        
         resolve(os.taskSubmitter.submitTask(taskData))
+      }
+    })
+  })
+}
+
+/** submit a task  */
+module.exports.ss_taskGiver = async ({ os, args }) => {
+  const account = os.accounts[args.options.account || 0]
+  const task = args.options.task || 'testWasmTask.json'
+
+  return new Promise((resolve, reject) => {
+    fs.readFile(task, (err, data) => {
+      if (err) {
+        reject(err)
+      } else {
+        let taskData = JSON.parse(data)
+        taskData['from'] = account        
+        resolve(os.ss_taskSubmitter.submitTask(taskData))
       }
     })
   })

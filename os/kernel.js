@@ -1,7 +1,5 @@
 const fs = require('fs')
-
 const Web3 = require('web3')
-
 const logger = require('./logger')
 
 function requireHelper(cb) {
@@ -29,17 +27,26 @@ module.exports = async (configPath) => {
     const httpProvider = new Web3.providers.HttpProvider(config["http-url"])
     const web3 = new Web3(httpProvider)
     const accounts = await web3.eth.getAccounts()
+    const submitter = requireHelper(() => require(config["task-submitter"]))
 
-    return {
-	taskGiver: requireHelper(() => { return require(config["task-giver"]) }),
-	solver: requireHelper(() => { return require(config["solver"]) }),
-	verifier: requireHelper(() => { return require(config["verifier"]) }),
-	web3: web3,
-	accounts: accounts,
-	logger: logger,
-	fileSystem: ipfsFileSystemHelper(config),
-    throttle: config["throttle"],
-    config: config
+    const os = {
+        taskGiver: requireHelper(() => { return require(config["task-giver"]) }),
+        solver: requireHelper(() => { return require(config["solver"]) }),
+        verifier: requireHelper(() => { return require(config["verifier"]) }),
+        web3: web3,
+        accounts: accounts,
+        logger: logger,
+        fileSystem: ipfsFileSystemHelper(config),
+        throttle: config["throttle"],
+        config: config
     }
+
+    os.taskSubmitter = await submitter(
+	    os.web3,
+	    os.logger,
+	    os.fileSystem
+    )
+
+    return os
 
 }

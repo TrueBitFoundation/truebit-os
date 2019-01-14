@@ -1,9 +1,9 @@
 {
     "http-url": "http://localhost:8545",
     "task-giver" : "../wasm-client/taskGiver",
-    "task-submitter" : "../wasm-client/taskSubmitter",
-    "solver" : "../wasm-client/solver",
-    "verifier" : "../wasm-client/verifier",
+    "solver" : "../wasm-client/ss_solver",
+    "verifier" : "../wasm-client/ss_verifier",
+    "task-submitter" : "../wasm-client/ss_taskSubmitter",
     "ipfs" : {
 	"host": "localhost",
 	"port": "5001",

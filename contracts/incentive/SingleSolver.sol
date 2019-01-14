@@ -312,17 +312,6 @@ contract SingleSolverIncentiveLayer  is Ownable {
             return s.currentChallenger == msg.sender;
         }
         return false;
-    }    
-
-    // @dev – verifier submits a challenge to the solution provided for a task
-    // verifiers can call this until task giver changes state or timeout
-    // @param taskID – the task id.
-    // @param intentHash – submit hash of even or odd number to designate which solution is correct/incorrect.
-    // @return – boolean
-    function commitChallenge(bytes32 hash) public returns (bool) {
-        require(challenges[hash] == 0);
-        challenges[hash] = block.number;
-        return true;
     }
 
     function endChallengePeriod(bytes32 taskID) public returns (bool) {

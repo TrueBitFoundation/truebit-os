@@ -47,16 +47,22 @@ async function deploy() {
     let exchangeRateOracle = await deployContract('ExchangeRateOracle', {from: accounts[0], gas: 1000000})
 
     let incentiveLayer = await deployContract(
-	'IncentiveLayer',
-	{from: accounts[0], gas: 5200000},
-	[tru._address,
-	 exchangeRateOracle._address,
-	 interactive._address,
-	 fileSystem._address,
-	]
-    )
-    
-    // tru.methods.transferOwnership(incentiveLayer._address).send({from: accounts[0], gas: 1000000})
+        'IncentiveLayer',
+        {from: accounts[0], gas: 5200000},
+        [tru._address,
+         exchangeRateOracle._address,
+         interactive._address,
+         fileSystem._address,
+        ]
+        )
+        
+    let ss_incentiveLayer = await deployContract(
+            'SingleSolverIncentiveLayer',
+            {from: accounts[0], gas: 5200000},
+            [interactive._address,fileSystem._address]
+            )
+            
+                // tru.methods.transferOwnership(incentiveLayer._address).send({from: accounts[0], gas: 1000000})
 
     let wait = 0
     if (networkName == "kovan") wait = 10000
@@ -71,6 +77,7 @@ async function deploy() {
         tru: exportContract(tru),
         exchangeRateOracle: exportContract(exchangeRateOracle),
         incentiveLayer: exportContract(incentiveLayer),
+        ss_incentiveLayer: exportContract(ss_incentiveLayer),
     }))
 
     // Set exchange rate oracle for testing, main net should come from external data source (dex, oraclize, etc..)
