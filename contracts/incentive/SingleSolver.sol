@@ -132,6 +132,9 @@ contract SingleSolverIncentiveLayer  is Ownable {
         fs = Filesystem(fs_addr);
     }
 
+    function () payable external {
+    }
+
     function defaultParameters(bytes32 taskID) internal {
         VMParameters storage params = vmParams[taskID];
         params.stackSize = 14;

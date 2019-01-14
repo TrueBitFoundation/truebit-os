@@ -38,31 +38,37 @@ async function deploy() {
     console.log("Writing to", filename)
 
     let accounts = await web3.eth.getAccounts()
-    let fileSystem = await deployContract('Filesystem', {from: accounts[0], gas: 5500000})
-    let judge = await deployContract('Judge', {from: accounts[0], gas: 5600000})
-    
-    let interactive = await deployContract('Interactive', {from: accounts[0], gas: 5500000}, [judge._address])
+    let fileSystem = await deployContract('Filesystem', { from: accounts[0], gas: 5500000 })
+    let judge = await deployContract('Judge', { from: accounts[0], gas: 5600000 })
 
-    let tru = await deployContract('TRU', {from: accounts[0], gas: 2000000})
-    let exchangeRateOracle = await deployContract('ExchangeRateOracle', {from: accounts[0], gas: 1000000})
+    let interactive = await deployContract('Interactive', { from: accounts[0], gas: 5500000 }, [judge._address])
+
+    let tru = await deployContract('TRU', { from: accounts[0], gas: 2000000 })
+    let exchangeRateOracle = await deployContract('ExchangeRateOracle', { from: accounts[0], gas: 1000000 })
 
     let incentiveLayer = await deployContract(
         'IncentiveLayer',
-        {from: accounts[0], gas: 5200000},
+        { from: accounts[0], gas: 5200000 },
         [tru._address,
-         exchangeRateOracle._address,
-         interactive._address,
-         fileSystem._address,
+        exchangeRateOracle._address,
+        interactive._address,
+        fileSystem._address,
         ]
-        )
-        
+    )
+
     let ss_incentiveLayer = await deployContract(
-            'SingleSolverIncentiveLayer',
-            {from: accounts[0], gas: 5200000},
-            [interactive._address,fileSystem._address]
-            )
-            
-                // tru.methods.transferOwnership(incentiveLayer._address).send({from: accounts[0], gas: 1000000})
+        'SingleSolverIncentiveLayer',
+        { from: accounts[0], gas: 5200000 },
+        [interactive._address, fileSystem._address]
+    )
+
+    console.log("transfer ???")
+
+    await web3.eth.sendTransaction({from: accounts[0], to: ss_incentiveLayer._address, value: web3.utils.toWei("20", "ether")})
+
+    console.log("transfer !!!")
+
+    // tru.methods.transferOwnership(incentiveLayer._address).send({from: accounts[0], gas: 1000000})
 
     let wait = 0
     if (networkName == "kovan") wait = 10000
@@ -82,16 +88,16 @@ async function deploy() {
 
     // Set exchange rate oracle for testing, main net should come from external data source (dex, oraclize, etc..)
     const TRUperUSD = 2000
-    await exchangeRateOracle.methods.updateExchangeRate(TRUperUSD).send({from: accounts[0]})
+    await exchangeRateOracle.methods.updateExchangeRate(TRUperUSD).send({ from: accounts[0] })
 
     // Mint tokens for testing
     accounts.forEach(async addr => {
-        await tru.methods.addMinter(addr).send({from:accounts[0], gas: 300000})
-        await tru.methods.mint(addr, "100000000000000000000000").send({from:addr, gas: 300000})
+        await tru.methods.addMinter(addr).send({ from: accounts[0], gas: 300000 })
+        await tru.methods.mint(addr, "100000000000000000000000").send({ from: addr, gas: 300000 })
     })
 
     if (networkName == "kovan" || networkName == "rinkeby" || networkName == "ropsten" || networkName == "private") {
-        tru.methods.enableFaucet().send({from:accounts[0], gas: 300000})
+        tru.methods.enableFaucet().send({ from: accounts[0], gas: 300000 })
     }
 
 }

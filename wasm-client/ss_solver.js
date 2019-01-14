@@ -147,9 +147,7 @@ module.exports = {
 
             if (tasks[taskID]) {
                 let vm = tasks[taskID].solution.vm
-                let secret = "0x" + helpers.makeSecret(taskID)
-                console.log("secret", secret)
-                await incentiveLayer.revealSolution(taskID, secret, vm.code, vm.input_size, vm.input_name, vm.input_data, { from: account, gas: 1000000 })
+                await incentiveLayer.revealSolution(taskID, vm.code, vm.input_size, vm.input_name, vm.input_data, { from: account, gas: 1000000 })
                 await helpers.uploadOutputs(taskID, tasks[taskID].vm)
 
                 logger.log({
@@ -165,10 +163,9 @@ module.exports = {
 
             if (tasks[taskID]) {
                 delete tasks[taskID]
-                await incentiveLayer.unbondDeposit(taskID, { from: account, gas: 100000 })
                 logger.log({
                     level: 'info',
-                    message: `SOLVER: Task ${taskID} finalized. Tried to unbond deposits.`
+                    message: `SOLVER: Task ${taskID} finalized.`
                 })
 
             }
