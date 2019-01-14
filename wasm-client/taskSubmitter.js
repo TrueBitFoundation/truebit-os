@@ -49,7 +49,7 @@ const writeFile = (filepath, buf) => {
     return new Promise((resolve, reject) => {
 	fs.writeFile(filepath, buf, (err) => {
 	    if (err) reject(err)
-	    else { resolve() }
+	    else { resolve(filepath) }
 	})
     })
 }
@@ -113,7 +113,6 @@ module.exports = async (web3, logger, mcFileSystem) => {
         let bundleID = await makeBundle(from)
 
 	let ipfsFile = (await mcFileSystem.upload(codeBuf, "task.wast"))[0]
-	console.log(ipfsFile)
 
         let ipfsHash = ipfsFile.hash
 	let name = ipfsFile.path
@@ -144,13 +143,6 @@ module.exports = async (web3, logger, mcFileSystem) => {
 	let codeName = ipfsFile.path
 	let codeSize = ipfsFile.size
 
-        let randomNum = Math.floor(Math.random()*Math.pow(2, 60))
-        let codeRoot = await getCodeRoot(config, dirPath)
-
-	let codeFileId = await tbFileSystem.calcId(randomNum, {from: from})
-
-	await tbFileSystem.addIPFSFile(codeName, codeSize, ipfsHash, codeRoot, randomNum, {from: from, gas: 300000})	
-
         let newFiles = []
 
         for(let i = 0; i < config.files.length; i++) {
@@ -158,8 +150,10 @@ module.exports = async (web3, logger, mcFileSystem) => {
             let fileBuf = await readFile(process.cwd() + filePath)
 
             let fileName = path.basename(filePath)
-            newFiles.push(fileName)
-            await writeFile(dirPath + "/" + fileName, fileBuf)
+	    let newFilePath = dirPath + "/" + fileName
+            newFiles.push(newFilePath)
+	    
+            await writeFile(newFilePath, fileBuf)
 
             let fileSize = fileBuf.byteLength
             let fileRoot = merkleComputer.merkleRoot(web3, fileBuf)
@@ -182,7 +176,14 @@ module.exports = async (web3, logger, mcFileSystem) => {
             await tbFileSystem.addToBundle(bundleID, fileID, {from: from})	    	    
         }
 
-        config.files = newFiles
+        let randomNum = Math.floor(Math.random()*Math.pow(2, 60))
+	let codeFileId = await tbFileSystem.calcId(randomNum, {from: from})
+
+        config.files = newFiles	
+
+        let codeRoot = await getCodeRoot(config, dirPath)
+
+	await tbFileSystem.addIPFSFile(codeName, codeSize, ipfsHash, codeRoot, randomNum, {from: from, gas: 300000})
 
         await tbFileSystem.finalizeBundle(bundleID, codeFileId, {from: from, gas: 1500000})
 
@@ -235,11 +236,11 @@ module.exports = async (web3, logger, mcFileSystem) => {
             if (task.files == []) {
 		let [bundleID, initHash] = await uploadIPFS(codeBuf, config, task.from, randomPath)
 
-		task["storageAddress"] = bundleID
+		task["bundleID"] = bundleID
 		task["initHash"] = initHash
             } else {
                 let [bundleID, initHash] = await uploadIPFSFiles(codeBuf, config, task.from, randomPath)
-                task["storageAddress"] = bundleID
+                task["bundleID"] = bundleID
                 task["initHash"] = initHash
             }
 
@@ -265,16 +266,16 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
 	    await tbFileSystem.addContractFile("task.wasm", codeFileNonce, contractAddress, codeRoot, size, {from: task.from, gas: 300000})
 
-	    let bundleId = await makeBundle(task.from)
+	    let bundleID = await makeBundle(task.from)
 
-	    await tbFileSystem.finalizeBundle(bundleId, codeFileId, {from: task.from, gas: 300000})	    
+	    await tbFileSystem.finalizeBundle(bundleID, codeFileId, {from: task.from, gas: 300000})	    
 
 	    logger.log({
 		level: 'info',
 		message: `Registered deployed contract with truebit filesystem`
 	    })
 
-            task["bundleID"] = bundleId
+            task["bundleID"] = bundleID
 	    task["initHash"] = await tbFileSystem.getInitHash.call(bundleId)
         }
         
@@ -311,7 +312,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
 	    let [config, randomPath, codeBuf] = setupTaskConfiguration(task)
 
-	    let initHash = await getInitHash(config, randomPath) 
+	    let initHash = await getInitHash(config, randomPath)
 
 	    return initHash
 	    
@@ -322,7 +323,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
                 return await submitTask_aux(task)
             }
             catch (e) {
-                logger.error(`Cannot create task: ${e}`)
+                logger.error(`TASK SUBMITTER: Cannot create task: ${e}`)
             }
         }
     }
