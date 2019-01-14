@@ -14,5 +14,6 @@ solc --abi --optimize --overwrite --bin -o ../build dispute/Judge.sol
 solc --abi --optimize --overwrite --bin -o ../build dispute/Merkle.sol
 
 solc --abi --optimize --overwrite --bin -o ../build --allow-paths /interface,  incentive/IncentiveLayer.sol
+solc --abi --optimize --overwrite --bin -o ../build --allow-paths /interface,  incentive/SingleSolver.sol
 
 
