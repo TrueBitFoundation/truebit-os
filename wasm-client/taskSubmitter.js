@@ -276,7 +276,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
 	    })
 
             task["bundleID"] = bundleID
-	    task["initHash"] = await tbFileSystem.getInitHash.call(bundleId)
+	    task["initHash"] = await tbFileSystem.getInitHash.call(bundleID)
         }
         
         //bond minimum deposit
