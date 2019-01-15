@@ -62,11 +62,7 @@ async function deploy() {
         [interactive._address, fileSystem._address]
     )
 
-    console.log("transfer ???")
-
     await web3.eth.sendTransaction({from: accounts[0], to: ss_incentiveLayer._address, value: web3.utils.toWei("20", "ether")})
-
-    console.log("transfer !!!")
 
     // tru.methods.transferOwnership(incentiveLayer._address).send({from: accounts[0], gas: 1000000})
 

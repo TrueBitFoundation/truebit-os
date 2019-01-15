@@ -392,13 +392,9 @@ module.exports = {
             }
         })
 
-        addEvent("WinnerSelected", disputeResolutionLayer.WinnerSelected, async (result) => {
-            //TODO: ???
-        })
+        addEvent("WinnerSelected", disputeResolutionLayer.WinnerSelected, async (result) => {})
 
-        // addEvent("Reported", disputeResolutionLayer.Reported, async (result) => {
-        //     //TODO: ???
-        // })
+        addEvent("Reported", disputeResolutionLayer.Reported, async (result) => {})
 
         // Timeouts
 

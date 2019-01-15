@@ -46,17 +46,11 @@ contract SingleSolverIncentiveLayer  is Ownable {
         uint32 gasLimit;
     }
 
-    event DepositBonded(bytes32 taskID, address account, uint amount);
-    event JackpotTriggered(bytes32 taskID);
-    event DepositUnbonded(bytes32 taskID, address account, uint amount);
     event SlashedDeposit(bytes32 taskID, address account, address opponent, uint amount);
     event TaskCreated(bytes32 taskID, uint blockNumber, uint reward, CodeType codeType, StorageType storageType, string storageAddress);
-    event SolverSelected(bytes32 indexed taskID, address solver, bytes32 taskData, uint minDeposit, bytes32 randomBitsHash);
-    event SolutionsCommitted(bytes32 taskID, CodeType codeType, StorageType storageType, string storageAddress, bytes32 solutionHash0);
+    event SolutionsCommitted(bytes32 taskID, CodeType codeType, StorageType storageType, string storageAddress, bytes32 solutionHash);
     event SolutionRevealed(bytes32 taskID);
-    // event TaskStateChange(bytes32 taskID, uint state);
     event VerificationCommitted(bytes32 taskID, address verifier, uint index);
-    event SolverDepositBurned(address solver, bytes32 taskID);
     event VerificationGame(address indexed solver, uint currentChallenger); 
     event PayReward(address indexed solver, uint reward);
 
@@ -265,17 +259,24 @@ contract SingleSolverIncentiveLayer  is Ownable {
         (ok, res) = t.owner.call(abi.encodeWithSignature("cancel(bytes32)", taskID));
     }
 
+    // Change this to pull?
     function slashOwner(bytes32 taskID, address payable recp) internal {
         Solution storage s = solutions[taskID];
         for (uint i = 0; i < s.allChallengers.length; i++) {
-            if (s.allChallengers[i] != address(0)) s.allChallengers[i].transfer(VERIFIER_DEPOSIT);
+            if (s.allChallengers[i] != address(0)) {
+                s.allChallengers[i].transfer(VERIFIER_DEPOSIT);
+                bonded -= SOLVER_DEPOSIT + VERIFIER_DEPOSIT;
+            }
+            s.allChallengers[i] = address(0);
         }
         recp.transfer(SOLVER_DEPOSIT + VERIFIER_DEPOSIT);
-        bonded -= SOLVER_DEPOSIT;
+        bonded -= SOLVER_DEPOSIT + VERIFIER_DEPOSIT;
+        emit SlashedDeposit(taskID, owner, recp, SOLVER_DEPOSIT);
     }
 
-    function slashVerifier(address /* verifier */) internal {
+    function slashVerifier(bytes32 taskID, address verifier) internal {
         bonded -= VERIFIER_DEPOSIT;
+        emit SlashedDeposit(taskID, verifier, owner, VERIFIER_DEPOSIT);
     }
 
     function payReward(bytes32 taskID) internal {
@@ -394,7 +395,7 @@ contract SingleSolverIncentiveLayer  is Ownable {
         }
         // emit VerificationGame(t.selectedSolver, s.currentChallenger);
         t.timeoutBlock = block.number;
-        slashVerifier(slashedVerifier);
+        slashVerifier(taskID, slashedVerifier);
     }
 
     function verificationGame(bytes32 taskID, address solver, address challenger, bytes32 solutionHash) internal {
@@ -463,7 +464,7 @@ contract SingleSolverIncentiveLayer  is Ownable {
         // Callback(t.owner).solved(taskID, files);
 
         if (IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon)) {
-            slashVerifier(s.currentChallenger);
+            slashVerifier(taskID, s.currentChallenger);
         }
 
     }
