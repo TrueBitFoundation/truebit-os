@@ -19,7 +19,7 @@ contract FSUtils {
     }
 
     // assume 256 bytes?
-    function hashName(string memory name) internal pure returns (bytes32) {
+    function hashName(string memory name) public pure returns (bytes32) {
 	return makeMerkle(bytes(name), 0, 8);
     }
 

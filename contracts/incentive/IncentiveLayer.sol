@@ -63,7 +63,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
     
     struct RequiredFile {
         bytes32 nameHash;
-        int fileType;
+        uint fileType;
         bytes32 fileId;
     }
     
@@ -272,7 +272,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         return id;
     }
 
-    function requireFile(bytes32 id, bytes32 hash, int fileType) public {
+    function requireFile(bytes32 id, bytes32 hash, uint fileType) public {
         Task storage t = tasks[id];
         require (!t.requiredCommitted && msg.sender == t.owner);
         t.uploads.push(RequiredFile(hash, fileType, 0));
@@ -292,9 +292,9 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         return arr;
     }
 
-    function getUploadTypes(bytes32 id) public view returns (int[] memory) {
+    function getUploadTypes(bytes32 id) public view returns (uint[] memory) {
         RequiredFile[] storage lst = tasks[id].uploads;
-        int[] memory arr = new int[](lst.length);
+        uint[] memory arr = new uint[](lst.length);
         for (uint i = 0; i < arr.length; i++) arr[i] = lst[i].fileType;
         return arr;
     }
