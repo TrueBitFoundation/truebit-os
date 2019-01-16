@@ -21,6 +21,7 @@ contract FileManager is FSUtils {
 	string ipfs_hash;
 	address contractAddress;
 	bytes32 root;
+	bytes32 codeRoot;
 	uint fileType;// 0: eth_bytes, 1: contract, 2: ipfs
     }
     
@@ -73,6 +74,18 @@ contract FileManager is FSUtils {
 	f.name = name;
 	f.ipfs_hash = hash;
 	f.root = root;
+	f.fileType = 2;
+	return id;
+    }
+
+    function addIPFSCodeFile(string memory name, uint size, string memory hash, bytes32 root, bytes32 codeRoot, uint nonce) public returns (bytes32) {
+	bytes32 id = keccak256(abi.encodePacked(msg.sender, nonce));
+	File storage f = files[id];
+	f.bytesize = size;
+	f.name = name;
+	f.ipfs_hash = hash;
+	f.root = root;
+	f.codeRoot = codeRoot;
 	f.fileType = 2;
 	return id;
     }

@@ -100,6 +100,28 @@ contract Scrypt {
       return filesystem.getInitHash(bundleID);
    }
 
+   function debug(bytes memory data) public returns (bytes32) {
+      uint num = nonce;
+      nonce++;
+
+      bytes32[] memory input = formatData(data);
+      emit InputData(input);
+      
+      bytes32 inputFileID = filesystem.createFileWithContents("input.data", num, input, data.length);
+      string_to_file[data] = inputFileID;
+      filesystem.addToBundle(bundleID, inputFileID);
+      
+      bytes32[] memory empty = new bytes32[](0);
+      filesystem.addToBundle(bundleID, filesystem.createFileWithContents("output.data", num+1000000000, empty, 0));
+      
+      filesystem.finalizeBundle(bundleID, codeFileID);
+      
+      tru.approve(address(truebit), 1000);
+      truebit.makeDeposit(1000);
+
+      return filesystem.getInitHash(bundleID);
+   }
+
    bytes32 remember_task;
 
    // this is the callback name

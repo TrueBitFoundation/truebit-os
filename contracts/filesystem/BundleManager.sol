@@ -43,7 +43,7 @@ contract BundleManager is FileManager {
 	    res3[i] = getRoot(b.files[i]);
 	}
        
-	b.init = keccak256(abi.encodePacked(f.root, calcMerkle(res1, 0, 10), calcMerkle(res2, 0, 10), calcMerkleFiles(res3, 0, 10)));
+	b.init = keccak256(abi.encodePacked(f.codeRoot, calcMerkle(res1, 0, 10), calcMerkle(res2, 0, 10), calcMerkleFiles(res3, 0, 10)));
 
     }
 

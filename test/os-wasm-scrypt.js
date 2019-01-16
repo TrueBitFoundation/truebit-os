@@ -102,7 +102,7 @@ describe('Truebit OS WASM Scrypt test', async function() {
 
 	    codeFileID = await tbFilesystem.calcId.call(nonce)
 
-	    await tbFilesystem.addIPFSFile(name, size, ipfsHash, merkleRoot, nonce, {from: account, gas: 300000})
+	    await tbFilesystem.addIPFSCodeFile(name, size, ipfsHash, merkleRoot, info.codehash, nonce, {from: account, gas: 300000})
 	})
 	
 	let scrypt_contract
