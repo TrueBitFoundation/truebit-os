@@ -3,7 +3,7 @@ pragma solidity ^0.5.0;
 import "./DepositsManager.sol";
 import "./JackpotManager.sol";
 import "./TRU.sol";
-import "../dispute/Filesystem.sol";
+import "../filesystem/Filesystem.sol";
 import "./ExchangeRateOracle.sol";
 import "./RewardsManager.sol";
 
@@ -31,11 +31,6 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         INTERNAL
     }
 
-    enum StorageType {
-        IPFS,
-        BLOCKCHAIN
-    }
-
     struct VMParameters {
         uint8 stackSize;
         uint8 memorySize;
@@ -49,9 +44,9 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
     event JackpotTriggered(bytes32 taskID, uint jackpotID);
     event DepositUnbonded(bytes32 taskID, address account, uint amount);
     event SlashedDeposit(bytes32 taskID, address account, address opponent, uint amount);
-    event TaskCreated(bytes32 taskID, uint minDeposit, uint blockNumber, uint reward, uint tax, CodeType codeType, StorageType storageType, string storageAddress);
+    event TaskCreated(bytes32 taskID, uint minDeposit, uint blockNumber, uint reward, uint tax, CodeType codeType, bytes32 bundleId);
     event SolverSelected(bytes32 indexed taskID, address solver, bytes32 taskData, uint minDeposit, bytes32 randomBitsHash);
-    event SolutionsCommitted(bytes32 taskID, uint minDeposit, CodeType codeType, StorageType storageType, string storageAddress, bytes32 solutionHash0, bytes32 solutionHash1);
+    event SolutionsCommitted(bytes32 taskID, uint minDeposit, CodeType codeType, bytes32 bundleId, bytes32 solutionHash0, bytes32 solutionHash1);
     event SolutionRevealed(bytes32 taskID, uint randomBits);
     // event TaskStateChange(bytes32 taskID, uint state);
     event VerificationCommitted(bytes32 taskID, address verifier, uint jackpotID, uint solutionID, uint index);
@@ -68,7 +63,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
     
     struct RequiredFile {
         bytes32 nameHash;
-        StorageType fileStorage;
+        uint fileType;
         bytes32 fileId;
     }
     
@@ -89,8 +84,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         uint jackpotID;
         uint cost;
         CodeType codeType;
-        StorageType storageType;
-        string storageAddress;
+	bytes32 bundleId;
         
         bool requiredCommitted;
         RequiredFile[] uploads;
@@ -217,14 +211,14 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
     // @param taskData – tbd. could be hash of the wasm file on a filesystem.
     // @param numBlocks – the number of blocks to adjust for task difficulty
     // @return – boolean
-    function createTaskAux(bytes32 initTaskHash, CodeType codeType, StorageType storageType, string memory storageAddress, uint maxDifficulty, uint reward) internal returns (bytes32) {
+    function createTaskAux(bytes32 initTaskHash, CodeType codeType, bytes32 bundleId, uint maxDifficulty, uint reward) internal returns (bytes32) {
         // Get minDeposit required by task
 	require(maxDifficulty > 0);
         uint minDeposit = oracle.getMinDeposit(maxDifficulty);
         require(minDeposit > 0);
 	require(reward > 0);
         
-        bytes32 id = keccak256(abi.encodePacked(initTaskHash, codeType, storageType, storageAddress, maxDifficulty, reward, numTasks));
+        bytes32 id = keccak256(abi.encodePacked(initTaskHash, codeType, bundleId, maxDifficulty, reward, numTasks));
         numTasks.add(1);
 
         Task storage t = tasks[id];
@@ -243,9 +237,8 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         
         t.initTaskHash = initTaskHash;
         t.codeType = codeType;
-        t.storageType = storageType;
-        t.storageAddress = storageAddress;
-        
+	t.bundleId = bundleId;
+	
         t.timeoutBlock = block.number + IPFS_TIMEOUT + BASIC_TIMEOUT;
         return id;
     }
@@ -256,17 +249,16 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
     // @param taskData – tbd. could be hash of the wasm file on a filesystem.
     // @param numBlocks – the number of blocks to adjust for task difficulty
     // @return – boolean
-    function createTask(bytes32 initTaskHash, CodeType codeType, StorageType storageType, string memory storageAddress, uint maxDifficulty, uint reward) public returns (bytes32) {
-        bytes32 id = createTaskAux(initTaskHash, codeType, storageType, storageAddress, maxDifficulty, reward);
+    function createTask(bytes32 initTaskHash, CodeType codeType, bytes32 bundleId, uint maxDifficulty, uint reward) public returns (bytes32) {
+        bytes32 id = createTaskAux(initTaskHash, codeType, bundleId, maxDifficulty, reward);
         defaultParameters(id);
-	    commitRequiredFiles(id);
+	commitRequiredFiles(id);
         
         return id;
     }
 
-    function createTaskWithParams(bytes32 initTaskHash, CodeType codeType, StorageType storageType, string memory storageAddress, uint maxDifficulty, uint reward,
-                                  uint8 stack, uint8 mem, uint8 globals, uint8 table, uint8 call, uint32 limit) public returns (bytes32) {
-        bytes32 id = createTaskAux(initTaskHash, codeType, storageType, storageAddress, maxDifficulty, reward);
+    function createTaskWithParams(bytes32 initTaskHash, CodeType codeType, bytes32 bundleId, uint maxDifficulty, uint reward, uint8 stack, uint8 mem, uint8 globals, uint8 table, uint8 call, uint32 limit) public returns (bytes32) {
+        bytes32 id = createTaskAux(initTaskHash, codeType, bundleId, maxDifficulty, reward);
         VMParameters storage param = vmParams[id];
         require(stack > 5 && mem > 5 && globals > 5 && table > 5 && call > 5);
         require(stack < 30 && mem < 30 && globals < 30 && table < 30 && call < 30);
@@ -280,17 +272,17 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         return id;
     }
 
-    function requireFile(bytes32 id, bytes32 hash, StorageType st) public {
+    function requireFile(bytes32 id, bytes32 hash, uint fileType) public {
         Task storage t = tasks[id];
         require (!t.requiredCommitted && msg.sender == t.owner);
-        t.uploads.push(RequiredFile(hash, st, 0));
+        t.uploads.push(RequiredFile(hash, fileType, 0));
     }
     
     function commitRequiredFiles(bytes32 id) public {
         Task storage t = tasks[id];
         require (msg.sender == t.owner);
         t.requiredCommitted = true;
-        emit TaskCreated(id, t.minDeposit, t.timeoutBlock, t.reward, t.tax, t.codeType, t.storageType, t.storageAddress);
+        emit TaskCreated(id, t.minDeposit, t.timeoutBlock, t.reward, t.tax, t.codeType, t.bundleId);
     }
     
     function getUploadNames(bytes32 id) public view returns (bytes32[] memory) {
@@ -300,10 +292,10 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         return arr;
     }
 
-    function getUploadTypes(bytes32 id) public view returns (StorageType[] memory) {
+    function getUploadTypes(bytes32 id) public view returns (uint[] memory) {
         RequiredFile[] storage lst = tasks[id].uploads;
-        StorageType[] memory arr = new StorageType[](lst.length);
-        for (uint i = 0; i < arr.length; i++) arr[i] = lst[i].fileStorage;
+        uint[] memory arr = new uint[](lst.length);
+        for (uint i = 0; i < arr.length; i++) arr[i] = lst[i].fileType;
         return arr;
     }
     
@@ -356,7 +348,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         VMParameters storage vm = vmParams[taskID];
         t.timeoutBlock = block.number + BASIC_TIMEOUT + IPFS_TIMEOUT + (1+vm.gasLimit/RUN_RATE);
         t.challengeTimeout = t.timeoutBlock; // End of challenge period
-        emit SolutionsCommitted(taskID, t.minDeposit, t.codeType, t.storageType, t.storageAddress, solutionHash0, solutionHash1);
+        emit SolutionsCommitted(taskID, t.minDeposit, t.codeType, t.bundleId, solutionHash0, solutionHash1);
         return true;
     }
 
@@ -426,7 +418,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
             return s.currentChallenger == msg.sender;
         }
         return false;
-    }    
+    }
 
     // @dev – verifier submits a challenge to the solution provided for a task
     // verifiers can call this until task giver changes state or timeout
@@ -667,15 +659,15 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         return (params.stackSize, params.memorySize, params.globalsSize, params.tableSize, params.callSize, params.gasLimit);
     }
 
-    function getTaskInfo(bytes32 taskID) public view returns (address, bytes32, CodeType, StorageType, string memory, bytes32) {
+    function getTaskInfo(bytes32 taskID) public view returns (address, bytes32, CodeType, bytes32, bytes32) {
 	Task storage t = tasks[taskID];
-        return (t.owner, t.initTaskHash, t.codeType, t.storageType, t.storageAddress, taskID);
+        return (t.owner, t.initTaskHash, t.codeType, t.bundleId, taskID);
     }
 
-    function getSolutionInfo(bytes32 taskID) public view returns(bytes32, bytes32, bytes32, bytes32, CodeType, StorageType, string memory, address) {
+    function getSolutionInfo(bytes32 taskID) public view returns(bytes32, bytes32, bytes32, bytes32, CodeType, bytes32, address) {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
-        return (taskID, s.solutionHash0, s.solutionHash1, t.initTaskHash, t.codeType, t.storageType, t.storageAddress, t.selectedSolver);
+        return (taskID, s.solutionHash0, s.solutionHash1, t.initTaskHash, t.codeType, t.bundleId, t.selectedSolver);
     }
 
 }
