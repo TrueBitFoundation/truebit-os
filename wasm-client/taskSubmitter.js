@@ -120,12 +120,16 @@ module.exports = async (web3, logger, mcFileSystem) => {
         let randomNum = Math.floor(Math.random()*Math.pow(2, 60))
         let size = codeBuf.byteLength
         let codeRoot = await getCodeRoot(config, dirPath)
+	
+	let fileRoot = merkleComputer.merkleRoot(web3, codeBuf)
 
-	let codeFileId = await tbFileSystem.calcId.call(randomNum, {from: from}) 
+	let codeFileID = await tbFileSystem.calcId.call(randomNum, {from: from}) 
 
-	await tbFileSystem.addIPFSFile(name, size, ipfsHash, codeRoot, randomNum, {from: from, gas: 300000})
+	await tbFileSystem.addIPFSFile(name, size, ipfsHash, fileRoot, randomNum, {from: from, gas: 300000})
 
-	await tbFileSystem.finalizeBundle(bundleId, codeFileId)
+	await tbFileSystem.setCodeRoot(codeFileID, codeRoot, {from: from, gas: 100000})
+
+	await tbFileSystem.finalizeBundle(bundleID, codeFileID)
 
         let initHash = await tbFileSystem.getInitHash.call(bundleID)
 
@@ -182,8 +186,9 @@ module.exports = async (web3, logger, mcFileSystem) => {
         config.files = newFiles	
 
         let codeRoot = await getCodeRoot(config, dirPath)
+	let fileRoot = merkleComputer.merkleRoot(web3, codeBuf)	
 
-	await tbFileSystem.addIPFSFile(codeName, codeSize, ipfsHash, codeRoot, randomNum, {from: from, gas: 300000})
+	await tbFileSystem.addIPFSCodeFile(codeName, codeSize, ipfsHash, fileRoot, codeRoot, randomNum, {from: from, gas: 300000})
 
         await tbFileSystem.finalizeBundle(bundleID, codeFileId, {from: from, gas: 1500000})
 
@@ -258,13 +263,15 @@ module.exports = async (web3, logger, mcFileSystem) => {
 		message: `Uploaded data onchain`
 	    })
 
-	    let codeRoot = await getCodeRoot(config, randomPath)	    
+	    let codeRoot = await getCodeRoot(config, randomPath)
+	    let fileRoot = merkleComputer.merkleRoot(web3, codeBuf)	    
 	    let codeFileNonce = Math.floor(Math.random()*Math.pow(2, 60))
 	    let codeFileId = await tbFileSystem.calcId.call(codeFileNonce)
 	    
 	    let size = Buffer.byteLength(codeBuf, 'utf8');
 
-	    await tbFileSystem.addContractFile("task.wasm", codeFileNonce, contractAddress, codeRoot, size, {from: task.from, gas: 300000})
+	    await tbFileSystem.addContractFile("task.wasm", codeFileNonce, contractAddress, fileRoot, size, {from: task.from, gas: 300000})
+	    await tbFileSystem.setCodeRoot(codeFileId, codeRoot, {from: task.from, gas: 100000})
 
 	    let bundleID = await makeBundle(task.from)
 

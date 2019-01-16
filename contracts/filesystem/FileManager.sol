@@ -22,6 +22,7 @@ contract FileManager is FSUtils {
 	address contractAddress;
 	bytes32 root;
 	bytes32 codeRoot;
+	bool codeRootSet;
 	uint fileType;// 0: eth_bytes, 1: contract, 2: ipfs
     }
     
@@ -42,10 +43,12 @@ contract FileManager is FSUtils {
     function createFileWithContents(string memory name, uint nonce, bytes32[] memory arr, uint sz) public returns (bytes32) {
 	bytes32 id = keccak256(abi.encodePacked(msg.sender, nonce));
 	File storage f = files[id];
+	
 	f.fileType = 0;
 	f.data = arr;
 	f.name = name;
 	f.bytesize = sz;
+	f.codeRootSet = false;
 	uint size = 0;
 	uint tmp = arr.length;
 	while (tmp > 1) { size++; tmp = tmp/2; }
@@ -61,6 +64,7 @@ contract FileManager is FSUtils {
 	f.contractAddress = _address;
 	f.bytesize = size;
 	f.root = root;
+	f.codeRootSet = false;
 	f.fileType = 1;
 
 	return id;
@@ -74,6 +78,7 @@ contract FileManager is FSUtils {
 	f.name = name;
 	f.ipfs_hash = hash;
 	f.root = root;
+	f.codeRootSet = false;
 	f.fileType = 2;
 	return id;
     }
@@ -86,6 +91,7 @@ contract FileManager is FSUtils {
 	f.ipfs_hash = hash;
 	f.root = root;
 	f.codeRoot = codeRoot;
+	f.codeRootSet = true;
 	f.fileType = 2;
 	return id;
     }
@@ -129,6 +135,12 @@ contract FileManager is FSUtils {
     function setByteSize(bytes32 id, uint sz) public returns (uint) {
 	files[id].bytesize = sz;
     }
+
+    function setCodeRoot(bytes32 id, bytes32 codeRoot) public returns (uint) {
+	require(!files[id].codeRootSet);
+	files[id].codeRoot = codeRoot;
+	files[id].codeRootSet = true;
+    }    
 
     function getData(bytes32 id) public view returns (bytes32[] memory) {
 	File storage f = files[id];
