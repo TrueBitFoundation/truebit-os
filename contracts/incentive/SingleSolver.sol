@@ -11,6 +11,22 @@ interface Callback {
     function cancelled(bytes32 taskID) external;
 }
 
+interface IWhiteList {
+    function approved(bytes32 taskID, address solver) external returns (bool);
+}
+
+contract WhiteList is IWhiteList {
+    address private owner;
+    constructor () public {
+        owner = msg.sender;
+    }
+
+    function approved(bytes32 /* taskID */, address solver) external returns (bool) {
+        return solver == owner;
+    }
+
+}
+
 contract SingleSolverIncentiveLayer  is Ownable {
 
     uint private numTasks = 0;
@@ -23,8 +39,6 @@ contract SingleSolverIncentiveLayer  is Ownable {
 
     uint constant SOLVER_DEPOSIT = 1 ether;
     uint constant VERIFIER_DEPOSIT = 0.1 ether;
-
-    uint bonded; // amount of ether bonded by the solver
 
     enum CodeType {
         WAST,
@@ -44,6 +58,22 @@ contract SingleSolverIncentiveLayer  is Ownable {
         uint8 globalsSize;
         uint8 tableSize;
         uint32 gasLimit;
+    }
+
+    mapping (address => uint) deposits;
+
+    function makeDeposit() public payable {
+        deposits[msg.sender] += msg.value;
+    }
+
+    function () payable external {
+        deposits[msg.sender] += msg.value;
+    }
+
+    function withdrawDeposit() public payable {
+        uint v = deposits[msg.sender];
+        deposits[msg.sender] = 0;
+        msg.sender.transfer(v);
     }
 
     event SlashedDeposit(bytes32 taskID, address account, address opponent, uint amount);
@@ -92,6 +122,7 @@ contract SingleSolverIncentiveLayer  is Ownable {
         // uint lastBlock; // Used to check timeout
         uint timeoutBlock;
         uint challengeTimeout;
+        uint initBlock;
     }
 
     struct Solution {
@@ -118,15 +149,14 @@ contract SingleSolverIncentiveLayer  is Ownable {
 
     address disputeResolutionLayer; //using address type because in some cases it is IGameMaker, and others IDisputeResolutionLayer
     Filesystem fs;
+    IWhiteList whitelist;
 
-    constructor (address _disputeResolutionLayer, address fs_addr) 
+    constructor (address _disputeResolutionLayer, address fs_addr, address wl_addr) 
         public 
     {
         disputeResolutionLayer = _disputeResolutionLayer;
         fs = Filesystem(fs_addr);
-    }
-
-    function () payable external {
+        whitelist = IWhiteList(wl_addr);
     }
 
     function defaultParameters(bytes32 taskID) internal {
@@ -157,14 +187,13 @@ contract SingleSolverIncentiveLayer  is Ownable {
         t.owner = msg.sender;
         t.reward = reward;
 
-        bonded += reward;
-
         t.initTaskHash = initTaskHash;
         t.codeType = codeType;
         t.storageType = storageType;
         t.storageAddress = storageAddress;
         
         t.timeoutBlock = block.number + IPFS_TIMEOUT + BASIC_TIMEOUT;
+        t.initBlock = block.number;
         return id;
     }
 
@@ -237,9 +266,13 @@ contract SingleSolverIncentiveLayer  is Ownable {
         require(!(t.owner == address(0x0)));
         require(t.state == State.TaskInitialized);
 
-        require(address(this).balance > bonded && address(this).balance - bonded > SOLVER_DEPOSIT);
+        require(whitelist.approved(taskID, msg.sender));
 
-        bonded += SOLVER_DEPOSIT;
+        require(deposits[msg.sender] > SOLVER_DEPOSIT);
+
+        t.owner = msg.sender;
+
+        deposits[msg.sender] -= SOLVER_DEPOSIT;
 
         Solution storage s = solutions[taskID];
         s.solutionHash = solutionHash0;
@@ -260,28 +293,27 @@ contract SingleSolverIncentiveLayer  is Ownable {
     }
 
     // Change this to pull?
-    function slashOwner(bytes32 taskID, address payable recp) internal {
+    function slashOwner(bytes32 taskID, address recp) internal {
         Solution storage s = solutions[taskID];
         for (uint i = 0; i < s.allChallengers.length; i++) {
             if (s.allChallengers[i] != address(0)) {
-                s.allChallengers[i].transfer(VERIFIER_DEPOSIT);
-                bonded -= SOLVER_DEPOSIT + VERIFIER_DEPOSIT;
+                deposits[s.allChallengers[i]] += VERIFIER_DEPOSIT;
             }
             s.allChallengers[i] = address(0);
         }
-        recp.transfer(SOLVER_DEPOSIT + VERIFIER_DEPOSIT);
-        bonded -= SOLVER_DEPOSIT + VERIFIER_DEPOSIT;
+        deposits[recp] += SOLVER_DEPOSIT + VERIFIER_DEPOSIT;
         emit SlashedDeposit(taskID, owner, recp, SOLVER_DEPOSIT);
     }
 
     function slashVerifier(bytes32 taskID, address verifier) internal {
-        bonded -= VERIFIER_DEPOSIT;
+        Task storage t = tasks[taskID];
+        deposits[t.owner] += VERIFIER_DEPOSIT;
         emit SlashedDeposit(taskID, verifier, owner, VERIFIER_DEPOSIT);
     }
 
     function payReward(bytes32 taskID) internal {
         Task storage t = tasks[taskID];
-        bonded -= t.reward;
+        deposits[t.owner] += t.reward;
     }
 
     function taskTimeout(bytes32 taskID) public {
@@ -337,7 +369,6 @@ contract SingleSolverIncentiveLayer  is Ownable {
         Task storage t = tasks[taskID];
         require(t.state == State.SolutionCommitted);
         require(msg.value == VERIFIER_DEPOSIT);
-        bonded += VERIFIER_DEPOSIT;
         uint position = solutions[taskID].allChallengers.length;
         solutions[taskID].allChallengers.push(msg.sender);
 
@@ -354,8 +385,8 @@ contract SingleSolverIncentiveLayer  is Ownable {
     function revealSolution(bytes32 taskID, bytes32 codeHash, bytes32 sizeHash, bytes32 nameHash, bytes32 dataHash) public {
         Task storage t = tasks[taskID];
         require(t.state == State.IntentsRevealed);
-        require(owner == msg.sender);
-        
+        require(t.owner == msg.sender);
+
         Solution storage s = solutions[taskID];
 
         s.nameHash = nameHash;
@@ -472,6 +503,11 @@ contract SingleSolverIncentiveLayer  is Ownable {
     function isFinalized(bytes32 taskID) public view returns (bool) {
         Task storage t = tasks[taskID];
         return (t.state == State.TaskFinalized);
+    }
+    
+    function isFailed(bytes32 taskID) public view returns (bool) {
+        Task storage t = tasks[taskID];
+        return (t.state == State.TaskTimeout);
     }
     
     function canFinalizeTask(bytes32 taskID) public view returns (bool) {

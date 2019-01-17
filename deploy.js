@@ -46,6 +46,8 @@ async function deploy() {
     let tru = await deployContract('TRU', { from: accounts[0], gas: 2000000 })
     let exchangeRateOracle = await deployContract('ExchangeRateOracle', { from: accounts[0], gas: 1000000 })
 
+    let whitelist = await deployContract('WhiteList', { from: accounts[0], gas: 2000000 })
+
     let incentiveLayer = await deployContract(
         'IncentiveLayer',
         { from: accounts[0], gas: 5200000 },
@@ -59,7 +61,7 @@ async function deploy() {
     let ss_incentiveLayer = await deployContract(
         'SingleSolverIncentiveLayer',
         { from: accounts[0], gas: 5200000 },
-        [interactive._address, fileSystem._address]
+        [interactive._address, fileSystem._address, whitelist._address]
     )
 
     await web3.eth.sendTransaction({from: accounts[0], to: ss_incentiveLayer._address, value: web3.utils.toWei("20", "ether")})
