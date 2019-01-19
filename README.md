@@ -30,7 +30,7 @@ In order to get things running you'll have to go through all these commands at l
 cd truebit-os/
 npm i
 npm run fixperms
-npm run deps
+npm run deps # you'll need to be in root (su root)
 npm run compile
 npm run deploy
 ```

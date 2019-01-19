@@ -19,19 +19,6 @@ let os, accounting
 const config = JSON.parse(fs.readFileSync("./wasm-client/config.json"))
 const info = JSON.parse(fs.readFileSync("./scrypt-data/info.json"))
 
-function arrange(arr) {
-    let res = []
-    let acc = ""
-    arr.forEach(function (b) { acc += b; if (acc.length == 64) { res.push("0x"+acc); acc = "" } })
-    if (acc != "") res.push("0x"+acc)
-    console.log(res)
-    return res
-}
-
-function stringToBytes(str) {
-    return "0x" + Buffer.from(str).toString("hex")
-}
-
 let account
 let web3
 
@@ -61,25 +48,10 @@ describe('Truebit OS WASM Scrypt test', async function() {
     
     let tbFilesystem, tru
     
-    async function createFile(fname, buf) {
-        var nonce = await web3.eth.getTransactionCount(config.base)
-        var arr = []
-        for (var i = 0; i < buf.length; i++) {
-            if (buf[i] > 15) arr.push(buf[i].toString(16))
-            else arr.push("0" + buf[i].toString(16))
-        }
-        console.log("Nonce", nonce, {arr:arrange(arr)})
-        var tx = await filesystem.createFileWithContents(fname, nonce, arrange(arr), buf.length, {from:account})
-        var id = await filesystem.calcId.call(nonce, {from:account})
-        return id
-    }
-
     describe('Normal task lifecycle', async () => {
 	let killSolver
 
-	let taskID
-
-	let storageAddress, initStateHash, bundleID, cConfig
+	let initStateHash, bundleID, cConfig, codeFileID, taskID
 
 	before(async () => {
 	    cConfig = await contractsConfig(web3)
@@ -105,11 +77,28 @@ describe('Truebit OS WASM Scrypt test', async function() {
 	    
 	})
 
+	it("should start a bundle", async () => {
+	    let nonce = Math.floor(Math.random()*Math.pow(2, 60))	    
+	    bundleID = await tbFilesystem.calcId.call(nonce)
+	    await tbFilesystem.makeBundle(nonce, {from: account, gas: 300000})
+	})
+
 	it('should upload task code', async () => {
             let codeBuf = fs.readFileSync("./scrypt-data/task.wasm")
-            let ipfsHash = (await os.fileSystem.upload(codeBuf, "task.wasm"))[0].hash
+	    let ipfsFile = (await fileSystem.upload(codeBuf, "task.wasm"))[0]
+	    
+            let ipfsHash = ipfsFile.hash
+	    let size = ipfsFile.size
+	    let name = ipfsFile.path
+
+	    let merkleRoot = merkleComputer.merkleRoot(os.web3, codeBuf)
+	    let nonce = Math.floor(Math.random()*Math.pow(2, 60))
             
             assert.equal(ipfsHash, info.ipfshash)
+
+	    codeFileID = await tbFilesystem.calcId.call(nonce)
+
+	    await tbFilesystem.addIPFSCodeFile(name, size, ipfsHash, merkleRoot, info.codehash, nonce, {from: account, gas: 300000})
 	})
 	
 	let scrypt_contract
@@ -122,7 +111,9 @@ describe('Truebit OS WASM Scrypt test', async function() {
             })
             MyContract.setProvider(web3.currentProvider)
 
-            scrypt_contract = await MyContract.new(cConfig.incentiveLayer.address, cConfig.tru.address, cConfig.fileSystem.address, info.ipfshash, info.codehash, {from:account, gas:2000000})
+	    console.log(info)
+
+            scrypt_contract = await MyContract.new(cConfig.incentiveLayer.address, cConfig.tru.address, cConfig.fileSystem.address, bundleID, codeFileID, info.codehash, {from:account, gas:2000000})
             let result_event = scrypt_contract.GotFiles()
             result_event.watch(async (err, result) => {
 		console.log("got event, file ID", result.args.files[0])
