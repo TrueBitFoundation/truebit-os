@@ -13,6 +13,7 @@ const contract = require('../wasm-client/contractHelper')
 var truffle_contract = require("truffle-contract");
 
 const contractsConfig = require('../wasm-client/util/contractsConfig')
+const merkleComputer = require('../wasm-client/merkle-computer')()
 
 let os, accounting
 
@@ -22,6 +23,8 @@ const info = JSON.parse(fs.readFileSync("./scrypt-data/info.json"))
 let account
 let web3
 
+const ipfs = require('ipfs-api')(config.ipfs.host, '5001', {protocol: 'http'})
+const fileSystem = merkleComputer.fileSystem(ipfs)
 
 before(async () => {
     os = await require('../os/kernel')("./wasm-client/config.json")
