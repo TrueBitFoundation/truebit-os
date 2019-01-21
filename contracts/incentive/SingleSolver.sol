@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-import "../dispute/Filesystem.sol";
+import "../filesystem/Filesystem.sol";
 import "../openzeppelin-solidity/Ownable.sol";
 
 import "../interface/IGameMaker.sol";

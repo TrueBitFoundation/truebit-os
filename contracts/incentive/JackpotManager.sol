@@ -69,7 +69,7 @@ contract BaseJackpotManager is Ownable {
         Jackpot storage j = jackpots[jackpotID];
         require(j.challengers[index] == msg.sender);
 
-        //transfer jackpot payment	
+        //transfer jackpot payment
         uint amount = j.finalAmount.div(2**(j.challengers.length-1));
         token.transfer(msg.sender, amount);
 	

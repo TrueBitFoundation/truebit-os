@@ -171,10 +171,9 @@ module.exports = {
                 }
             }
             else if (tasks[taskID]) {
-                logger.info(`SOLVER: I wasn't selected for task ${taskID}`)
+                logger.info(`SOLVER: I wasnt selected for task ${taskID}`)
                 delete tasks[taskID]
             }
-
 
         })
 
