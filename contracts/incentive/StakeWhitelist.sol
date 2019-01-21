@@ -20,6 +20,8 @@ contract StakeWhitelist is IWhitelist {
         bytes32 taskID;
         uint deposit;
         bytes32[] challenges;
+        address challenger;
+        uint challengeDeposit;
     }
 
     mapping (bytes32 => Ticket) tickets;
@@ -67,12 +69,20 @@ contract StakeWhitelist is IWhitelist {
         selected[taskID] = msg.sender;
     }
 
+    // Larger weight is better
     function verifierWeight(bytes32 idx, bytes32 taskID) internal returns (uint) {
-        return uint(keccak256(abi.encodePacked(idx, taskID, blockhash(tb.getBlock(taskID)))));
+        uint task_block = tb.getBlock(taskID);
+        Ticket storage t = tickets[idx];
+        if (t.bn > task_block) return 0;
+        return uint(keccak256(abi.encodePacked(idx, taskID, blockhash(task_block))));
     } 
 
+    // Larger weight is better
     function solverWeight(bytes32 idx, bytes32 taskID) internal returns (uint) {
-        return uint(keccak256(abi.encodePacked(idx, tb.getSolution(taskID), blockhash(tb.getBlock(taskID)))));
+        uint task_block = tb.getBlock(taskID);
+        Ticket storage t = tickets[idx];
+        if (t.bn > task_block) return 0;
+        return uint(keccak256(abi.encodePacked(idx, tb.getSolution(taskID), blockhash(task_block))));
     }
 
     // here we should perhaps add a deposit so that no useless challenges will be made
@@ -81,9 +91,10 @@ contract StakeWhitelist is IWhitelist {
         Ticket storage t = tickets[idx];
         require(t.taskID != 0);
 
-        if (msg.sender != t.owner) {
+        if (msg.sender != t.owner && t.challengeDeposit == 0) {
             require(deposit[msg.sender] > CHALLENGE_DEPOSIT);
-            t.deposit += CHALLENGE_DEPOSIT;
+            t.challengeDeposit += CHALLENGE_DEPOSIT;
+            t.challenger = msg.sender;
             deposit[msg.sender] -= CHALLENGE_DEPOSIT;
         }
 
@@ -105,6 +116,8 @@ contract StakeWhitelist is IWhitelist {
             deposit[tickets[t.challenges[i]].owner] += payout;
         }
         t.deposit = 0;
+        deposit[t.challenger] += t.challengeDeposit;
+        t.challengeDeposit = 0;
     }
 
     function checkVerifiers(bytes32 idx) internal {
@@ -140,7 +153,7 @@ contract StakeWhitelist is IWhitelist {
         // we may find out from challenges that this was not selected as verifier
         checkVerifiers(idx);
         checkSolvers(idx);
-        deposit[t.owner] += t.deposit;
+        deposit[t.owner] += t.deposit + t.challengeDeposit;
         delete tickets[idx];
     }
 
