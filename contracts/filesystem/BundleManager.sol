@@ -27,7 +27,7 @@ contract BundleManager is FileManager {
 	b.files.push(file_id);
     }
 
-    function finalizeBundle(bytes32 bundleID, bytes32 codeFileID) public {
+    function finalizeBundle(bytes32 bundleID, bytes32 codeFileID) public returns (bytes32) {
 	Bundle storage b = bundles[bundleID];
 	File storage f = files[codeFileID];
 
@@ -44,6 +44,8 @@ contract BundleManager is FileManager {
 	}
        
 	b.init = keccak256(abi.encodePacked(f.codeRoot, calcMerkle(res1, 0, 10), calcMerkle(res2, 0, 10), calcMerkleFiles(res3, 0, 10)));
+
+	return b.init;
 
     }
 
@@ -65,7 +67,7 @@ contract BundleManager is FileManager {
 		calcMerkle(res1, 0, 10),
 		calcMerkle(res2, 0, 10),
 		calcMerkleFiles(res3, 0, 10),
-		keccak256(abi.encodePacked(f.root, calcMerkle(res1, 0, 10), calcMerkle(res2, 0, 10), calcMerkleFiles(res3, 0, 10)))
+		keccak256(abi.encodePacked(f.codeRoot, calcMerkle(res1, 0, 10), calcMerkle(res2, 0, 10), calcMerkleFiles(res3, 0, 10)))
 		);
     }
        

@@ -277,7 +277,8 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
 	    let bundleID = await makeBundle(task.from)
 
-	    await tbFileSystem.finalizeBundle(bundleID, codeFileId, {from: task.from, gas: 300000})	    
+        await tbFileSystem.finalizeBundle(bundleID, codeFileId, {from: task.from, gas: 3000000})
+        let initHash = await tbFileSystem.finalizeBundle.call(bundleID, codeFileId, {from: task.from, gas: 3000000})
 
 	    logger.log({
 		level: 'info',
@@ -285,7 +286,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
 	    })
 
             task["bundleID"] = bundleID
-	    task["initHash"] = await tbFileSystem.getInitHash.call(bundleID)
+	    task["initHash"] = initHash
         }
         
         //bond minimum deposit
