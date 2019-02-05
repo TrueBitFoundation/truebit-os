@@ -256,7 +256,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
         } else { //store file on blockchain
 
-            let contractAddress = await uploadOnchain(codeBuf, {from: task.from, gas: 400000})
+            let contractAddress = await uploadOnchain(codeBuf, {from: task.from, gas: 4000000})
 
 	    logger.log({
 		level: 'info',
@@ -265,8 +265,10 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
 	    let codeRoot = await getCodeRoot(config, randomPath)
 	    let fileRoot = merkleComputer.merkleRoot(web3, codeBuf)	    
-	    let codeFileNonce = Math.floor(Math.random()*Math.pow(2, 60))
-	    let codeFileId = await tbFileSystem.calcId.call(codeFileNonce)
+        let codeFileNonce = Math.floor(Math.random()*Math.pow(2, 60))
+	    let codeFileId = await tbFileSystem.calcId.call(codeFileNonce, {from: task.from})
+	    let codeFileId2 = await tbFileSystem.calcId.call(codeFileNonce)
+        console.log("code file nonce", codeFileNonce, codeFileId, codeFileId2)
 	    
 	    let size = Buffer.byteLength(codeBuf, 'utf8');
 
@@ -275,7 +277,8 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
 	    let bundleID = await makeBundle(task.from)
 
-	    await tbFileSystem.finalizeBundle(bundleID, codeFileId, {from: task.from, gas: 300000})	    
+        await tbFileSystem.finalizeBundle(bundleID, codeFileId, {from: task.from, gas: 3000000})
+        let initHash = await tbFileSystem.finalizeBundle.call(bundleID, codeFileId, {from: task.from, gas: 3000000})
 
 	    logger.log({
 		level: 'info',
@@ -283,7 +286,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
 	    })
 
             task["bundleID"] = bundleID
-	    task["initHash"] = await tbFileSystem.getInitHash.call(bundleID)
+	    task["initHash"] = initHash
         }
         
         //bond minimum deposit

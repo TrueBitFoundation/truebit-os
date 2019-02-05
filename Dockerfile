@@ -9,12 +9,13 @@ RUN apt-get  update \
  && npm install -g ganache-cli mocha
 
 RUN cd bin \
- && wget https://github.com/ethereum/solidity/releases/download/v0.4.25/solc-static-linux \
+ && wget https://github.com/ethereum/solidity/releases/download/v0.5.2/solc-static-linux \
  && mv solc-static-linux solc \
  && chmod 744 solc
 
-RUN wget https://releases.parity.io/v1.11.11/x86_64-unknown-linux-gnu/parity_1.11.11_ubuntu_amd64.deb \
- && dpkg --install parity_1.11.11_ubuntu_amd64.deb \
+RUN cd bin \
+ && wget https://releases.parity.io/ethereum/v2.2.7/x86_64-unknown-linux-gnu/parity \
+ && chmod 744 parity \
  && (parity --chain dev &) \
  && sleep 10 \
  && killall parity
@@ -27,7 +28,7 @@ RUN wget https://dist.ipfs.io/go-ipfs/v0.4.17/go-ipfs_v0.4.17_linux-amd64.tar.gz
 
 RUN git clone https://github.com/TrueBitFoundation/truebit-os \
  && cd truebit-os \
- && git checkout docker \
+ && git checkout single_solver \
  && npm i --production\
  && npm run deps \
  && npm run compile
