@@ -28,20 +28,21 @@ RUN wget https://dist.ipfs.io/go-ipfs/v0.4.17/go-ipfs_v0.4.17_linux-amd64.tar.gz
 
 RUN git clone https://github.com/mrsmkl/truebit-os \
  && cd truebit-os \
- && git checkout single_solver \
+ && git checkout single_solver 	 \
  && npm i --production\
  && npm run deps \
  && npm run compile
 
 RUN git clone https://github.com/mrsmkl/example-app \
  && cd example-app \
+ && git checkout v2 \
  && npm i \
  && ln -s /truebit-os . \
  && browserify public/js/app.js -o public/js/bundle.js
 
 # ipfs and eth ports
-EXPOSE 4001 30303 3000
+EXPOSE 4001 30303 3000 8545
 
 # docker build . -t truebit-os:latest
-# docker run -it -p 4001:4001 -p 30303:30303 -v ~/kovan:/root/.local/share/io.parity.ethereum truebit-os:latest /bin/bash
+# docker run -it -p 3000:3000 -p 8545:8548 -p 4001:4001 -p 30303:30303 -v ~/kovan:/root/.local/share/io.parity.ethereum truebit-os:latest /bin/bash
 # ipfs swarm connect /ip4/176.9.9.249/tcp/4001/ipfs/QmS6C9YNGKVjWK2ctksqYeRo3zGoosEPRuPhCvgAVHBXtg
