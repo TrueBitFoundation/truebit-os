@@ -43,7 +43,7 @@ contract FileManager is FSUtils {
     function createFileWithContents(string memory name, uint nonce, bytes32[] memory arr, uint sz) public returns (bytes32) {
 	bytes32 id = keccak256(abi.encodePacked(msg.sender, nonce));
 	File storage f = files[id];
-	
+	require(files[id].root == 0);
 	f.fileType = 0;
 	f.data = arr;
 	f.name = name;
@@ -59,6 +59,7 @@ contract FileManager is FSUtils {
     function addContractFile(string memory name, uint nonce, address _address, bytes32 root, uint size) public returns (bytes32) {
 	bytes32 id = keccak256(abi.encodePacked(msg.sender, nonce));
 	File storage f = files[id];
+	require(files[id].root == 0);
 
 	f.name = name;
 	f.contractAddress = _address;
@@ -74,6 +75,7 @@ contract FileManager is FSUtils {
     function addIPFSFile(string memory name, uint size, string memory hash, bytes32 root, uint nonce) public returns (bytes32) {
 	bytes32 id = keccak256(abi.encodePacked(msg.sender, nonce));
 	File storage f = files[id];
+	require(files[id].root == 0);
 	f.bytesize = size;
 	f.name = name;
 	f.ipfs_hash = hash;
@@ -85,6 +87,7 @@ contract FileManager is FSUtils {
 
     function addIPFSCodeFile(string memory name, uint size, string memory hash, bytes32 root, bytes32 codeRoot, uint nonce) public returns (bytes32) {
 	bytes32 id = keccak256(abi.encodePacked(msg.sender, nonce));
+	require(files[id].root == 0);
 	File storage f = files[id];
 	f.bytesize = size;
 	f.name = name;
@@ -199,5 +202,39 @@ contract FileManager is FSUtils {
 	else if (idx >= arr.length) return zero_files[level];
 	else return keccak256(abi.encodePacked(calcMerkleFiles(arr, idx, level-1), calcMerkleFiles(arr, idx+(2**(level-1)), level-1)));
     }
-    
+
+	struct Node {
+		bytes32 left;
+		bytes32 right;
+	}
+
+	mapping (bytes32 => Node) nodes;
+
+	function makeZeroNodes() internal {
+	    for (uint i = 0; i < zero.length - 1; i++) {
+			nodes[zero[i+1]] = Node(zero[i], zero[i]);
+		}
+	}
+
+	function setNode(bytes32 root, uint idx, uint depth, bytes32 value) public returns (bytes32) {
+		if (depth == 0) {
+			bytes32 id = keccak256(abi.encodePacked(value));
+			nodes[id] = Node(value, 0);
+			return id;
+		}
+		Node storage n = nodes[root];
+		if (idx%2 == 0) {
+			bytes32 l_id = setNode(n.left, idx/2, depth-1, value);
+			bytes32 id = keccak256(abi.encodePacked(l_id, n.right));
+			nodes[id] = Node(l_id, n.right);
+			return id;
+		}
+		else {
+			bytes32 l_id = setNode(n.right, idx/2, depth-1, value);
+			bytes32 id = keccak256(abi.encodePacked(n.left, l_id));
+			nodes[id] = Node(n.left, l_id);
+			return id;
+		}
+	}
+
 }
