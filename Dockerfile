@@ -49,10 +49,11 @@ RUN git clone https://github.com/TruebitFoundation/jit-runner \
 RUN git clone https://github.com/TruebitFoundation/wasm-ports \
  && cd wasm-ports \
  && git checkout v2 \
- && npm i \
  && ln -s /truebit-os . \
+ && cd samples \
+ && npm i \
  && ln -s /wasm-ports/samples /var/www/ \
- && browserify public/js/app.js -o public/js/bundle.js
+ && browserify pairing/public/app.js -o pairing/public/bundle.js
 
 # ipfs and eth ports
 EXPOSE 4001 30303 80 8545
