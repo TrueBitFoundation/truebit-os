@@ -38,7 +38,7 @@ RUN git clone https://github.com/mrsmkl/example-app \
  && git checkout v2 \
  && npm i \
  && ln -s /truebit-os . \
- && ln -s /example-app/public /var/www/app \
+ && ln -s /example-app/public /var/www/html/app \
  && browserify public/js/app.js -o public/js/bundle.js
 
 RUN git clone https://github.com/TruebitFoundation/jit-runner \
@@ -52,8 +52,10 @@ RUN git clone https://github.com/TruebitFoundation/wasm-ports \
  && ln -s /truebit-os . \
  && cd samples \
  && npm i \
- && ln -s /wasm-ports/samples /var/www/ \
- && browserify pairing/public/app.js -o pairing/public/bundle.js
+ && ln -s /wasm-ports/samples /var/www/html \
+ && browserify pairing/public/app.js -o pairing/public/bundle.js \
+ && cd pairing \
+ && solc --abi --optimize --overwrite --bin -o build contract.sol
 
 # ipfs and eth ports
 EXPOSE 4001 30303 80 8545
