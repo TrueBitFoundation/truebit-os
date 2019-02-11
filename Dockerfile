@@ -61,5 +61,5 @@ RUN git clone https://github.com/TruebitFoundation/wasm-ports \
 EXPOSE 4001 30303 80 8545
 
 # docker build . -t truebit-os:latest
-# docker run -it -p 80:3000 -p 8545:8548 -p 4001:4001 -p 30303:30303 -v ~/kovan:/root/.local/share/io.parity.ethereum truebit-os:latest /bin/bash
+# docker run -it -p 3000:80 -p 8545:8548 -p 4001:4001 -p 30303:30303 -v ~/kovan:/root/.local/share/io.parity.ethereum truebit-os:latest /bin/bash
 # ipfs swarm connect /ip4/176.9.9.249/tcp/4001/ipfs/QmS6C9YNGKVjWK2ctksqYeRo3zGoosEPRuPhCvgAVHBXtg
