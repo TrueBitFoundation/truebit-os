@@ -4,7 +4,7 @@ MAINTAINER Sami Mäkelä
 SHELL ["/bin/bash", "-c"]
 
 RUN apt-get  update \
- && apt-get install -y git cmake ninja-build g++ python wget ocaml opam libzarith-ocaml-dev m4 pkg-config zlib1g-dev psmisc sudo curl tmux nano npm \
+ && apt-get install -y git cmake ninja-build g++ python wget ocaml opam libzarith-ocaml-dev m4 pkg-config zlib1g-dev psmisc sudo curl tmux nano npm apache2 \
  && opam init -y \
  && npm install -g ganache-cli mocha browserify
 
@@ -28,7 +28,7 @@ RUN wget https://dist.ipfs.io/go-ipfs/v0.4.17/go-ipfs_v0.4.17_linux-amd64.tar.gz
 
 RUN git clone https://github.com/mrsmkl/truebit-os \
  && cd truebit-os \
- && git checkout single_solver 	 \
+ && git checkout v2 \
  && npm i --production\
  && npm run deps \
  && npm run compile
@@ -38,11 +38,25 @@ RUN git clone https://github.com/mrsmkl/example-app \
  && git checkout v2 \
  && npm i \
  && ln -s /truebit-os . \
+ && ln -s /example-app/public /var/www/app \
+ && browserify public/js/app.js -o public/js/bundle.js
+
+RUN git clone https://github.com/TruebitFoundation/jit-runner \
+ && cd jit-runner \
+ && git checkout v2 \
+ && npm i
+
+RUN git clone https://github.com/TruebitFoundation/wasm-ports \
+ && cd wasm-ports \
+ && git checkout v2 \
+ && npm i \
+ && ln -s /truebit-os . \
+ && ln -s /wasm-ports/samples /var/www/ \
  && browserify public/js/app.js -o public/js/bundle.js
 
 # ipfs and eth ports
-EXPOSE 4001 30303 3000 8545
+EXPOSE 4001 30303 80 8545
 
 # docker build . -t truebit-os:latest
-# docker run -it -p 3000:3000 -p 8545:8548 -p 4001:4001 -p 30303:30303 -v ~/kovan:/root/.local/share/io.parity.ethereum truebit-os:latest /bin/bash
+# docker run -it -p 80:3000 -p 8545:8548 -p 4001:4001 -p 30303:30303 -v ~/kovan:/root/.local/share/io.parity.ethereum truebit-os:latest /bin/bash
 # ipfs swarm connect /ip4/176.9.9.249/tcp/4001/ipfs/QmS6C9YNGKVjWK2ctksqYeRo3zGoosEPRuPhCvgAVHBXtg
