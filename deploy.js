@@ -64,7 +64,7 @@ async function deploy() {
         [interactive._address, fileSystem._address, whitelist._address]
     )
 
-    await web3.eth.sendTransaction({from: accounts[0], to: ss_incentiveLayer._address, value: web3.utils.toWei("20", "ether")})
+    if (networkName == "private") await web3.eth.sendTransaction({from: accounts[0], to: ss_incentiveLayer._address, value: web3.utils.toWei("20", "ether")})
 
     // tru.methods.transferOwnership(incentiveLayer._address).send({from: accounts[0], gas: 1000000})
 
@@ -89,7 +89,7 @@ async function deploy() {
     await exchangeRateOracle.methods.updateExchangeRate(TRUperUSD).send({ from: accounts[0] })
 
     // Mint tokens for testing
-    accounts.forEach(async addr => {
+    if (networkName == "private") accounts.forEach(async addr => {
         await tru.methods.addMinter(addr).send({ from: accounts[0], gas: 300000 })
         await tru.methods.mint(addr, "100000000000000000000000").send({ from: addr, gas: 300000 })
     })
