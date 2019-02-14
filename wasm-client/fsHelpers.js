@@ -61,20 +61,22 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
         return id
     }
 
-    function uploadIPFS(fname, buf) {
+    /*function uploadIPFS(fname, buf) {
         return new Promise(function (cont, err) {
             ipfs.files.add([{ content: buf, path: fname }], function (err, res) {
                 cont(res[0])
             })
         })
-    }
+    }*/
 
     async function createIPFSFile(fname, buf) {
-        let hash = await uploadIPFS(fname, buf)
-        let info = merkleComputer.merkleRoot(buf)
-        let nonce = await web3.eth.getTransactionCount(base)
-        logger.info("Adding ipfs file", { name: new_name, size: info.size, ipfs_hash: hash.hash, data: info.root, nonce: nonce })
-        await fileSystem.addIPFSFile(new_name, info.size, hash.hash, info.root, nonce, { from: account, gas: 200000 })
+        let res = await mcFileSystem.upload(buf, fname)
+        let hash = res[0]
+        let info = merkleComputer.merkleRoot(web3, buf)
+        let nonce = await web3.eth.getTransactionCount(account)
+        console.log("Adding ipfs file", fname, buf.length, hash.hash, info, nonce)
+        await fileSystem.addIPFSFile(fname, buf.length, hash.hash, info, nonce, { from: account, gas: 200000 })
+        logger.info("Calculating ID")
         let id = await fileSystem.calcId.call(nonce, { from: account, gas: 200000 })
         return id
     }
@@ -84,7 +86,7 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
         let nonce = await web3.eth.getTransactionCount(base)
         let info = merkleComputer.merkleRoot(buf)
 
-        await fileSystem.addContractFile(fname, nonce, contractAddress, info.root, info.size, { from: account, gas: 200000 })
+        await fileSystem.addContractFile(fname, nonce, contractAddress, info.root, buf.length, { from: account, gas: 200000 })
 
         let fileID = await fileSystem.calcId.call(nonce, { from: account })
 
