@@ -35,12 +35,7 @@ npm run compile
 npm run deploy
 ```
 
-# Docker Installation
-
-```
-docker build . -t truebit-os:latest
-docker run -it -p 4001:4001 -p 30303:30303 -v ~/kovan:/root/.local/share/io.parity.ethereum truebit-os:latest /bin/bash
-```
+## Docker Installation
 
 Then use `tmux` to create multiple sessions of the shell:
 
@@ -56,19 +51,73 @@ To split plane vertically
 ctrl-b %
 ```
 
-In one of the sessions:
+New window
 ```
-cd truebit-os/scripts
-chmod 755 kovan.sh
-./kovan.sh
+ctrl-b c
 ```
 
-In the other panel (`ctrl-b`+`arrow` to change panel) run this command:
+Change panel
+```
+ctrl-b arrow
+```
+
+In the other panel run this command:
 ```
 ipfs swarm connect /ip4/176.9.9.249/tcp/4001/ipfs/QmS6C9YNGKVjWK2ctksqYeRo3zGoosEPRuPhCvgAVHBXtg
 ```
 
-Once your kovan node is synced you are ready to follow along with the usage instructions below.
+### Docker usage
+
+```
+docker run -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 mrsmkl/truebit-os:latest /bin/bash
+```
+
+Use tmux to have several windows. New windows are made with "Ctrl-b c".
+
+In first windows, run `ipfs daemon`
+
+In second window, run `ganache-cli -h 0.0.0.0`
+
+Find out what is your address in metamask (`address`), in hex format without 0x prefix.
+
+In the next window
+```
+cd truebit-os
+npm run deploy
+node send.js --to=address
+npm run truebit
+```
+
+To run truebit client in JIT solving mode, use
+```
+npm run truebit wasm-client/config-jit.json
+```
+In the Truebit console, type
+```
+start solve
+```
+
+Then make a new tmux window
+```
+cd example-app
+node deploy.js
+service apache2 start
+```
+
+With web browser, go to localhost:3000/app
+
+After you have submitted the task, go to the tmux window with Truebit console, and type
+ `skip` a few times until the task is finalized.
+
+
+Pairing sample:
+
+```
+cd /wasm-ports/samples/pairing/
+node ../deploy.js
+```
+
+This page will be at `localhost:3000/samples/pairing/public`
 
 ## Usage
 
