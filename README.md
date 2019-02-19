@@ -119,6 +119,27 @@ node ../deploy.js
 
 This page will be at `localhost:3000/samples/pairing/public`
 
+### Goerli testnet
+
+Build and run the docker image at truebit-os directory:
+```
+docker build . -t truebit-os:latest
+docker run -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 truebit-os:latest /bin/bash
+```
+
+Setup a new parity account:
+```
+echo plort > supersecret.txt
+parity --chain goerli account new --password=supersecret.txt > ~/goerliparity
+```
+
+Start the parity node, it should take a few minutes to sync:
+```
+parity --chain goerli --unlock=$(cat goerliparity) --password=supersecret.txt --jsonrpc-cors all
+```
+
+Remember to send eth to the generated address. Faucet: https://faucet.goerli.mudit.blog/
+
 ## Usage
 
 Point the truebit-os shell to the wasm client configuration file which it will use to initialize.

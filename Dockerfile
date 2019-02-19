@@ -13,12 +13,23 @@ RUN cd bin \
  && mv solc-static-linux solc \
  && chmod 744 solc
 
-RUN cd bin \
- && wget https://releases.parity.io/ethereum/v2.3.2/x86_64-unknown-linux-gnu/parity \
- && chmod 744 parity \
- && (parity --chain dev &) \
- && sleep 10 \
- && killall parity
+# RUN cd bin \
+# && wget https://releases.parity.io/ethereum/v2.3.2/x86_64-unknown-linux-gnu/parity \
+# && chmod 744 parity \
+# && (parity --chain dev &) \
+# && sleep 10 \
+# && killall parity
+
+RUN wget -O rustup.sh https://sh.rustup.rs \
+ && sh rustup.sh -y \
+ && source $HOME/.cargo/env \
+ && rustup toolchain add stable
+
+RUN git clone https://github.com/goerli/parity-goerli.git \
+ && cd parity-goerli \
+ && source $HOME/.cargo/env \
+ && apt-get install -y libudev-dev \
+ && cargo build --release --features final
 
 RUN wget https://dist.ipfs.io/go-ipfs/v0.4.17/go-ipfs_v0.4.17_linux-amd64.tar.gz \
  && tar xf go-ipfs_v0.4.17_linux-amd64.tar.gz \
@@ -28,7 +39,7 @@ RUN wget https://dist.ipfs.io/go-ipfs/v0.4.17/go-ipfs_v0.4.17_linux-amd64.tar.gz
 
 RUN git clone https://github.com/mrsmkl/truebit-os \
  && cd truebit-os \
- && git checkout v2 \
+ && git checkout v2test \
  && npm i --production\
  && npm run deps \
  && npm run compile
@@ -56,6 +67,8 @@ RUN git clone https://github.com/TruebitFoundation/wasm-ports \
  && browserify pairing/public/app.js -o pairing/public/bundle.js \
  && cd pairing \
  && solc --abi --optimize --overwrite --bin -o build contract.sol
+
+RUN cp /parity-goerli/target/release/parity /bin
 
 # ipfs and eth ports
 EXPOSE 4001 30303 80 8545

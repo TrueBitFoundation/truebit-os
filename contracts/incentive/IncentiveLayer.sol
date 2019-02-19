@@ -20,8 +20,8 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
     uint private numTasks = 0;
     uint private taxMultiplier = 5;
 
-    uint constant BASIC_TIMEOUT = 50;
-    uint constant IPFS_TIMEOUT = 50;
+    uint constant BASIC_TIMEOUT = 5;
+    uint constant IPFS_TIMEOUT = 5;
     uint constant RUN_RATE = 100000;
     uint constant INTERPRET_RATE = 100000;
 
