@@ -135,7 +135,7 @@ parity --chain goerli account new --password=supersecret.txt > ~/goerliparity
 
 Start the parity node, it should take a few minutes to sync:
 ```
-parity --chain goerli --unlock=$(cat goerliparity) --password=supersecret.txt --jsonrpc-cors all
+parity --chain goerli --unlock=$(cat goerliparity) --password=supersecret.txt --jsonrpc-cors=all --jsonrpc-interface=all
 ```
 
 Remember to send eth to the generated address. Faucet: https://faucet.goerli.mudit.blog/
