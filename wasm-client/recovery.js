@@ -2,7 +2,8 @@
 function findLastEvent(lst) {
     let num = ev => ev.event.transactionIndex*10 + ev.event.logIndex + ev.event.blockNumber*100000000
     let copy = lst.concat()
-    copy.sort((a,b) => num(a) < num(b))
+    copy.sort((a,b) => num(b) - num(a))
+    // console.log("events", lst, "sorted", copy)
     return copy[0]
 }
 
@@ -12,6 +13,7 @@ module.exports.analyze = async function (account, events, recoverTask, recoverGa
     let game_evs = {}
     let tasks = []
     let games = []
+    // console.log("got events", events)
     for (let i = 0; i < events.length; i++) {
         let ev = events[i]
         let taskid = ev.event.args.taskID
@@ -27,7 +29,7 @@ module.exports.analyze = async function (account, events, recoverTask, recoverGa
             }
         }
         if (gameid) {
-            console.log("Found", ev.event.event, "for", gameid)
+            // console.log("Found", ev.event.event, "for", gameid)
             let actor
             if (!verifier_mode) actor = await disputeResolutionLayer.getProver.call(gameid)
             else actor = await disputeResolutionLayer.getChallenger.call(gameid)
@@ -49,6 +51,8 @@ module.exports.analyze = async function (account, events, recoverTask, recoverGa
         task_list.push(id)
 
         await recoverTask(id)
+
+        // console.log("For task", id, "got events", evs)
 
         let last = findLastEvent(evs)
         console.log("Handling to recover:", last.event)

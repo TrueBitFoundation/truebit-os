@@ -267,8 +267,8 @@ module.exports = async (web3, logger, mcFileSystem) => {
 	    let fileRoot = merkleComputer.merkleRoot(web3, codeBuf)	    
         let codeFileNonce = Math.floor(Math.random()*Math.pow(2, 60))
 	    let codeFileId = await tbFileSystem.calcId.call(codeFileNonce, {from: task.from})
-	    let codeFileId2 = await tbFileSystem.calcId.call(codeFileNonce)
-        console.log("code file nonce", codeFileNonce, codeFileId, codeFileId2)
+	    // let codeFileId2 = await tbFileSystem.calcId.call(codeFileNonce)
+        // console.log("code file nonce", codeFileNonce, codeFileId, codeFileId2, task.from)
 	    
 	    let size = Buffer.byteLength(codeBuf, 'utf8');
 
@@ -290,6 +290,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
         }
         
         //bond minimum deposit
+        // console.log("deposit", task.minDeposit)
         task["minDeposit"] = web3.utils.toWei(task.minDeposit, 'ether')
         await depositsHelper(web3, incentiveLayer, tru, task.from, task.minDeposit)
 	

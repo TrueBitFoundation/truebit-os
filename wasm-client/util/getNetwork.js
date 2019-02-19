@@ -1,3 +1,5 @@
 module.exports = async (web3) => {
-    return await web3.eth.net.getNetworkType()
+        let id = await web3.eth.net.getId()
+        if (id == 5) return "goerli"
+        else return await web3.eth.net.getNetworkType()
 }

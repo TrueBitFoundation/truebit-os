@@ -6,7 +6,11 @@ let host = argv.host || 'http://localhost:8545'
 const Web3 = require('web3')
 const web3 = new Web3(new Web3.providers.HttpProvider(host))
 const fs = require('fs')
-const getNetwork = async () => { return await web3.eth.net.getNetworkType() }
+const getNetwork = async () => {
+    let id = await web3.eth.net.getId()
+    if (id == 5) return "goerli"
+    else return await web3.eth.net.getNetworkType()
+}
 
 const base = './build/'
 
@@ -71,6 +75,7 @@ async function deploy() {
     let wait = 0
     if (networkName == "kovan") wait = 10000
     else if (networkName == "rinkeby") wait = 15000
+    else if (networkName == "goerli") wait = 15000
     else if (networkName == "ropsten") wait = 30000
 
     fs.writeFileSync(filename, JSON.stringify({
@@ -94,7 +99,7 @@ async function deploy() {
         await tru.methods.mint(addr, "100000000000000000000000").send({ from: addr, gas: 300000 })
     })
 
-    if (networkName == "kovan" || networkName == "rinkeby" || networkName == "ropsten" || networkName == "private") {
+    if (networkName != "ethereum") {
         tru.methods.enableFaucet().send({ from: accounts[0], gas: 300000 })
     }
 
