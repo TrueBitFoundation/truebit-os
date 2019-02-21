@@ -57,57 +57,52 @@ module.exports = {
         const game_list = []
         const RECOVERY_BLOCKS = recover
         
-        if (recovery_mode) logger.info(`Recovering back to ${Math.max(0,bn-RECOVERY_BLOCKS)}`)
+        if (recovery_mode) logger.info(`Recovering back to ${Math.max(0, bn - RECOVERY_BLOCKS)}`)
 
         function addEvent(name, evC, handler) {
-	    if (!evC) {
-		logger.error(`SOLVER: ${name} event is undefined when given to addEvent`)		
-	    } else {
-		let ev = recovery_mode ? evC({}, {fromBlock:Math.max(0,bn-RECOVERY_BLOCKS)}) : evC()
-		clean_list.push(ev)
-		ev.watch(async (err, result) => {
+            if (!evC) {
+                logger.error(`SOLVER: ${name} event is undefined when given to addEvent`)
+            } else {
+                let ev = recovery_mode ? evC({}, { fromBlock: Math.max(0, bn - RECOVERY_BLOCKS) }) : evC()
+                clean_list.push(ev)
+                ev.watch(async (err, result) => {
                     // console.log(result)
                     if (result && recovery_mode) {
-			events.push({event:result, handler})
-			console.log("SOLVER: Recovering", result.event, "at block", result.blockNumber)
+                        events.push({ event: result, handler })
+                        console.log("SOLVER: Recovering", result.event, "at block", result.blockNumber)
                     }
                     else if (result) {
-			try {
+                        try {
                             await handler(result)
-			}
-			catch (e) {
+                        }
+                        catch (e) {
                             // console.log(e)
                             logger.error(`SOLVER: Error while handling ${name} event ${JSON.stringify(result)}: ${e}`)
-			}
+                        }
                     }
                     else console.log(err)
-		})
-		
-	    }
+                })
+
+            }
         }
         
         let helpers = fsHelpers.init(fileSystem, web3, mcFileSystem, logger, incentiveLayer, account, os.config)
 
-        addEvent("TaskCreated", incentiveLayer.TaskCreated, async (result) => {
+        async function registerTask(result) {
 
-	        logger.log({
-                level: 'info',
-                message: `SOLVER: Task has been posted. Checking for availability.`
-            })
-	    
             let taskID = result.args.taskID
             let minDeposit = result.args.minDeposit.toNumber()
-
-            let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))
-
-            let storageType = taskInfo.codeStorage
-            let storageAddress = taskInfo.storageAddress
-            let initTaskHash = taskInfo.initTaskHash
 
             let solutionInfo = toSolutionInfo(await incentiveLayer.getSolutionInfo.call(taskID))
 
             if (Object.keys(tasks).length <= throttle) {
                 if (solutionInfo.solver == '0x0000000000000000000000000000000000000000') {
+
+                    if (config.solving_rate && config.solving_rate < Math.random()) {
+                        if (WAIT_TIME > 0) setTimeout(() => registerTask(result), WAIT_TIME)
+
+                        return
+                    }
 
                     let secret = "0x" + helpers.makeSecret(taskID)
 
@@ -121,6 +116,16 @@ module.exports = {
                     // tasks[taskID].secret = secret
                 }
             }
+        }
+
+        addEvent("TaskCreated", incentiveLayer.TaskCreated, async (result) => {
+
+	        logger.log({
+                level: 'info',
+                message: `SOLVER: Task has been posted. Checking for availability.`
+            })
+            
+            registerTask(result)
             
         })
 

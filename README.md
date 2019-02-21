@@ -130,7 +130,7 @@ docker run -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 truebit-os:la
 Setup a new parity account:
 ```
 echo plort > supersecret.txt
-parity --chain goerli account new --password=supersecret.txt > ~/goerliparity
+parity --chain goerli account new --password=supersecret.txt > goerliparity
 ```
 
 Start the parity node, it should take a few minutes to sync:
