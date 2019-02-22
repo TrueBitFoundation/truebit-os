@@ -158,7 +158,7 @@ module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath, jit_
                         return JSON.parse(stdout)
                     }
                     else {
-                        let stdout = await exec(config, ["-m", "-disable-float", "-output"], interpreterArgs, path)
+                        let stdout = await exec(config, ["-m", "-disable-float", "-output-io"], interpreterArgs, path)
                         return JSON.parse(stdout)
                     }
                 },
