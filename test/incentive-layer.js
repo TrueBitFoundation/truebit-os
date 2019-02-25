@@ -39,7 +39,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 
 	accounts = [taskGiver, solver, verifier]
 
-	minDeposit = 100000
+	minDeposit = "1000000000000000000"
 
 	randomBits = 42
 	randomBitsHash = os.web3.utils.soliditySha3(randomBits)
@@ -98,8 +98,8 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	assert(log.args.reward)
 
 	//confirm proper economic values
-	assert.equal(log.args.minDeposit.toNumber(), 3)
-	assert.equal(log.args.tax.toNumber(), (log.args.minDeposit.toNumber() * 5))
+	assert.equal(log.args.minDeposit.toString(), minDeposit)
+	assert.equal(log.args.tax.toNumber(), (log.args.reward.toNumber() * 5))
 
 	taskID = log.args.taskID
     })
@@ -190,7 +190,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
 	
         assert.equal(log.args.taskID, taskID)
         assert.equal(log.args.account, solver.toLowerCase())
-        assert(log.args.amount.eq(3))
+        assert.equal(log.args.amount.toString(10), minDeposit)
 
         log = tx.logs.find(log => log.event === 'SolverSelected')
 
@@ -199,7 +199,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
         assert.equal(log.args.taskData, 0x0)        
 	assert.equal(log.args.randomBitsHash, randomBitsHash)
 
-	assert.equal(log.args.minDeposit.toNumber(), 3)
+	assert.equal(log.args.minDeposit, minDeposit)
 	
     })
 

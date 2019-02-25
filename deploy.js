@@ -90,7 +90,8 @@ async function deploy() {
     }))
 
     // Set exchange rate oracle for testing, main net should come from external data source (dex, oraclize, etc..)
-    const TRUperUSD = 2000
+    // const TRUperUSD = 2000
+    const TRUperUSD = 0
     await exchangeRateOracle.methods.updateExchangeRate(TRUperUSD).send({ from: accounts[0] })
 
     // Mint tokens for testing

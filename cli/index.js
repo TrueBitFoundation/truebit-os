@@ -85,7 +85,7 @@ vorpal
 
 vorpal
   .command('skip', 'skip blocks')
-  .option('-n, --number <num>', 'index of web3 account to use.')
+  .option('-n, --number <num>', 'number of blocks to skip.')
   .action(async (args, callback) => {
     await cliLib.skipHelper({
       os,
@@ -122,6 +122,17 @@ vorpal
   .option('-a, --account <num>', 'index of web3 account to use.')
   .action(async (args, callback) => {
     await cliLib.claimTokens({
+      os,
+      args
+    })
+    callback()
+  })
+  vorpal
+  .command('deposit', 'deposit tokens to incentive layer')
+  .option('-a, --account <num>', 'index of web3 account to use.')
+  .option('-v, --value <num>', 'amount of tokens.')
+  .action(async (args, callback) => {
+    await cliLib.deposit({
       os,
       args
     })

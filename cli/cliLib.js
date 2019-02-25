@@ -141,7 +141,23 @@ module.exports.balance = async ({ os, args }) => {
   return balance
 }
 
-/** get balance of an account */
+/** deposit tokens to incentive contract */
+module.exports.deposit = async ({ os, args }) => {
+  const account = os.accounts[args.options.account || 0]
+  const num_tru = args.options.value || "1"
+  const num = os.web3.utils.toWei(num_tru)
+  const httpProvider = os.web3.currentProvider
+	const config = await contractsConfig(os.web3)
+  const incentiveLayer = await contract(httpProvider, config['incentiveLayer'])
+  const tru = await contract(httpProvider, config['tru'])
+
+  await tru.approve(incentiveLayer.address, num, { from: account })            
+  await incentiveLayer.makeDeposit(num, { from: account })  
+
+  module.exports.balance({os, args})
+}
+
+/** claim test tokens */
 module.exports.claimTokens = async ({ os, args }) => {
   const account = os.accounts[args.options.account || 0]
   const httpProvider = os.web3.currentProvider

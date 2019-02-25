@@ -148,7 +148,7 @@ module.exports = {
 
             if (!taskData) return
 
-            await depositsHelper(web3, incentiveLayer, tru, account, taskData.minDeposit)
+            if (!config.NO_AUTO_DEPOSIT) await depositsHelper(web3, incentiveLayer, tru, account, taskData.minDeposit)
 
             let myHash = taskData.solutionHash
             if (test) myHash = "0x" + helpers.makeSecret(myHash)

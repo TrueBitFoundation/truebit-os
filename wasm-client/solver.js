@@ -106,7 +106,7 @@ module.exports = {
 
                     let secret = "0x" + helpers.makeSecret(taskID)
 
-                    await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
+                    if (!config.NO_AUTO_DEPOSIT) await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
 
                     // console.log("deposit", minDeposit, taskID)
                     // let depo = await incentiveLayer.debugDeposit.call(taskID, {from:account})

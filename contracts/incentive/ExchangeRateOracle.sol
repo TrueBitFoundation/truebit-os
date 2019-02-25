@@ -10,7 +10,6 @@ contract ExchangeRateOracle is Ownable {
     event ExchangeRateUpdate(uint indexed TRUperUSD, address owner);
 
     function updateExchangeRate (uint _TRUperUSD) public onlyOwner {
-        require(_TRUperUSD!= 0);
         TRUperUSD = _TRUperUSD;
         priceOfCycleTRU = TRUperUSD * priceOfCyclemUSD / 1000;
         emit ExchangeRateUpdate(TRUperUSD, owner);
