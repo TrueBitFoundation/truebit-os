@@ -1,17 +1,12 @@
 const depositsHelper = require('./depositsHelper')
-const fs = require('fs')
 const contract = require('./contractHelper')
 const toTaskInfo = require('./util/toTaskInfo')
-const toSolutionInfo = require('./util/toSolutionInfo')
-const setupVM = require('./util/setupVM')
 const midpoint = require('./util/midpoint')
-const waitForBlock = require('./util/waitForBlock')
 const recovery = require('./recovery')
 const assert = require('assert')
+const bigInt = require("big-integer")
 
 const fsHelpers = require('./fsHelpers')
-
-// const merkleComputer = require(__dirname + "/merkle-computer")('./../wasm-client/ocaml-offchain/interpreter/wasm')
 
 const contractsConfig = require('./util/contractsConfig')
 
@@ -27,7 +22,7 @@ function setup(web3) {
     })()
 }
 
-const solverConf = { error: false, error_location: 0, stop_early: -1, deposit: 1 }
+function c(x) { return bigInt(x.toString(10)) }
 
 module.exports = {
     init: async (os, account, test = false, recover = -1) => {
@@ -46,6 +41,8 @@ module.exports = {
 
         const config = await contractsConfig(web3)
         const WAIT_TIME = config.WAIT_TIME || 0
+        const REWARD_LIMIT_raw = config.REWARD_LIMIT || 0
+        const REWARD_LIMIT = bigInt(web3.utils.toWei(REWARD_LIMIT_raw.toString()))
 
         let helpers = fsHelpers.init(fileSystem, web3, mcFileSystem, logger, incentiveLayer, account, os.config)
 
@@ -97,49 +94,53 @@ module.exports = {
             let taskID = result.args.taskID
             let minDeposit = result.args.minDeposit
             let solverHash0 = result.args.solutionHash0
+            let reward = c(result.args.reward)
+
             let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))
             taskInfo.taskID = taskID
 
-            if (Object.keys(tasks).length <= throttle) {
-
-                logger.info("VERIFIER: Setting up VM")
-                let vm = await helpers.setupVMWithFS(taskInfo)
-
-                logger.info("VERIFIER: Executing task")
-                let interpreterArgs = []
-                solution = await vm.executeWasmTask(interpreterArgs)
-
-                logger.log({
-                    level: 'info',
-                    message: `VERIFIER: Executed task ${taskID}. Checking solutions`
-                })
-
-                task_list.push(taskID)
-
-                let myHash = solution.hash
-                if (test) myHash = "0x" + helpers.makeSecret(myHash)
-
-                tasks[taskID] = {
-                    solverHash0: solverHash0,
-                    solutionHash: solution.hash,
-                    vm: vm,
-                    minDeposit: minDeposit,
-                }
-
-
-                // let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "00"
-                // console.log("intent", intent)
-                // tasks[taskID].intent0 = "0x" + intent
-                let hash_str = taskID + account.substr(2) + myHash.substr(2)
-                await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000 })
-
-                logger.log({
-                    level: 'info',
-                    message: `VERIFIER: Challenged solution for task ${taskID}`
-                })
-
-
+            if (reward.lt(REWARD_LIMIT)) {
+                logger.info("VERIFIER: too low reward")
+                return
             }
+            if (throttle && Object.keys(tasks).length > throttle) return
+
+            logger.info("VERIFIER: Setting up VM")
+            let vm = await helpers.setupVMWithFS(taskInfo)
+
+            logger.info("VERIFIER: Executing task")
+            let interpreterArgs = []
+            solution = await vm.executeWasmTask(interpreterArgs)
+
+            logger.log({
+                level: 'info',
+                message: `VERIFIER: Executed task ${taskID}. Checking solutions`
+            })
+
+            task_list.push(taskID)
+
+            let myHash = solution.hash
+            if (test) myHash = "0x" + helpers.makeSecret(myHash)
+
+            tasks[taskID] = {
+                solverHash0: solverHash0,
+                solutionHash: solution.hash,
+                vm: vm,
+                minDeposit: minDeposit,
+            }
+
+            // let intent = helpers.makeSecret(solution.hash + taskID).substr(0, 62) + "00"
+            // console.log("intent", intent)
+            // tasks[taskID].intent0 = "0x" + intent
+            let hash_str = taskID + account.substr(2) + myHash.substr(2)
+            await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000 })
+
+            logger.log({
+                level: 'info',
+                message: `VERIFIER: Challenged solution for task ${taskID}`
+            })
+
+
         })
 
         addEvent("EndChallengePeriod", incentiveLayer.EndChallengePeriod, async result => {

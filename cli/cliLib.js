@@ -144,7 +144,7 @@ module.exports.balance = async ({ os, args }) => {
 /** deposit tokens to incentive contract */
 module.exports.deposit = async ({ os, args }) => {
   const account = os.accounts[args.options.account || 0]
-  const num_tru = args.options.value || "1"
+  const num_tru = args.options.value.toString() || "1"
   const num = os.web3.utils.toWei(num_tru)
   const httpProvider = os.web3.currentProvider
 	const config = await contractsConfig(os.web3)

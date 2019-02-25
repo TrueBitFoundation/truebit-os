@@ -1,14 +1,12 @@
 const depositsHelper = require('./depositsHelper')
-const fs = require('fs')
 const contract = require('./contractHelper')
 const toTaskInfo = require('./util/toTaskInfo')
 const toSolutionInfo = require('./util/toSolutionInfo')
 const midpoint = require('./util/midpoint')
 const toIndices = require('./util/toIndices')
-const waitForBlock = require('./util/waitForBlock')
-const setupVM = require('./util/setupVM')
 const assert = require('assert')
 const recovery = require('./recovery')
+const bigInt = require("big-integer")
 
 const fsHelpers = require('./fsHelpers')
 
@@ -25,6 +23,8 @@ function setup(web3) {
         return [incentiveLayer, fileSystem, disputeResolutionLayer, tru]
     })()
 }
+
+function c(x) { return bigInt(x.toString(10)) }
 
 module.exports = {
     init: async (os, account, test = false, recover = -1) => {
@@ -49,6 +49,8 @@ module.exports = {
 
         const config = await contractsConfig(web3)
         const WAIT_TIME = config.WAIT_TIME || 0
+        const REWARD_LIMIT_raw = config.REWARD_LIMIT || 0
+        const REWARD_LIMIT = bigInt(web3.utils.toWei(REWARD_LIMIT_raw.toString()))
 
         let recovery_mode = recover > 0
         let events = []
@@ -92,36 +94,38 @@ module.exports = {
 
             let taskID = result.args.taskID
             let minDeposit = result.args.minDeposit
+            let reward = c(result.args.reward)
 
             let solutionInfo = toSolutionInfo(await incentiveLayer.getSolutionInfo.call(taskID))
 
-            if (Object.keys(tasks).length <= throttle) {
-                if (solutionInfo.solver == '0x0000000000000000000000000000000000000000') {
+            if (reward.lt(REWARD_LIMIT)) {
+                logger.info("SOLVER: too low reward")
+                return
+            }
+            if (throttle && Object.keys(tasks).length > throttle) return
+            if (solutionInfo.solver != '0x0000000000000000000000000000000000000000') return
 
-                    if (config.solving_rate && config.solving_rate < Math.random()) {
-                        if (WAIT_TIME > 0) setTimeout(() => registerTask(result), WAIT_TIME)
+            if (config.solving_rate && config.solving_rate < Math.random()) {
+                if (WAIT_TIME > 0) setTimeout(() => registerTask(result), WAIT_TIME)
+                return
+            }
 
-                        return
-                    }
+            let secret = "0x" + helpers.makeSecret(taskID)
 
-                    let secret = "0x" + helpers.makeSecret(taskID)
+            if (!config.NO_AUTO_DEPOSIT) await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
 
-                    if (!config.NO_AUTO_DEPOSIT) await depositsHelper(web3, incentiveLayer, tru, account, minDeposit)
+            // console.log("deposit", minDeposit, taskID)
+            // let depo = await incentiveLayer.debugDeposit.call(taskID, {from:account})
+            // console.log("debug", depo.toString(10))
 
-                    // console.log("deposit", minDeposit, taskID)
-                    // let depo = await incentiveLayer.debugDeposit.call(taskID, {from:account})
-                    // console.log("debug", depo.toString(10))
+            // console.log("secret", secret, web3.utils.soliditySha3(secret))
+            await incentiveLayer.registerForTask(taskID, web3.utils.soliditySha3(secret), { from: account, gas: 500000 })
 
-                    // console.log("secret", secret, web3.utils.soliditySha3(secret))
-                    await incentiveLayer.registerForTask(taskID, web3.utils.soliditySha3(secret), { from: account, gas: 500000 })
+            // console.log("ok")
 
-                    // console.log("ok")
-
-                    tasks[taskID] = { minDeposit: minDeposit }
+            tasks[taskID] = { minDeposit: minDeposit }
 
                     // tasks[taskID].secret = secret
-                }
-            }
         }
 
         addEvent("TaskCreated", incentiveLayer.TaskCreated, async (result) => {

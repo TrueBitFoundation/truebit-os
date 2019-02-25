@@ -50,7 +50,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
     event SlashedDeposit(bytes32 taskID, address account, address opponent, uint amount);
     event TaskCreated(bytes32 taskID, uint minDeposit, uint blockNumber, uint reward, uint tax, CodeType codeType, bytes32 bundleId);
     event SolverSelected(bytes32 indexed taskID, address solver, bytes32 taskData, uint minDeposit, bytes32 randomBitsHash);
-    event SolutionsCommitted(bytes32 taskID, uint minDeposit, CodeType codeType, bytes32 bundleId, bytes32 solutionHash0);
+    event SolutionsCommitted(bytes32 taskID, uint minDeposit, uint reward, CodeType codeType, bytes32 bundleId, bytes32 solutionHash0);
     event SolutionRevealed(bytes32 taskID, uint randomBits);
     // event TaskStateChange(bytes32 taskID, uint state);
     event VerificationCommitted(bytes32 taskID, address verifier, uint jackpotID, bytes32 solution, uint index);
@@ -374,7 +374,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         VMParameters storage vm = vmParams[taskID];
         t.timeoutBlock = block.number + BASIC_TIMEOUT + IPFS_TIMEOUT + (1+vm.gasLimit/RUN_RATE);
         t.challengeTimeout = t.timeoutBlock; // End of challenge period
-        emit SolutionsCommitted(taskID, t.minDeposit, t.codeType, t.bundleId, solutionHash0);
+        emit SolutionsCommitted(taskID, t.minDeposit, t.reward, t.codeType, t.bundleId, solutionHash0);
         return true;
     }
 
