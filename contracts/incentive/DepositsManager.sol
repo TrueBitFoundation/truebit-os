@@ -34,7 +34,7 @@ contract DepositsManager {
     // @dev - allows a user to deposit TRU tokens
     // @return - the uer's update deposit amount
     function makeDeposit(uint _deposit) public payable returns (uint) {
-	require(_deposit > 0);
+	    require(_deposit > 0);
         require(token.allowance(msg.sender, address(this)) >= _deposit);
         token.transferFrom(msg.sender, address(this), _deposit);
 

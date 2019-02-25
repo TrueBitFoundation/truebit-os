@@ -18,12 +18,16 @@ interface Callback {
 contract IncentiveLayer is DepositsManager, RewardsManager {
 
     uint private numTasks = 0;
-    uint private taxMultiplier = 5;
+    uint constant taxMultiplier = 5;
 
     uint constant BASIC_TIMEOUT = 5;
     uint constant IPFS_TIMEOUT = 5;
     uint constant RUN_RATE = 100000;
     uint constant INTERPRET_RATE = 100000;
+
+    function getTaxRate() public pure returns (uint) {
+        return taxMultiplier;
+    }
 
     enum CodeType {
         WAST,
@@ -84,7 +88,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         uint jackpotID;
         uint cost;
         CodeType codeType;
-	bytes32 bundleId;
+	    bytes32 bundleId;
         
         bool requiredCommitted;
         RequiredFile[] uploads;
@@ -136,6 +140,10 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         return tru.balanceOf(addr);
     }
 
+    function debugDeposit(bytes32 taskID) public view returns (int) {
+        return int(deposits[msg.sender]) - int(tasks[taskID].minDeposit);
+    }
+
     // @dev – locks up part of the a user's deposit into a task.
     // @param taskID – the task id.
     // @param account – the user's address.
@@ -144,8 +152,8 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
     function bondDeposit(bytes32 taskID, address account, uint amount) private returns (uint) {
         Task storage task = tasks[taskID];
         require(deposits[account] >= amount);
-        deposits[account] = deposits[account].sub(amount);
-        task.bondedDeposits[account] = task.bondedDeposits[account].add(amount);
+        deposits[account] -= amount;
+        task.bondedDeposits[account] += amount;
         emit DepositBonded(taskID, account, amount);
         return task.bondedDeposits[account];
     }
@@ -232,10 +240,10 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
     // @return – boolean
     function createTaskAux(bytes32 initTaskHash, CodeType codeType, bytes32 bundleId, uint maxDifficulty, uint reward) internal returns (bytes32) {
         // Get minDeposit required by task
-	require(maxDifficulty > 0);
+	    require(maxDifficulty > 0);
         uint minDeposit = oracle.getMinDeposit(maxDifficulty);
         require(minDeposit > 0);
-	require(reward > 0);
+	    require(reward > 0);
         
         bytes32 id = keccak256(abi.encodePacked(initTaskHash, codeType, bundleId, maxDifficulty, reward, numTasks));
         numTasks.add(1);
@@ -245,7 +253,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         t.minDeposit = minDeposit;
         t.reward = reward;
 
-        t.tax = minDeposit * taxMultiplier;
+        t.tax = reward * taxMultiplier;
         t.cost = reward + t.tax;
         
         require(deposits[msg.sender] >= reward + t.tax);
@@ -256,7 +264,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         
         t.initTaskHash = initTaskHash;
         t.codeType = codeType;
-	t.bundleId = bundleId;
+	    t.bundleId = bundleId;
 	
         t.timeoutBlock = block.number + IPFS_TIMEOUT + BASIC_TIMEOUT;
         return id;
@@ -271,7 +279,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
     function createTask(bytes32 initTaskHash, CodeType codeType, bytes32 bundleId, uint maxDifficulty, uint reward) public returns (bytes32) {
         bytes32 id = createTaskAux(initTaskHash, codeType, bundleId, maxDifficulty, reward);
         defaultParameters(id);
-	commitRequiredFiles(id);
+	    commitRequiredFiles(id);
         
         return id;
     }
