@@ -27,7 +27,7 @@ https://github.com/mrsmkl/truebit-os/blob/master/Dockerfile
 
 One can use this file for reference to build from source as an alternative to the instructions below.
 
-To get started, use `tmux` to have several windows. New windows can be made with "Ctrl-b c." Alternatively, to split plane horizontally, use `ctrl+b "` and to split plane vertically `ctrl-b %`.  Shift between windows with `ctrl+b` followed by a cursor key. 
+To get started, use `tmux` to have several windows. New windows can be made with `ctrl-b c`. Use `ctrl-b <num>` to switch between windows. Alternatively, to split plane horizontally, use `ctrl+b "` and to split plane vertically `ctrl-b %`.  Shift between windows with `ctrl+b` followed by a cursor key. 
 
 In the first window, run `ipfs daemon`
 
