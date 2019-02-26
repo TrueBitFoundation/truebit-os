@@ -8,73 +8,28 @@
 
 The basic components of an operating system are a kernel designed to manage processes and resources and a shell. The shell is an interactive abstraction over the kernel. We have our own kernel module designed to manage processes and utilities related to using the Truebit protocol. We also provide a nice shell (CLI) to interface with the kernel. If you want to be a miner (solver/verifier) in our network you can follow the instructions below to setup your node with Docker. For technical reasons, this repository also contains all of our smart contracts.  If you are interested in interfacing with Truebit via smart contract you'll want to check out this [example](https://github.com/TrueBitFoundation/example-app) application. It demonstrates how to use Truebit-OS as a dependency in your own development process. 
 
-If you want to talk to the developers working on this project feel free to say hello on our [Gitter](https://gitter.im/TrueBitFoundation/Lobby)
+If you want to talk to the developers working on this project feel free to say hello on our [Gitter](https://gitter.im/TrueBitFoundation/Lobby).  You can install Truebit using Docker or build it from source.  One can install locally or run over the Goerli testnet.
 
-# Getting Started
 
-An ethereum client running on port 8545, and an ipfs daemon at port 5001. For a quick start, ganache-cli is a blockchain emulator that can be used for development.
+# Running on Docker
 
-```
-npm i -g ganache-cli
-```
+Install [Docker](https://www.docker.com/) and [Metamask](https://metamask.io/), and open a Terminal.  
 
-You will also need the latest version of solidity compiler installed and available on your path. Please refer to [its documentation](https://solidity.readthedocs.io/) to install its binary package.
+## Private network
 
-## Installation
-
-Install instructions are catered to Linux users. However, other OS's can use this by simply installing ocaml-offchain without the `npm run deps` script.
-
-In order to get things running you'll have to go through all these commands at least once.
-
-```bash
-cd truebit-os/
-npm i
-npm run fixperms
-npm run deps # you'll need to be in root (su root)
-npm run compile
-npm run deploy
-```
-
-## Docker Installation
-
-Then use `tmux` to create multiple sessions of the shell:
-
-Reminder commands:
-
-To split plane horizontally
-```
-ctrl+b "
-```
-
-To split plane vertically
-```
-ctrl-b %
-```
-
-New window
-```
-ctrl-b c
-```
-
-Change panel
-```
-ctrl-b arrow
-```
-
-In the other panel run this command:
-```
-ipfs swarm connect /ip4/176.9.9.249/tcp/4001/ipfs/QmS6C9YNGKVjWK2ctksqYeRo3zGoosEPRuPhCvgAVHBXtg
-```
-
-### Docker usage
-
+Run
 ```
 docker run -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 mrsmkl/truebit-os:latest /bin/bash
 ```
+The corresponding Docker file is here:
 
-Use tmux to have several windows. New windows are made with "Ctrl-b c".
+https://github.com/mrsmkl/truebit-os/blob/master/Dockerfile
 
-In first windows, run `ipfs daemon`
+One can use this file for reference to build from source as an alternative to the instructions below.
+
+To get started, use `tmux` to have several windows. New windows can be made with `ctrl-b c`. Use `ctrl-b <num>` to switch between windows. Alternatively, to split plane horizontally, use `ctrl+b "` and to split plane vertically `ctrl-b %`.  Shift between windows with `ctrl+b` followed by a cursor key. 
+
+In the first window, run `ipfs daemon`
 
 In second window, run `ganache-cli -h 0.0.0.0`
 
@@ -92,6 +47,7 @@ To run truebit client in JIT solving mode, use
 ```
 npm run truebit wasm-client/config-jit.json
 ```
+
 In the Truebit console, type
 ```
 start solve
@@ -104,13 +60,13 @@ node deploy.js
 service apache2 start
 ```
 
-With web browser, go to localhost:3000/app
+With a web browser, go to `localhost:3000/app`
 
 After you have submitted the task, go to the tmux window with Truebit console, and type
  `skip` a few times until the task is finalized.
 
 
-Pairing sample:
+To run the pairing sample application enter:
 
 ```
 cd /wasm-ports/samples/pairing/
@@ -118,6 +74,15 @@ node ../deploy.js
 ```
 
 This page will be at `localhost:3000/samples/pairing/public`
+
+Other commands:
+
+Type `?` to list commands
+
+`start verify -t` to create a Verifier that initiates verification games
+
+`solve -a 1`, `solve -a 2`, .... creates additional Solvers.
+
 
 ### Goerli testnet
 
@@ -140,17 +105,37 @@ parity --chain goerli --unlock=$(cat goerliparity) --password=supersecret.txt --
 
 Remember to send eth to the generated address. Faucet: https://faucet.goerli.mudit.blog/
 
+# Building from source
+
+## Getting Started
+
+Start with an ethereum client running on port 8545, and an ipfs daemon at port 5001. For a quick start, ganache-cli is a blockchain emulator that can be used for development.
+
+```
+npm i -g ganache-cli
+```
+
+You will also need the latest version of solidity compiler installed and available on your path. Please refer to [its documentation](https://solidity.readthedocs.io/) to install its binary package.
+
+## Installation
+
+Install instructions are catered to Linux users. However, other OS's can use this by simply installing ocaml-offchain without the `npm run deps` script.
+
+In order to get things running you'll have to go through all these commands at least once.
+
+```bash
+cd truebit-os/
+npm i
+npm run fixperms
+npm run deps # you'll need to be in root (su root)
+npm run compile
+npm run deploy
+```
+
+
 ## Usage
 
-Point the truebit-os shell to the wasm client configuration file which it will use to initialize.
-
-NOTE: If you have not fully waited for your node to sync to kovan, the following command will throw an error.
-
-```
-npm run truebit wasm-client/config.json
-```
-
-You should now see the truebit-os shell. The shell provides a number of commands which you can get instructions by using the `help` command:
+The shell provides a number of commands which you can get instructions by using the `help` command:
 
 ```
 help
