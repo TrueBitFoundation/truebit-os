@@ -59,13 +59,14 @@ contract StakeWhitelist is IWhitelist {
         bytes32[] challenges;
         address challenger;
         uint challengeDeposit;
+        mapping (bytes32 => bool) challengeMap; 
     }
 
     mapping (bytes32 => Ticket) tickets;
 
     mapping (address => uint) deposit;
 
-    uint constant NUM_VERIFIERS = 20;
+    uint constant NUM_VERIFIERS = 2;
     uint constant TICKET_PRICE = 1 ether;
     uint constant CHALLENGE_DEPOSIT = 1 ether;
 
@@ -159,10 +160,12 @@ contract StakeWhitelist is IWhitelist {
     }
 
     // here we should perhaps add a deposit so that no useless challenges will be made
+    // correct strategy is to add all verifiers in order
     function addChallenge(bytes32 idx, bytes32 other, uint loc) public {
 
         Ticket storage t = tickets[idx];
         require(t.taskID != 0);
+        require(idx == other || tickets[other].taskID == 0);
 
         if (msg.sender != t.owner && t.challengeDeposit == 0) {
             require(deposit[msg.sender] > CHALLENGE_DEPOSIT);
@@ -171,16 +174,25 @@ contract StakeWhitelist is IWhitelist {
             deposit[msg.sender] -= CHALLENGE_DEPOSIT;
         }
 
-
         for (uint i = 0; i < t.challenges.length; i++) {
             require(t.challenges[i] != other);
         }
-        if (t.challenges.length < NUM_VERIFIERS) t.challenges.push(other);
+        if (loc > 0) require(verifierWeight(t.challenges[loc-1], t.taskID) > verifierWeight(other, t.taskID));
+        if (t.challenges.length == loc) {
+            t.challenges.push(other);
+        }
         else {
             require(verifierWeight(t.challenges[loc], t.taskID) < verifierWeight(other, t.taskID));
             t.challenges[loc] = other;
         }
     }
+
+    function getChallenges(bytes32 idx) public view returns (bytes32 [] memory) {
+        Ticket storage t = tickets[idx];
+        return t.challenges;
+    }
+
+    event SlashedTicket(bytes32 ticket);
 
     function payChallengers(bytes32 idx) internal {
         Ticket storage t = tickets[idx];
@@ -192,6 +204,7 @@ contract StakeWhitelist is IWhitelist {
         t.deposit = 0;
         deposit[t.challenger] += t.challengeDeposit;
         t.challengeDeposit = 0;
+        emit SlashedTicket(idx);
     }
 
     function checkVerifiers(bytes32 idx) internal {
@@ -202,7 +215,7 @@ contract StakeWhitelist is IWhitelist {
         for (uint i = 0; i < t.challenges.length; i++) {
             if (verifierWeight(t.challenges[i], t.taskID) > w) better_verifiers++;
         }
-        if (better_verifiers >= NUM_VERIFIERS) {
+        if (better_verifiers > NUM_VERIFIERS) {
             payChallengers(idx);
         }
     }
@@ -218,6 +231,28 @@ contract StakeWhitelist is IWhitelist {
         if (better_solvers > 0) {
             payChallengers(idx);
         }
+    }
+
+    function debugVerifiers(bytes32 idx) public returns (uint) {
+        Ticket storage t = tickets[idx];
+        // we may find out from challenges that this was not selected as verifier
+        uint w = verifierWeight(idx, t.taskID);
+        uint better_verifiers = 0;
+        for (uint i = 0; i < t.challenges.length; i++) {
+            if (verifierWeight(t.challenges[i], t.taskID) > w) better_verifiers++;
+        }
+        return better_verifiers;
+    }
+
+    function debugSolvers(bytes32 idx) public returns (uint) {
+        Ticket storage t = tickets[idx];
+        // we may find out from challenges that this was not selected as verifier
+        uint w = solverWeight(idx, t.taskID);
+        uint better_solvers = 0;
+        for (uint i = 0; i < t.challenges.length; i++) {
+            if (solverWeight(t.challenges[i], t.taskID) > w) better_solvers++;
+        }
+        return better_solvers;
     }
 
     event ReleasedTicket(bytes32 ticket);

@@ -66,8 +66,17 @@ async function selectSolver(wl, tickets, task) {
 
     let sorted = lst.sort((b,a) => a.weight.compare(b.weight))
 
-    return sorted[0].ticket
+    return sorted
 
+}
+
+async function findSolver(wl, startBlock, task) {
+    let tickets = await getTickets(wl, startBlock)
+
+    let lst = await selectCandidates(wl, tickets, task)
+    let selected = lst.slice(0, 2).map(a => a.ticket)
+    let lst2 = await selectSolver(wl, selected, task)
+    return lst2[0].ticket
 }
 
 function expectError(p) {
@@ -78,8 +87,6 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
     this.timeout(60000)
 
     let accounts, wl, taskBook, web3, tru, startBlock
-
-    let tickets = []
 
     before(async () => {
         let os = await require('../os/kernel')('./wasm-client/ss_config.json')
@@ -124,24 +131,22 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
             await wl.methods.buyTicket(ticket).send({from:account, gas:1000000})
         }
 
-        tickets = await getTickets(wl, startBlock)
+        let tickets = await getTickets(wl, startBlock)
 
         assert.equal(tickets.length, accounts.length*2)
 
     })
 
-    let task, solution, solver
+    let task, solver
 
     it("select solver", async () => {
 
         task = makeRandom(32)
-        solution = makeRandom(32)
+        let solution = makeRandom(32)
 
         await taskBook.methods.addTask(task, solution).send({from:accounts[0]})
 
-        let lst = await selectCandidates(wl, tickets, task)
-        let selected = lst.slice(0,2).map(a => a.ticket)
-        solver = await selectSolver(wl, selected, task)
+        solver = await findSolver(wl, startBlock, task)
 
         // console.log("Solver ticket", solver)
 
@@ -168,8 +173,111 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
     it("releasing ticket", async () => {
         await taskBook.methods.finalizeTask(task).send({from:solver.owner})
         await wl.methods.releaseTicket(solver.ticket).send({from:solver.owner, gas:1000000})
+
+        let evs = await wl.getPastEvents("SlashedTicket", {fromBlock:startBlock})
+        assert.equal(evs.length, 0)
     })
 
+    it("select solver again, but also challenge", async () => {
+
+        task = makeRandom(32)
+        let solution = makeRandom(32)
+
+        await taskBook.methods.addTask(task, solution).send({from:accounts[0]})
+
+        let tickets = await getTickets(wl, startBlock)
+        let lst = await selectCandidates(wl, tickets, task)
+        let selected = lst.slice(0,2).map(a => a.ticket)
+        let lst2 = await selectSolver(wl, selected, task)
+        solver = lst2[0].ticket
+
+        let other = lst2[1].ticket
+
+        // console.log("Solver ticket", solver)
+
+        await wl.methods.useTicket(solver.ticket, task).send({from:solver.owner})
+
+        let valid = await wl.methods.validTicket(solver.ticket).call()
+
+        let approved = await wl.methods.approved(task, solver.owner).call()
+
+        assert(!valid)
+        assert(approved)
+
+        let i = 0
+        for (let t of selected) {
+            await wl.methods.addChallenge(solver.ticket, t.ticket, i).send({from:other.owner, gas:1000000})
+            i++
+        }
+
+        let chals = await wl.methods.getChallenges(solver.ticket).call()
+
+        assert.equal(chals.length, selected.length)
+
+    })
+
+    it("releasing ticket again", async () => {
+        await taskBook.methods.finalizeTask(task).send({from:solver.owner})
+
+        let verifiers = await wl.methods.debugVerifiers(solver.ticket).call()
+        let solvers = await wl.methods.debugSolvers(solver.ticket).call()
+
+        // console.log("verifiers", verifiers, "solvers", solvers)
+
+        await wl.methods.releaseTicket(solver.ticket).send({from:solver.owner, gas:1000000})
+
+        let evs = await wl.getPastEvents("SlashedTicket", {fromBlock:startBlock})
+        assert.equal(evs.length, 0)
+
+    })
+
+    it("select wrong solver", async () => {
+
+        task = makeRandom(32)
+        let solution = makeRandom(32)
+
+        await taskBook.methods.addTask(task, solution).send({from:accounts[0]})
+
+        let tickets = await getTickets(wl, startBlock)
+        let lst = await selectCandidates(wl, tickets, task)
+        let selected = lst.slice(0,2).map(a => a.ticket)
+        let lst2 = await selectSolver(wl, selected, task)
+        solver = lst2[1].ticket
+
+        let other = lst2[0].ticket
+
+        // console.log("Solver ticket", solver)
+
+        await wl.methods.useTicket(solver.ticket, task).send({from:solver.owner})
+
+        let valid = await wl.methods.validTicket(solver.ticket).call()
+
+        let approved = await wl.methods.approved(task, solver.owner).call()
+
+        assert(!valid)
+        assert(approved)
+
+        let i = 0
+        for (let t of selected) {
+            await wl.methods.addChallenge(solver.ticket, t.ticket, i).send({from:other.owner, gas:1000000})
+            i++
+        }
+
+        let chals = await wl.methods.getChallenges(solver.ticket).call()
+
+        assert.equal(chals.length, selected.length)
+
+    })
+
+    it("releasing ticket, should get slashed", async () => {
+        await taskBook.methods.finalizeTask(task).send({from:solver.owner})
+        await wl.methods.releaseTicket(solver.ticket).send({from:solver.owner, gas:1000000})
+
+        let evs = await wl.getPastEvents("SlashedTicket", {fromBlock:startBlock})
+        // console.log(evs)
+        assert.equal(evs.length, 1)
+
+    })
 
 })
 
