@@ -9,14 +9,12 @@ function isString(n) {
     return typeof n == 'string' || n instanceof String
 }
 
-function setup(web3) {
-    return (async () => {
-        const httpProvider = web3.currentProvider
-        const config = await contractsConfig(web3)
-        let incentiveLayer = await contract(httpProvider, config['ss_incentiveLayer'])
-        let fileSystem = await contract(httpProvider, config['fileSystem'])
-        return [incentiveLayer, fileSystem]
-    })()
+async function setup(web3) {
+    const httpProvider = web3.currentProvider
+    const config = await contractsConfig(web3)
+    let incentiveLayer = await contract(httpProvider, config['ss_incentiveLayer'])
+    let fileSystem = await contract(httpProvider, config['fileSystem'])
+    return [incentiveLayer, fileSystem]
 }
 
 function verifyTaskFormat(task) {

@@ -1,5 +1,7 @@
 pragma solidity ^0.5.0;
 
+import "./TRU.sol";
+
 interface IWhitelist {
     function approved(bytes32 taskID, address solver) external returns (bool);
 }
@@ -9,6 +11,10 @@ interface ITruebit {
     function isFinalized(bytes32 taskID) external returns (bool);
     function getBlock(bytes32 taskID) external returns (uint);
     function getSolution(bytes32 taskID) external returns (bytes32);
+}
+
+contract TestBook is ITruebit {
+
 }
 
 contract StakeWhitelist is IWhitelist {
@@ -39,20 +45,40 @@ contract StakeWhitelist is IWhitelist {
     }
 
     ITruebit tb;
+    TRU token;
 
-    function setIncentiveLayer(address tb_addr) public {
-        require(owner == msg.sender);
+    // @dev - allows a user to deposit TRU tokens
+    function makeDeposit(uint _deposit) public {
+        require(token.allowance(msg.sender, address(this)) >= _deposit, "Not enough allowance");
+        token.transferFrom(msg.sender, address(this), _deposit);
+        deposit[msg.sender] += _deposit;
+    }
+
+    function debugDeposit(uint _deposit) public view returns (uint, uint, uint, address) {
+        return (token.allowance(msg.sender, address(this)), _deposit, token.balanceOf(msg.sender), address(token));
+    }
+
+    function setTaskBook(address tb_addr) public {
+        require(owner == msg.sender, "Only owner can change taskbook");
         tb = ITruebit(tb_addr);
     }
 
+    function setToken(address payable c_addr) public {
+        require(owner == msg.sender, "Only owner can change taskbook");
+        token = TRU(c_addr);
+    }
+
+    event NewTicket(address owner, bytes32 ticket, uint block);
+
     function buyTicket(bytes32 idx) public {
         Ticket storage t = tickets[idx];
-        require(t.owner == address(0));
-        require(deposit[msg.sender] >= TICKET_PRICE);
+        require(t.owner == address(0), "Ticket exists");
+        require(deposit[msg.sender] >= TICKET_PRICE, "Cannot afford ticket");
         t.owner = msg.sender;
         t.bn = block.number;
         deposit[msg.sender] -= TICKET_PRICE;
         t.deposit = TICKET_PRICE;
+        emit NewTicket(msg.sender, idx, block.number);
     }
 
     mapping (bytes32 => address) selected;
