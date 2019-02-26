@@ -8,11 +8,106 @@
 
 The basic components of an operating system are a kernel designed to manage processes and resources and a shell. The shell is an interactive abstraction over the kernel. We have our own kernel module designed to manage processes and utilities related to using the Truebit protocol. We also provide a nice shell (CLI) to interface with the kernel. If you want to be a miner (solver/verifier) in our network you can follow the instructions below to setup your node with Docker. For technical reasons, this repository also contains all of our smart contracts.  If you are interested in interfacing with Truebit via smart contract you'll want to check out this [example](https://github.com/TrueBitFoundation/example-app) application. It demonstrates how to use Truebit-OS as a dependency in your own development process. 
 
-If you want to talk to the developers working on this project feel free to say hello on our [Gitter](https://gitter.im/TrueBitFoundation/Lobby)
+If you want to talk to the developers working on this project feel free to say hello on our [Gitter](https://gitter.im/TrueBitFoundation/Lobby).  You can install Truebit using Docker or build it from source.  One can install locally or run over the Goerli testnet.
 
-# Getting Started
 
-An ethereum client running on port 8545, and an ipfs daemon at port 5001. For a quick start, ganache-cli is a blockchain emulator that can be used for development.
+# Running on Docker
+
+Install [Docker](https://www.docker.com/) and [Metamask](https://metamask.io/), and open a Terminal.  
+
+## Private network
+
+Run
+```
+docker run -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 mrsmkl/truebit-os:latest /bin/bash
+```
+The corresponding Docker file is here:
+
+https://github.com/mrsmkl/truebit-os/blob/master/Dockerfile
+
+One can use this file for reference to build from source as an alternative to the instructions below.
+
+To get started, use `tmux` to have several windows. New windows can be made with "Ctrl-b c." Alternatively, to split plane horizontally, use `ctrl+b "` and to split plane vertically `ctrl-b %`.  Shift between windows with `ctrl+b` followed by a cursor key. 
+
+In the first window, run `ipfs daemon`
+
+In second window, run `ganache-cli -h 0.0.0.0`
+
+Find out what is your address in metamask (`address`), in hex format without 0x prefix.
+
+In the next window
+```
+cd truebit-os
+npm run deploy
+node send.js --to=address
+npm run truebit
+```
+
+To run truebit client in JIT solving mode, use
+```
+npm run truebit wasm-client/config-jit.json
+```
+
+In the Truebit console, type
+```
+start solve
+```
+
+Then make a new tmux window
+```
+cd example-app
+node deploy.js
+service apache2 start
+```
+
+With a web browser, go to `localhost:3000/app`
+
+After you have submitted the task, go to the tmux window with Truebit console, and type
+ `skip` a few times until the task is finalized.
+
+
+To run the pairing sample application enter:
+
+```
+cd /wasm-ports/samples/pairing/
+node ../deploy.js
+```
+
+This page will be at `localhost:3000/samples/pairing/public`
+
+Other commands:
+
+Type `?` to list commands
+
+`start verify -t` to create a Verifier that initiates verification games
+
+`solve -a 1`, `solve -a 2`, .... creates additional Solvers.
+
+
+### Goerli testnet
+
+Build and run the docker image at truebit-os directory:
+```
+docker build . -t truebit-os:latest
+docker run -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 truebit-os:latest /bin/bash
+```
+
+Setup a new parity account:
+```
+echo plort > supersecret.txt
+parity --chain goerli account new --password=supersecret.txt > goerliparity
+```
+
+Start the parity node, it should take a few minutes to sync:
+```
+parity --chain goerli --unlock=$(cat goerliparity) --password=supersecret.txt --jsonrpc-cors=all --jsonrpc-interface=all
+
+
+# Building from source
+
+## Getting Started
+
+Start with an ethereum client running on port 8545, and an ipfs daemon at port 5001. For a quick start, ganache-cli is a blockchain emulator that can be used for development.
 
 ```
 npm i -g ganache-cli
@@ -35,122 +130,10 @@ npm run compile
 npm run deploy
 ```
 
-## Docker Installation
-
-Then use `tmux` to create multiple sessions of the shell:
-
-Reminder commands:
-
-To split plane horizontally
-```
-ctrl+b "
-```
-
-To split plane vertically
-```
-ctrl-b %
-```
-
-New window
-```
-ctrl-b c
-```
-
-Change panel
-```
-ctrl-b arrow
-```
-
-In the other panel run this command:
-```
-ipfs swarm connect /ip4/176.9.9.249/tcp/4001/ipfs/QmS6C9YNGKVjWK2ctksqYeRo3zGoosEPRuPhCvgAVHBXtg
-```
-
-### Docker usage
-
-```
-docker run -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 mrsmkl/truebit-os:latest /bin/bash
-```
-
-Use tmux to have several windows. New windows are made with "Ctrl-b c".
-
-In first windows, run `ipfs daemon`
-
-In second window, run `ganache-cli -h 0.0.0.0`
-
-Find out what is your address in metamask (`address`), in hex format without 0x prefix.
-
-In the next window
-```
-cd truebit-os
-npm run deploy
-node send.js --to=address
-npm run truebit
-```
-
-To run truebit client in JIT solving mode, use
-```
-npm run truebit wasm-client/config-jit.json
-```
-In the Truebit console, type
-```
-start solve
-```
-
-Then make a new tmux window
-```
-cd example-app
-node deploy.js
-service apache2 start
-```
-
-With web browser, go to localhost:3000/app
-
-After you have submitted the task, go to the tmux window with Truebit console, and type
- `skip` a few times until the task is finalized.
-
-
-Pairing sample:
-
-```
-cd /wasm-ports/samples/pairing/
-node ../deploy.js
-```
-
-This page will be at `localhost:3000/samples/pairing/public`
-
-### Goerli testnet
-
-Build and run the docker image at truebit-os directory:
-```
-docker build . -t truebit-os:latest
-docker run -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 truebit-os:latest /bin/bash
-```
-
-Setup a new parity account:
-```
-echo plort > supersecret.txt
-parity --chain goerli account new --password=supersecret.txt > goerliparity
-```
-
-Start the parity node, it should take a few minutes to sync:
-```
-parity --chain goerli --unlock=$(cat goerliparity) --password=supersecret.txt --jsonrpc-cors=all --jsonrpc-interface=all
-```
-
-Remember to send eth to the generated address. Faucet: https://faucet.goerli.mudit.blog/
 
 ## Usage
 
-Point the truebit-os shell to the wasm client configuration file which it will use to initialize.
-
-NOTE: If you have not fully waited for your node to sync to kovan, the following command will throw an error.
-
-```
-npm run truebit wasm-client/config.json
-```
-
-You should now see the truebit-os shell. The shell provides a number of commands which you can get instructions by using the `help` command:
+The shell provides a number of commands which you can get instructions by using the `help` command:
 
 ```
 help
