@@ -117,17 +117,20 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
 
         for(let account of accounts) {
             let ticket = makeRandom(32)
-            // tickets.push(ticket)
+            await wl.methods.buyTicket(ticket).send({from:account, gas:1000000})
+        }
+        for(let account of accounts) {
+            let ticket = makeRandom(32)
             await wl.methods.buyTicket(ticket).send({from:account, gas:1000000})
         }
 
         tickets = await getTickets(wl, startBlock)
 
-        assert.equal(tickets.length, accounts.length)
+        assert.equal(tickets.length, accounts.length*2)
 
     })
 
-    let task, solution
+    let task, solution, solver
 
     it("select solver", async () => {
 
@@ -138,7 +141,7 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
 
         let lst = await selectCandidates(wl, tickets, task)
         let selected = lst.slice(0,2).map(a => a.ticket)
-        let solver = await selectSolver(wl, selected, task)
+        solver = await selectSolver(wl, selected, task)
 
         // console.log("Solver ticket", solver)
 
@@ -146,17 +149,25 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
 
         let valid = await wl.methods.validTicket(solver.ticket).call()
 
+        let approved = await wl.methods.approved(task, solver.owner).call()
+
         assert(!valid)
+        assert(approved)
 
     })
 
     it("cannot select another solver", async () => {
         let tickets = await getTickets(wl, startBlock)
-        assert.equal(tickets.length, accounts.length-1)
+        assert.equal(tickets.length, accounts.length*2-1)
         let solver = tickets[0]
 
         await expectError(wl.methods.useTicket(solver.ticket, task).send({from:solver.owner}))
 
+    })
+
+    it("releasing ticket", async () => {
+        await taskBook.methods.finalizeTask(task).send({from:solver.owner})
+        await wl.methods.releaseTicket(solver.ticket).send({from:solver.owner, gas:1000000})
     })
 
 

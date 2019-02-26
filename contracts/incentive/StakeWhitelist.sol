@@ -42,6 +42,10 @@ contract TestBook is ITruebit {
         tasks[taskID].solution = solution;
     }
 
+    function finalizeTask(bytes32 taskID) public {
+        tasks[taskID].finalized = true;
+    }
+
 }
 
 contract StakeWhitelist is IWhitelist {
@@ -114,6 +118,8 @@ contract StakeWhitelist is IWhitelist {
         return tickets[idx].owner != address(0) && tickets[idx].taskID == 0;
     }
 
+    event UsedTicket(bytes32 ticket, bytes32 taskID);
+
     function useTicket(bytes32 idx, bytes32 taskID) public {
         Ticket storage t = tickets[idx];
         require(t.owner == msg.sender);
@@ -121,6 +127,7 @@ contract StakeWhitelist is IWhitelist {
         require(selected[taskID] == address(0));
         t.taskID = taskID;
         selected[taskID] = msg.sender;
+        emit UsedTicket(idx, taskID);
     }
 
     // Larger weight is better
@@ -177,6 +184,7 @@ contract StakeWhitelist is IWhitelist {
 
     function payChallengers(bytes32 idx) internal {
         Ticket storage t = tickets[idx];
+        if (t.challenges.length == 0) return;
         uint payout = t.deposit / t.challenges.length;
         for (uint i = 0; i < t.challenges.length; i++) {
             deposit[tickets[t.challenges[i]].owner] += payout;
@@ -207,20 +215,24 @@ contract StakeWhitelist is IWhitelist {
         for (uint i = 0; i < t.challenges.length; i++) {
             if (solverWeight(t.challenges[i], t.taskID) > w) better_solvers++;
         }
-        if (better_solvers >= 0) {
+        if (better_solvers > 0) {
             payChallengers(idx);
         }
     }
 
+    event ReleasedTicket(bytes32 ticket);
+
     // running the task was succesful
     function releaseTicket(bytes32 idx) public {
         Ticket storage t = tickets[idx];
-        require(tb.isFinalized(t.taskID));
+        require(t.taskID != 0, "Ticket was not used");
+        require(tb.isFinalized(t.taskID), "Task was not finalized");
         // we may find out from challenges that this was not selected as verifier
         checkVerifiers(idx);
         checkSolvers(idx);
         deposit[t.owner] += t.deposit + t.challengeDeposit;
         delete tickets[idx];
+        emit ReleasedTicket(idx);
     }
 
     function failedTicket(bytes32 idx) public {
@@ -230,6 +242,7 @@ contract StakeWhitelist is IWhitelist {
         checkVerifiers(idx);
         payChallengers(idx);
         delete tickets[idx];
+        emit ReleasedTicket(idx);
     }
 
 }
