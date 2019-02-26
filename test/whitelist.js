@@ -2,6 +2,7 @@ const assert = require('assert')
 const fs = require('fs')
 const contractsConfig = require('../wasm-client/util/contractsConfig')
 const mineBlocks = require('../os/lib/util/mineBlocks')
+const bigInt = require("big-integer")
 
 function makeRandom(n) {
     let res = ""
@@ -20,14 +21,57 @@ async function setup(web3) {
 
     return [
         contract(web3, config['stake_whitelist']),
-        contract(web3, config['ss_incentiveLayer']),
+        contract(web3, config['testbook']),
         contract(web3, config['tru']),
     ]
 }
 
 async function getTickets(wl, from) {
 
-    return wl.getPastEvents('NewTicket', {fromBlock:from})
+    let evs = await wl.getPastEvents('NewTicket', {fromBlock:from})
+
+    let lst = []
+
+    for(let t of evs) {
+        let valid = await wl.methods.validTicket(t.returnValues.ticket).call()
+        if (valid) lst.push(t.returnValues)
+    }
+
+    return lst
+}
+
+async function selectCandidates(wl, tickets, task) {
+
+    let lst = []
+
+    for(let t of tickets) {
+        let w = await wl.methods.verifierWeight(t.ticket, task).call()
+        lst.push({ticket:t, weight:bigInt(w)})
+    }
+
+    let sorted = lst.sort((b,a) => a.weight.compare(b.weight))
+
+    return sorted
+
+}
+
+async function selectSolver(wl, tickets, task) {
+
+    let lst = []
+
+    for(let t of tickets) {
+        let w = await wl.methods.solverWeight(t.ticket, task).call()
+        lst.push({ticket:t, weight:bigInt(w)})
+    }
+
+    let sorted = lst.sort((b,a) => a.weight.compare(b.weight))
+
+    return sorted[0].ticket
+
+}
+
+function expectError(p) {
+    return p.then(() => Promise.reject(new Error('Expected method to reject')), err => { assert(err instanceof Error) })
 }
 
 describe('Truebit Whitelist Smart Contract Unit Tests', function () {
@@ -73,15 +117,45 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
 
         for(let account of accounts) {
             let ticket = makeRandom(32)
-            tickets.push(ticket)
+            // tickets.push(ticket)
             await wl.methods.buyTicket(ticket).send({from:account, gas:1000000})
         }
 
-        let evs = await getTickets(wl, startBlock)
+        tickets = await getTickets(wl, startBlock)
 
-        // console.log(evs)
+        assert.equal(tickets.length, accounts.length)
 
-        assert.equal(evs.length, accounts.length)
+    })
+
+    let task, solution
+
+    it("select solver", async () => {
+
+        task = makeRandom(32)
+        solution = makeRandom(32)
+
+        await taskBook.methods.addTask(task, solution).send({from:accounts[0]})
+
+        let lst = await selectCandidates(wl, tickets, task)
+        let selected = lst.slice(0,2).map(a => a.ticket)
+        let solver = await selectSolver(wl, selected, task)
+
+        // console.log("Solver ticket", solver)
+
+        await wl.methods.useTicket(solver.ticket, task).send({from:solver.owner})
+
+        let valid = await wl.methods.validTicket(solver.ticket).call()
+
+        assert(!valid)
+
+    })
+
+    it("cannot select another solver", async () => {
+        let tickets = await getTickets(wl, startBlock)
+        assert.equal(tickets.length, accounts.length-1)
+        let solver = tickets[0]
+
+        await expectError(wl.methods.useTicket(solver.ticket, task).send({from:solver.owner}))
 
     })
 

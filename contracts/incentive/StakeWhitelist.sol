@@ -15,6 +15,33 @@ interface ITruebit {
 
 contract TestBook is ITruebit {
 
+    struct Task {
+        bool failed;
+        bool finalized;
+        uint bn;
+        bytes32 solution;
+    }
+
+    mapping (bytes32 => Task) tasks;
+
+    function isFailed(bytes32 taskID) external returns (bool) {
+        return tasks[taskID].failed;
+    }
+    function isFinalized(bytes32 taskID) external returns (bool) {
+        return tasks[taskID].finalized;
+    }
+    function getBlock(bytes32 taskID) external returns (uint) {
+        return tasks[taskID].bn;
+    }
+    function getSolution(bytes32 taskID) external returns (bytes32) {
+        return tasks[taskID].solution;
+    }
+
+    function addTask(bytes32 taskID, bytes32 solution) public {
+        tasks[taskID].bn = block.number;
+        tasks[taskID].solution = solution;
+    }
+
 }
 
 contract StakeWhitelist is IWhitelist {
@@ -54,10 +81,6 @@ contract StakeWhitelist is IWhitelist {
         deposit[msg.sender] += _deposit;
     }
 
-    function debugDeposit(uint _deposit) public view returns (uint, uint, uint, address) {
-        return (token.allowance(msg.sender, address(this)), _deposit, token.balanceOf(msg.sender), address(token));
-    }
-
     function setTaskBook(address tb_addr) public {
         require(owner == msg.sender, "Only owner can change taskbook");
         tb = ITruebit(tb_addr);
@@ -87,24 +110,41 @@ contract StakeWhitelist is IWhitelist {
         return selected[taskID] == solver;
     }
 
+    function validTicket(bytes32 idx) public view returns (bool) {
+        return tickets[idx].owner != address(0) && tickets[idx].taskID == 0;
+    }
+
     function useTicket(bytes32 idx, bytes32 taskID) public {
         Ticket storage t = tickets[idx];
         require(t.owner == msg.sender);
+        require(t.taskID == 0);
         require(selected[taskID] == address(0));
         t.taskID = taskID;
         selected[taskID] = msg.sender;
     }
 
     // Larger weight is better
-    function verifierWeight(bytes32 idx, bytes32 taskID) internal returns (uint) {
+    function verifierWeight(bytes32 idx, bytes32 taskID) public returns (uint) {
         uint task_block = tb.getBlock(taskID);
         Ticket storage t = tickets[idx];
         if (t.bn > task_block) return 0;
         return uint(keccak256(abi.encodePacked(idx, taskID, blockhash(task_block))));
     } 
 
+    function getVerifierWeight(bytes32 idx, bytes32 taskID, uint task_block) public view returns (uint) {
+        Ticket storage t = tickets[idx];
+        if (t.bn > task_block) return 0;
+        return uint(keccak256(abi.encodePacked(idx, taskID, blockhash(task_block))));
+    } 
+
+    function getSolverWeight(bytes32 idx, bytes32 solutionID, uint task_block) public view returns (uint) {
+        Ticket storage t = tickets[idx];
+        if (t.bn > task_block) return 0;
+        return uint(keccak256(abi.encodePacked(idx, solutionID, blockhash(task_block))));
+    } 
+
     // Larger weight is better
-    function solverWeight(bytes32 idx, bytes32 taskID) internal returns (uint) {
+    function solverWeight(bytes32 idx, bytes32 taskID) public returns (uint) {
         uint task_block = tb.getBlock(taskID);
         Ticket storage t = tickets[idx];
         if (t.bn > task_block) return 0;

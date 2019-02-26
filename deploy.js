@@ -82,6 +82,7 @@ async function deploy() {
     if (networkName == "private") {
         let whitelist = await deployContract('WhiteList', { from: accounts[0], gas: 2000000 })
         let stake_whitelist = await deployContract('StakeWhitelist', { from: accounts[0], gas: 2000000 })
+        let testbook = await deployContract('TestBook', { from: accounts[0], gas: 2000000 })
 
         let ss_incentiveLayer = await deployContract(
             'SingleSolverIncentiveLayer',
@@ -92,9 +93,11 @@ async function deploy() {
         await web3.eth.sendTransaction({ from: accounts[0], to: ss_incentiveLayer._address, value: web3.utils.toWei("2", "ether") })
 
         await stake_whitelist.methods.setToken(tru._address).send({ from: accounts[0], gas: 300000 })
+        await stake_whitelist.methods.setTaskBook(testbook._address).send({ from: accounts[0], gas: 300000 })
 
         config.ss_incentiveLayer = exportContract(ss_incentiveLayer)
         config.stake_whitelist = exportContract(stake_whitelist)
+        config.testbook = exportContract(testbook)
     }
 
     fs.writeFileSync(filename, JSON.stringify(config))
