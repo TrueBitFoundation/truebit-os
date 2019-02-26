@@ -34,13 +34,6 @@ before_install:
 #  - opam update
 #  - opam install -y cryptokit yojson ctypes ctypes-foreign
 
-  # Install webasm-solidity
-#  - cd ./wasm-client/webasm-solidity
-#  - npm i
-#  - npm run compile
-#  - npm run deploy
-#  - cd ../..
-
 install:
   - npm run fixperms
   - npm install
