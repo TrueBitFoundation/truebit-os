@@ -27,7 +27,14 @@ contract WhiteList is IWhiteList {
 
 }
 
-contract SingleSolverIncentiveLayer  is Ownable {
+interface ITruebit {
+    function isFailed(bytes32 taskID) external view returns (bool);
+    function isFinalized(bytes32 taskID) external view returns (bool);
+    function getBlock(bytes32 taskID) external view returns (uint);
+    function getSolution(bytes32 taskID) external view returns (bytes32);
+}
+
+contract SingleSolverIncentiveLayer is Ownable, ITruebit {
 
     uint private numTasks = 0;
     uint private taxMultiplier = 5;
@@ -126,12 +133,7 @@ contract SingleSolverIncentiveLayer  is Ownable {
     }
 
     struct Solution {
-        // bytes32 solutionCommit; // keccak256(solutionHash0)
         bytes32 solutionHash;
-        // bytes32 solutionHash1;
-        // bool solution0Correct;
-        // address[] solution0Challengers;
-        // address[] solution1Challengers;
         address payable [] allChallengers;
         address payable currentChallenger;
         bool solverConvicted;
@@ -510,6 +512,16 @@ contract SingleSolverIncentiveLayer  is Ownable {
         return (t.state == State.TaskTimeout);
     }
     
+    function getBlock(bytes32 taskID) public view returns (uint) {
+        Task storage t = tasks[taskID];
+        return t.initBlock;
+    }
+    
+    function getSolution(bytes32 taskID) public view returns(bytes32) {
+        Solution storage s = solutions[taskID];
+        return s.solutionHash;
+    }
+
     function canFinalizeTask(bytes32 taskID) public view returns (bool) {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
