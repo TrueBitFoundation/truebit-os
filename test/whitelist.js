@@ -30,6 +30,8 @@ async function getTickets(wl, from) {
 
     let evs = await wl.getPastEvents('NewTicket', {fromBlock:from})
 
+    console.log(evs)
+
     let lst = []
 
     for(let t of evs) {

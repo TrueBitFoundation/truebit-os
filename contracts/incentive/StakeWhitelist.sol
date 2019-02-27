@@ -123,7 +123,7 @@ contract StakeWhitelist is IWhitelist {
         return tickets[idx].owner != address(0) && tickets[idx].taskID == 0;
     }
 
-    event UsedTicket(bytes32 ticket, bytes32 taskID);
+    event UsedTicket(bytes32 ticket, bytes32 taskID, address owner);
 
     function useTicket(bytes32 idx, bytes32 taskID) public {
         Ticket storage t = tickets[idx];
@@ -132,7 +132,7 @@ contract StakeWhitelist is IWhitelist {
         require(selected[taskID] == address(0));
         t.taskID = taskID;
         selected[taskID] = msg.sender;
-        emit UsedTicket(idx, taskID);
+        emit UsedTicket(idx, taskID, t.owner);
     }
 
     // Larger weight is better
@@ -163,6 +163,8 @@ contract StakeWhitelist is IWhitelist {
         return uint(keccak256(abi.encodePacked(idx, tb.getSolution(taskID), blockhash(task_block))));
     }
 
+    event TicketChallenged(bytes32 idx, address owner, bytes32 task);
+
     // here we should perhaps add a deposit so that no useless challenges will be made
     // correct strategy is to add all verifiers in order
     function addChallenge(bytes32 idx, bytes32 other, uint loc) public {
@@ -170,6 +172,8 @@ contract StakeWhitelist is IWhitelist {
         Ticket storage t = tickets[idx];
         require(t.taskID != 0);
         require(idx == other || tickets[other].taskID == 0);
+
+        if (t.challenges.length == 0) emit TicketChallenged(idx, t.owner. t.taskID);
 
         if (msg.sender != t.owner && t.challengeDeposit == 0) {
             require(deposit[msg.sender] > CHALLENGE_DEPOSIT);

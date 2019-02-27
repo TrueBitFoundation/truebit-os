@@ -6,9 +6,10 @@ const toIndices = require('./util/toIndices')
 const assert = require('assert')
 const recovery = require('./recovery')
 
-const fsHelpers = require('./fsHelpers')
+const fsHelpers = require('./fsHelpers_new')
 
 const contractsConfig = require('./util/contractsConfig')
+const bigInt = require("big-integer")
 
 function contract(web3, info) {
     return new web3.eth.Contract(info.abi, info.address)    
@@ -53,12 +54,14 @@ async function selectCandidates(wl, tickets, task) {
 
 }
 
-async function selectSolver(wl, tickets, task) {
+async function selectSolver(wl, taskbook, tickets, task, solution) {
 
     let lst = []
 
+    let bn = await taskbook.methods.getBlock(task).call()
+
     for(let t of tickets) {
-        let w = await wl.methods.solverWeight(t.ticket, task).call()
+        let w = await wl.methods.getSolverWeight(t.ticket, solution, bn).call()
         lst.push({ticket:t, weight:bigInt(w)})
     }
 
@@ -68,12 +71,19 @@ async function selectSolver(wl, tickets, task) {
 
 }
 
-async function findSolver(wl, startBlock, task, solution) {
+async function findSolver(wl, taskbook, startBlock, task, solution) {
     let tickets = await getTickets(wl, startBlock)
 
     let lst = await selectCandidates(wl, tickets, task)
     let selected = lst.slice(0, 2).map(a => a.ticket)
-    let lst2 = await selectSolver(wl, selected, task)
+    let lst2 = await selectSolver(wl, taskbook, selected, task, solution)
+    return lst2[0].ticket
+}
+
+async function checkSolver(wl, taskbook, task, solution, tickets) {
+    let lst = await selectCandidates(wl, tickets, task)
+    let selected = lst.slice(0, 2).map(a => a.ticket)
+    let lst2 = await selectSolver(wl, taskbook, selected, task, solution)
     return lst2[0].ticket
 }
 
@@ -103,6 +113,8 @@ module.exports = {
         wl.methods.setTaskBook(incentiveLayer._address).send({from:account})
         incentiveLayer.methods.setWhitelist(wl._address).send({from:account})
 
+        let taskbook = incentiveLayer
+
         const config = await contractsConfig(web3)
         const WAIT_TIME = config.WAIT_TIME || 0
 
@@ -115,21 +127,43 @@ module.exports = {
 
         if (recovery_mode) logger.info(`Recovering back to ${Math.max(0, bn - RECOVERY_BLOCKS)}`)
 
-        function addEvent(name, evC, handler) {
-            if (!evC) {
+        let event_handlers = []
+
+        let lastBlock = bn
+
+        let handled = {}
+
+        async function pollEvents() {
+            let bn = await web3.eth.getBlockNumber()
+            if (bn == lastBlock) return
+
+            event_handlers.forEach(async function (h) {
+                let lst = await h.contract.getPastEvents(h.name, {fromBlock: lastBlock-5})
+                lst.forEach(ev => {
+                    if (handled[ev.id]) return
+                    handled[ev.id] = true
+                    h.handler(ev.returnValues)
+                })
+            })
+
+            let l1 = await wl.getPastEvents()
+        }
+
+        setInterval(pollEvents, 1000)
+
+        function addEvent(name, contract, handler) {
+            if (!contract.events[name]) {
                 logger.error(`SOLVER: ${name} event is undefined when given to addEvent`)
             } else {
-                let ev = recovery_mode ? evC({}, { fromBlock: Math.max(0, bn - RECOVERY_BLOCKS) }) : evC()
+                event_handlers.push({handler:handler, name:name, contract:contract})
+                /*
+                // let ev = recovery_mode ? evC({}, { fromBlock: Math.max(0, bn - RECOVERY_BLOCKS) }) : evC()
+                // recovery mode using past events
                 clean_list.push(ev)
-                ev.watch(async (err, result) => {
-                    // console.log(result)
-                    if (result && recovery_mode) {
-                        events.push({ event: result, handler })
-                        console.log("SOLVER: Recovering", result.event, "at block", result.blockNumber)
-                    }
-                    else if (result) {
+                ev(async (err, result) => {
+                    if (result) {
                         try {
-                            await handler(result)
+                            await handler(result.returnValues)
                         }
                         catch (e) {
                             // console.log(e)
@@ -138,7 +172,7 @@ module.exports = {
                     }
                     else console.log(err)
                 })
-
+                */
             }
         }
 
@@ -146,27 +180,38 @@ module.exports = {
 
         let initBlock = Math.max(0, await web3.eth.getBlockNumber()-1000)
 
-        addEvent("TaskCreated", incentiveLayer.TaskCreated, async (result) => {
+        // Task was submitted to task book
+        addEvent("TaskCreated", incentiveLayer, async (result) => {
 
             logger.log({
                 level: 'info',
                 message: `SOLVER: Task has been posted. Going to solve it.`
             })
 
-            let taskID = result.args.taskID
+            let taskID = result.taskID
 
             // check from the whitelist, if we are selected as candidate
             let tickets = await getTickets(wl, initBlock)
 
-            let lst = await selectCandidates(wl, tickets, task)
+            let lst = await selectCandidates(wl, tickets, taskID)
             let selected = lst.slice(0, 2).map(a => a.ticket)
+
+            // console.log(selected)
 
             if (!selected.some(a => a.owner.toLowerCase() == account)) {
                 logger.info(`SOLVER: Not selected as candidate for ${taskID}`)
                 return
             }
 
-            let taskInfo = toTaskInfo(await incentiveLayer.methods.getTaskInfo(taskID).call())
+            let data = await incentiveLayer.methods.getTaskInfo(taskID).call()
+            // console.log(data)
+            let taskInfo = {
+                giver: data[0],
+                initStateHash: data[1],
+                codeType: parseInt(data[2]),
+                bundleId: data[3],
+                uniqueNum: data[4]
+            }
             if (!tasks[taskID]) tasks[taskID] = {}
             tasks[taskID].taskInfo = taskInfo
             taskInfo.taskID = taskID
@@ -188,7 +233,7 @@ module.exports = {
 
             logger.info(`SOLVER: Found solution ${solution.hash}`)
 
-            let solver = findSolver(wl, initBlock, task, solution.hash)
+            let solver = await findSolver(wl, taskbook, initBlock, taskID, solution.hash)
 
             if (solver.owner.toLowerCase() != account) {
                 logger.info(`SOLVER: Not selected as solver for ${taskID}`)
@@ -197,6 +242,8 @@ module.exports = {
 
             try {
                 await wl.methods.useTicket(solver.ticket, taskID).send({ from: account, gas: 1000000 })
+                logger.info("SOLVER: Used ticket")
+
                 await incentiveLayer.methods.commitSolution(taskID, solution.hash).send({ from: account, gas: 1000000 })
 
                 logger.log({
@@ -215,16 +262,144 @@ module.exports = {
 
         })
 
-        addEvent("SolutionsCommitted", incentiveLayer.events.SolutionsCommitted, async result => {
-            logger.info("SOLVER: Committed a solution")
+        addEvent("UsedTicket", wl, async (result) => {
+            // A ticket was used. If we are a candidate, check the solution
+
+            logger.log({
+                level: 'info',
+                message: `VERIFIER: Ticket used, checking...`
+            })
+
+            let taskID = result.taskID
+            let user = result.owner
+            let idx = result.idx
+
+            // check from the whitelist, if we are selected as candidate
+            let tickets = await getTickets(wl, initBlock)
+            tickets.push({ticket:idx, owner:user})
+
+            let lst = await selectCandidates(wl, tickets, taskID)
+            let selected = lst.slice(0, 2).map(a => a.ticket)
+
+            if (!selected.some(a => a.owner.toLowerCase() == account)) {
+                logger.info(`VERIFIER: Not selected as candidate for ${taskID}`)
+                return
+            }
+
+            let taskInfo = toTaskInfo(await incentiveLayer.methods.getTaskInfo(taskID).call())
+            if (!tasks[taskID]) tasks[taskID] = {}
+            tasks[taskID].taskInfo = taskInfo
+            taskInfo.taskID = taskID
+
+            task_list.push(taskID)
+
+            logger.log({
+                level: 'info',
+                message: `VERIFIER: Solving task ${taskID}`
+            })
+
+            let vm = await helpers.setupVMWithFS(taskInfo)
+
+            assert(vm != undefined, "vm is undefined")
+
+            let interpreterArgs = []
+            let solution = await vm.executeWasmTask(interpreterArgs)
+            tasks[taskID].solution = solution
+
+            logger.info(`VERIFIER: Found solution ${solution.hash}`)
+
+            let solver = checkSolver(wl, taskbook, taskID, solution.hash, tickets)
+
+            if (solver.owner.toLowerCase() == user.toLowerCase()) {
+                logger.info(`VERIFIER: Solver was correct`)
+                return
+            }
+
+            // Need to add all candidates as challengers
+        
+            let i = 0
+            for (let t of selected) {
+                await wl.methods.addChallenge(idx, t.ticket, i).send({from:account, gas:1000000})
+                i++
+            }
         })
 
-        addEvent("SolutionRevealed", incentiveLayer.events.SolutionRevealed, async result => {
-            logger.info("SOLVER: Revealed correct solution")
+        // My ticket was challenged
+        addEvent("TicketChallenged", wl, async result => {
+
+            let idx = result.idx
+            let user = result.owner
+            let taskID = result.task
+
+            if (account != result.owner.toLowerCase()) return
+
+            let tickets = await getTickets(wl, initBlock)
+            tickets.push({ticket:idx, owner:user})
+
+            // Need to add all candidates as challengers
+            let lst = await selectCandidates(wl, tickets, taskID)
+            let selected = lst.slice(0, 2).map(a => a.ticket)
+        
+            let i = 0
+            for (let t of selected) {
+                await wl.methods.addChallenge(idx, t.ticket, i).send({from:account, gas:1000000})
+                i++
+            }
         })
 
-        addEvent("EndRevealPeriod", incentiveLayer.events.EndRevealPeriod, async (result) => {
-            let taskID = result.args.taskID
+        // Solution committed event
+        addEvent("SolutionsCommitted", incentiveLayer, async result => {
+
+            logger.log({
+                level: 'info',
+                message: `VERIFIER: Solution has been posted`
+            })
+
+            let taskID = result.taskID
+            let solverHash0 = result.solutionHash
+            let taskInfo = toTaskInfo(await incentiveLayer.methods.getTaskInfo(taskID).call())
+            taskInfo.taskID = taskID
+
+            if (Object.keys(tasks).length <= throttle) {
+
+                logger.info("VERIFIER: Setting up VM")
+                let vm = await helpers.setupVMWithFS(taskInfo)
+
+                logger.info("VERIFIER: Executing task")
+                let interpreterArgs = []
+                solution = await vm.executeWasmTask(interpreterArgs)
+
+                logger.log({
+                    level: 'info',
+                    message: `VERIFIER: Executed task ${taskID}. Checking solutions`
+                })
+
+                task_list.push(taskID)
+
+                let myHash = solution.hash
+                if (test) myHash = "0x" + helpers.makeSecret(myHash)
+
+                tasks[taskID] = {
+                    solverHash0: solverHash0,
+                    solutionHash: solution.hash,
+                    vm: vm,
+                }
+
+                if (myHash != solverHash0) {
+                    await incentiveLayer.makeChallenge(taskID, { from: account, gas: 350000, value: web3.utils.toWei("0.1", "ether") })
+
+                    logger.log({
+                        level: 'info',
+                        message: `VERIFIER: Challenged solution for task ${taskID}`
+                    })
+                }
+
+
+            }
+        })
+
+        addEvent("EndRevealPeriod", incentiveLayer, async (result) => {
+            let taskID = result.taskID
 
             if (tasks[taskID]) {
                 let vm = tasks[taskID].solution.vm
@@ -239,8 +414,8 @@ module.exports = {
 
         })
 
-        addEvent("TaskFinalized", incentiveLayer.events.TaskFinalized, async (result) => {
-            let taskID = result.args.taskID
+        addEvent("TaskFinalized", incentiveLayer, async (result) => {
+            let taskID = result.taskID
 
             if (tasks[taskID]) {
                 delete tasks[taskID]
@@ -253,8 +428,8 @@ module.exports = {
 
         })
 
-        addEvent("SlashedDeposit", incentiveLayer.events.SlashedDeposit, async (result) => {
-            let addr = result.args.account
+        addEvent("SlashedDeposit", incentiveLayer, async (result) => {
+            let addr = result.account
 
             if (account.toLowerCase() == addr.toLowerCase()) {
                 logger.info("SOLVER: Oops, I was slashed, hopefully this was a test")
@@ -264,15 +439,15 @@ module.exports = {
 
         // DISPUTE
 
-        addEvent("StartChallenge", disputeResolutionLayer.events.StartChallenge, async (result) => {
-            let solver = result.args.p
-            let gameID = result.args.gameID
+        addEvent("StartChallenge", disputeResolutionLayer, async (result) => {
+            let solver = result.p
+            let gameID = result.gameID
 
             if (solver.toLowerCase() == account.toLowerCase()) {
 
                 game_list.push(gameID)
 
-                let taskID = await disputeResolutionLayer.getTask.call(gameID)
+                let taskID = await disputeResolutionLayer.methods.getTask(gameID).call()
 
                 logger.log({
                     level: 'info',
@@ -296,32 +471,27 @@ module.exports = {
                     taskID: taskID
                 }
 
-                await disputeResolutionLayer.initialize(
+                await disputeResolutionLayer.methods.initialize(
                     gameID,
                     merkleComputer.getRoots(initWasm.vm),
                     merkleComputer.getPointers(initWasm.vm),
                     solution.steps + 1,
                     merkleComputer.getRoots(solution.vm),
-                    merkleComputer.getPointers(solution.vm),
-                    {
-                        from: account,
-                        gas: 1000000
-                    }
-                )
+                    merkleComputer.getPointers(solution.vm)).send({from: account,gas: 1000000})
 
                 logger.log({
                     level: 'info',
                     message: `SOLVER: Game ${gameID} has been initialized`
                 })
 
-                let indices = toIndices(await disputeResolutionLayer.getIndices.call(gameID))
+                let indices = toIndices(await disputeResolutionLayer.methods.getIndices(gameID).call())
 
                 //Post response to implied midpoint query
                 let stepNumber = midpoint(indices.low, indices.high)
 
                 let stateHash = await tasks[taskID].vm.getLocation(stepNumber, tasks[taskID].interpreterArgs)
 
-                await disputeResolutionLayer.report(gameID, indices.low, indices.high, [stateHash], { from: account })
+                await disputeResolutionLayer.methods.report(gameID, indices.low, indices.high, [stateHash]).send({ from: account })
 
                 logger.log({
                     level: 'info',
@@ -329,12 +499,27 @@ module.exports = {
                 })
 
             }
+
+            let challenger = result.c
+
+            if (challenger.toLowerCase() == account.toLowerCase()) {
+                let gameID = result.gameID
+
+                game_list.push(gameID)
+
+                let taskID = await disputeResolutionLayer.methods.getTask(gameID).call()
+
+                games[gameID] = {
+                    prover: result.prover,
+                    taskID: taskID
+                }
+            }
         })
 
-        addEvent("Queried", disputeResolutionLayer.events.Queried, async (result) => {
-            let gameID = result.args.gameID
-            let lowStep = result.args.idx1.toNumber()
-            let highStep = result.args.idx2.toNumber()
+        addEvent("Queried", disputeResolutionLayer, async (result) => {
+            let gameID = result.gameID
+            let lowStep = parseInt(result.idx1)
+            let highStep = parseInt(result.idx2)
 
             if (games[gameID]) {
 
@@ -350,7 +535,7 @@ module.exports = {
 
                     let stateHash = await tasks[taskID].vm.getLocation(stepNumber, tasks[taskID].interpreterArgs)
 
-                    await disputeResolutionLayer.report(gameID, lowStep, highStep, [stateHash], { from: account })
+                    await disputeResolutionLayer.methods.report(gameID, lowStep, highStep, [stateHash]).send({ from: account })
 
                     logger.info(`SOLVER: Reported state for step ${stepNumber}`)
 
@@ -362,15 +547,10 @@ module.exports = {
 
                     let states = (await tasks[taskID].vm.getStep(lowStep, tasks[taskID].interpreterArgs)).states
 
-                    await disputeResolutionLayer.postPhases(
+                    await disputeResolutionLayer.methods.postPhases(
                         gameID,
                         lowStep,
-                        states,
-                        {
-                            from: account,
-                            gas: 400000
-                        }
-                    )
+                        states).send({from: account,gas: 400000})
 
                     logger.log({
                         level: 'info',
@@ -382,13 +562,13 @@ module.exports = {
             }
         })
 
-        addEvent("SelectedPhase", disputeResolutionLayer.events.SelectedPhase, async (result) => {
-            let gameID = result.args.gameID
+        addEvent("SelectedPhase", disputeResolutionLayer, async (result) => {
+            let gameID = result.gameID
             if (games[gameID]) {
                 let taskID = games[gameID].taskID
 
-                let lowStep = result.args.idx1.toNumber()
-                let phase = result.args.phase.toNumber()
+                let lowStep = parseInt(result.idx1)
+                let phase = parseInt(result.phase)
 
                 logger.log({
                     level: 'info',
@@ -472,9 +652,78 @@ module.exports = {
             }
         })
 
-        addEvent("WinnerSelected", disputeResolutionLayer.events.WinnerSelected, async (result) => {})
+        addEvent("Reported", disputeResolutionLayer, async result => {
+            let gameID = result.gameID
 
-        addEvent("Reported", disputeResolutionLayer.events.Reported, async (result) => {})
+            if (games[gameID]) {
+
+                let lowStep = parseInt(result.idx1)
+                let highStep = parseInt(result.idx2)
+                let taskID = games[gameID].taskID
+
+                logger.log({
+                    level: 'info',
+                    message: `VERIFIER: Report received game: ${gameID} low: ${lowStep} high: ${highStep}`
+                })
+
+                let stepNumber = midpoint(lowStep, highStep)
+
+                let reportedStateHash = await disputeResolutionLayer.getStateAt.call(gameID, stepNumber)
+
+                let stateHash = await tasks[taskID].vm.getLocation(stepNumber, tasks[taskID].interpreterArgs)
+
+                let num = reportedStateHash == stateHash ? 1 : 0
+
+                await disputeResolutionLayer.query(
+                    gameID,
+                    lowStep,
+                    highStep,
+                    num,
+                    { from: account }
+                )
+
+            }
+        })
+
+        addEvent("PostedPhases", disputeResolutionLayer, async result => {
+            let gameID = result.args.gameID
+
+            if (games[gameID]) {
+
+                logger.log({
+                    level: 'info',
+                    message: `VERIFIER: Phases posted for game: ${gameID}`
+                })
+
+                let lowStep = result.args.idx1
+                let phases = result.args.arr
+
+                let taskID = games[gameID].taskID
+
+                if (test) {
+                    await disputeResolutionLayer.selectPhase(gameID, lowStep, phases[3], 3, { from: account })
+                } else {
+
+                    let states = (await tasks[taskID].vm.getStep(lowStep, tasks[taskID].interpreterArgs)).states
+
+                    for (let i = 0; i < phases.length; i++) {
+                        if (states[i] != phases[i]) {
+                            await disputeResolutionLayer.selectPhase(
+                                gameID,
+                                lowStep,
+                                phases[i],
+                                i,
+                                { from: account }
+                            )
+                            return
+                        }
+                    }
+                }
+
+            }
+        })
+
+        addEvent("WinnerSelected", disputeResolutionLayer, async (result) => {})
 
         // Timeouts
 
@@ -490,10 +739,10 @@ module.exports = {
 
         async function handleGameTimeouts(gameID) {
             if (busy(gameID)) return
-            if (await disputeResolutionLayer.gameOver.call(gameID)) {
+            if (await disputeResolutionLayer.methods.gameOver(gameID).call()) {
 
                 working(gameID)
-                await disputeResolutionLayer.gameOver(gameID, { from: account })
+                await disputeResolutionLayer.methods.gameOver(gameID).send({ from: account })
 
                 logger.log({
                     level: 'info',
@@ -507,19 +756,17 @@ module.exports = {
         async function handleTimeouts(taskID) {
             // console.log("Handling task", taskID)
 
-            // let deposit = await incentiveLayer.getBondedDeposit.call(taskID, account)
-            // console.log("Solver deposit", deposit.toNumber(), account)
             if (busy(taskID)) {
                 logger.info("SOLVER: Task busy")
                 return
             }
 
-            let endReveal = await incentiveLayer.endChallengePeriod.call(taskID)
+            let endReveal = await incentiveLayer.methods.endChallengePeriod(taskID).call()
 
             if (endReveal) {
 
                 working(taskID)
-                await incentiveLayer.endChallengePeriod(taskID, { from: account, gas: 100000 })
+                await incentiveLayer.methods.endChallengePeriod(taskID).send({ from: account, gas: 100000 })
 
                 logger.log({
                     level: 'info',
@@ -528,10 +775,10 @@ module.exports = {
 
             }
 
-            if (await incentiveLayer.canRunVerificationGame.call(taskID)) {
+            if (await incentiveLayer.methods.canRunVerificationGame(taskID).call()) {
 
                 working(taskID)
-                await incentiveLayer.runVerificationGame(taskID, { from: account, gas: 1000000 })
+                await incentiveLayer.methods.runVerificationGame(taskID).send( { from: account, gas: 1000000 })
 
                 logger.log({
                     level: 'info',
@@ -540,12 +787,12 @@ module.exports = {
 
             }
 
-            if (await incentiveLayer.canFinalizeTask.call(taskID)) {
+            if (await incentiveLayer.methods.canFinalizeTask(taskID).call()) {
 
                 // console.log("Tax should be", (await incentiveLayer.getTax.call(taskID)).toString())
 
                 working(taskID)
-                await incentiveLayer.finalizeTask(taskID, { from: account, gas: 1000000 })
+                await incentiveLayer.methods.finalizeTask(taskID).send({ from: account, gas: 1000000 })
 
                 logger.log({
                     level: 'info',
