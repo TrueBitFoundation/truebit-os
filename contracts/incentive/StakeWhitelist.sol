@@ -46,6 +46,10 @@ contract TestBook is ITruebit {
         tasks[taskID].finalized = true;
     }
 
+    function failTask(bytes32 taskID) public {
+        tasks[taskID].failed = true;
+    }
+
 }
 
 contract StakeWhitelist is IWhitelist {

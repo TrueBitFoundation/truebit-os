@@ -317,7 +317,7 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
         let verifiers = await wl.methods.debugVerifiers(solver.ticket).call()
         let solvers = await wl.methods.debugSolvers(solver.ticket).call()
 
-        console.log("verifiers", verifiers, "solvers", solvers)
+        // console.log("verifiers", verifiers, "solvers", solvers)
         await wl.methods.releaseTicket(solver.ticket).send({from:solver.owner, gas:1000000})
 
         let evs = await wl.getPastEvents("SlashedTicket", {fromBlock:startBlock})
@@ -326,5 +326,52 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
 
     })
 
+    it("select solver again, but task fails", async () => {
+
+        task = makeRandom(32)
+        let solution = makeRandom(32)
+
+        await taskBook.methods.addTask(task, solution).send({from:accounts[0]})
+
+        let tickets = await getTickets(wl, startBlock)
+        let lst = await selectCandidates(wl, tickets, task)
+        let selected = lst.slice(0,2).map(a => a.ticket)
+        let lst2 = await selectSolver(wl, selected, task)
+        solver = lst2[0].ticket
+
+        let other = lst2[1].ticket
+
+        // console.log("Solver ticket", solver)
+
+        await wl.methods.useTicket(solver.ticket, task).send({from:solver.owner})
+
+        let valid = await wl.methods.validTicket(solver.ticket).call()
+
+        let approved = await wl.methods.approved(task, solver.owner).call()
+
+        assert(!valid)
+        assert(approved)
+
+        let i = 0
+        for (let t of selected) {
+            await wl.methods.addChallenge(solver.ticket, t.ticket, i).send({from:other.owner, gas:1000000})
+            i++
+        }
+
+        let chals = await wl.methods.getChallenges(solver.ticket).call()
+
+        assert.equal(chals.length, selected.length)
+
+    })
+
+    it("releasing ticket again", async () => {
+        await taskBook.methods.failTask(task).send({from:solver.owner})
+
+        await wl.methods.failedTicket(solver.ticket).send({from:solver.owner, gas:1000000})
+
+        let evs = await wl.getPastEvents("SlashedTicket", {fromBlock:startBlock})
+        assert.equal(evs.length, 3)
+
+    })
 })
 
