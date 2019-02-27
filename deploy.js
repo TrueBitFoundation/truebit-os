@@ -98,6 +98,12 @@ async function deploy() {
         config.ss_incentiveLayer = exportContract(ss_incentiveLayer)
         config.stake_whitelist = exportContract(stake_whitelist)
         config.testbook = exportContract(testbook)
+
+        // Mint tokens for testing
+        accounts.forEach(async addr => {
+            await tru.methods.addMinter(addr).send({ from: accounts[0], gas: 300000 })
+            await tru.methods.mint(addr, "100000000000000000000000").send({ from: addr, gas: 300000 })
+        })
     }
 
     fs.writeFileSync(filename, JSON.stringify(config))
@@ -106,12 +112,6 @@ async function deploy() {
     // const TRUperUSD = 2000
     const TRUperUSD = 0
     await exchangeRateOracle.methods.updateExchangeRate(TRUperUSD).send({ from: accounts[0] })
-
-    // Mint tokens for testing
-    if (networkName == "private") accounts.forEach(async addr => {
-        await tru.methods.addMinter(addr).send({ from: accounts[0], gas: 300000 })
-        await tru.methods.mint(addr, "100000000000000000000000").send({ from: addr, gas: 300000 })
-    })
 
     if (networkName != "ethereum") {
         tru.methods.enableFaucet().send({ from: accounts[0], gas: 300000 })

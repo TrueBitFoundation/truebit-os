@@ -160,6 +160,11 @@ contract SingleSolverIncentiveLayer is Ownable, ITruebit {
         whitelist = IWhiteList(wl_addr);
     }
 
+    // TODO: unsafe
+    function setWhitelist(address wl_addr) public {
+        whitelist = IWhiteList(wl_addr);
+    }
+
     function defaultParameters(bytes32 taskID) internal {
         VMParameters storage params = vmParams[taskID];
         params.stackSize = 14;

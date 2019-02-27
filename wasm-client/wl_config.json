@@ -1,0 +1,14 @@
+{
+    "http-url": "http://localhost:8545",
+    "task-giver" : "../wasm-client/taskGiver",
+    "solver" : "../wasm-client/ss_solver",
+    "verifier" : "../wasm-client/ss_verifier",
+    "task-submitter" : "../wasm-client/ss_taskSubmitter",
+    "ipfs" : {
+	"host": "localhost",
+	"port": "5001",
+	"protocol": "http",
+	"merkleComputer": "../wasm-client/merkle-computer/"
+    },
+    "throttle" : 20
+}
