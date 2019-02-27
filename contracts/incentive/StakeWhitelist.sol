@@ -197,6 +197,7 @@ contract StakeWhitelist is IWhitelist {
     function payChallengers(bytes32 idx) internal {
         Ticket storage t = tickets[idx];
         if (t.challenges.length == 0) return;
+        if (t.deposit == 0) return;
         uint payout = t.deposit / t.challenges.length;
         for (uint i = 0; i < t.challenges.length; i++) {
             deposit[tickets[t.challenges[i]].owner] += payout;
@@ -215,7 +216,7 @@ contract StakeWhitelist is IWhitelist {
         for (uint i = 0; i < t.challenges.length; i++) {
             if (verifierWeight(t.challenges[i], t.taskID) > w) better_verifiers++;
         }
-        if (better_verifiers > NUM_VERIFIERS) {
+        if (better_verifiers >= NUM_VERIFIERS) {
             payChallengers(idx);
         }
     }
