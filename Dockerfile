@@ -23,19 +23,21 @@ RUN cd bin \
 RUN wget -O rustup.sh https://sh.rustup.rs \
  && sh rustup.sh -y \
  && source $HOME/.cargo/env \
- && rustup toolchain add stable
-
-RUN git clone https://github.com/goerli/parity-goerli.git \
+ && rustup toolchain add stable \
+ && git clone https://github.com/goerli/parity-goerli.git \
  && cd parity-goerli \
  && source $HOME/.cargo/env \
  && apt-get install -y libudev-dev \
- && cargo build --release --features final
+ && cargo build --release --features final \
+ && rm -rf parity-goerli ~/.rustup ~/.cargo
 
 RUN wget https://dist.ipfs.io/go-ipfs/v0.4.17/go-ipfs_v0.4.17_linux-amd64.tar.gz \
  && tar xf go-ipfs_v0.4.17_linux-amd64.tar.gz \
  && cd go-ipfs \
  && ./install.sh \
- && ipfs init
+ && ipfs init \
+ && cd / \
+ && rm -rf go-ipfs*
 
 RUN git clone https://github.com/mrsmkl/truebit-os \
  && cd truebit-os \
@@ -66,9 +68,11 @@ RUN git clone https://github.com/TruebitFoundation/wasm-ports \
  && ln -s /wasm-ports/samples /var/www/html \
  && browserify pairing/public/app.js -o pairing/public/bundle.js \
  && cd pairing \
- && solc --abi --optimize --overwrite --bin -o build contract.sol
+ && solc --abi --optimize --overwrite --bin -o build contract.sol \
+ && rm -rf ~/.opam
 
-RUN cp /parity-goerli/target/release/parity /bin
+RUN cp /parity-goerli/target/release/parity /bin \
+ && rm -rf go-ipfs* parity-goerli ~/.rustup ~/.cargo 
 
 # ipfs and eth ports
 EXPOSE 4001 30303 80 8545

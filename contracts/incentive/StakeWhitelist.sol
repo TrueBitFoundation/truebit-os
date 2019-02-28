@@ -173,7 +173,7 @@ contract StakeWhitelist is IWhitelist {
         require(t.taskID != 0);
         require(idx == other || tickets[other].taskID == 0);
 
-        if (t.challenges.length == 0) emit TicketChallenged(idx, t.owner. t.taskID);
+        if (t.challenges.length == 0) emit TicketChallenged(idx, t.owner, t.taskID);
 
         if (msg.sender != t.owner && t.challengeDeposit == 0) {
             require(deposit[msg.sender] > CHALLENGE_DEPOSIT);
