@@ -54,9 +54,9 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
             else arr.push("0" + buf[i].toString(16))
         }
         // console.log("Nonce file", nonce, {arr:arr, buf:buf, arranged: arrange(arr)})
-        var tx = await fileSystem.createFileWithContents(fname, nonce, arrange(arr), buf.length, { from: account, gas: 200000 })
-        var id = await fileSystem.calcId.call(nonce, { from: account, gas: 200000 })
-        var lst = await fileSystem.getData.call(id, { from: account, gas: 200000 })
+        var tx = await fileSystem.createFileWithContents(fname, nonce, arrange(arr), buf.length, { from: account, gas: 200000, gasPrice: web3.gp })
+        var id = await fileSystem.calcId.call(nonce, { from: account, gas: 200000, gasPrice: web3.gp })
+        var lst = await fileSystem.getData.call(id, { from: account, gas: 200000, gasPrice: web3.gp })
         // console.log("Ensure upload", {data:lst})
         return id
     }
@@ -75,20 +75,20 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
         let info = merkleComputer.merkleRoot(web3, buf)
         let nonce = await web3.eth.getTransactionCount(account)
         console.log("Adding ipfs file", fname, buf.length, hash.hash, info, nonce)
-        await fileSystem.addIPFSFile(fname, buf.length, hash.hash, info, nonce, { from: account, gas: 200000 })
+        await fileSystem.addIPFSFile(fname, buf.length, hash.hash, info, nonce, { from: account, gas: 200000, gasPrice: web3.gp })
         logger.info("Calculating ID")
         let id = await fileSystem.calcId.call(nonce, { from: account, gas: 200000 })
         return id
     }
 
     async function createContractFile(fname, buf) {
-        let contractAddress = await merkleComputer.uploadOnchain(buf, web3, { from: account, gas: 30000 })
+        let contractAddress = await merkleComputer.uploadOnchain(buf, web3, { from: account, gas: 30000, gasPrice: web3.gp })
         let nonce = await web3.eth.getTransactionCount(base)
         let info = merkleComputer.merkleRoot(buf)
 
-        await fileSystem.addContractFile(fname, nonce, contractAddress, info.root, buf.length, { from: account, gas: 200000 })
+        await fileSystem.addContractFile(fname, nonce, contractAddress, info.root, buf.length, { from: account, gas: 200000, gasPrice: web3.gp })
 
-        let fileID = await fileSystem.calcId.call(nonce, { from: account })
+        let fileID = await fileSystem.calcId.call(nonce, { from: account  })
 
         return fileID
     }
@@ -137,7 +137,7 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
 
             let fileID = await uploadFile(fname, buf, types[i].toNumber())
 
-            await incentiveLayer.uploadFile(taskID, i, fileID, proof.name, proof.data, proof.loc, { from: account, gas: 1000000 })
+            await incentiveLayer.uploadFile(taskID, i, fileID, proof.name, proof.data, proof.loc, { from: account, gas: 1000000, gasPrice: web3.gp })
         }
     }
 

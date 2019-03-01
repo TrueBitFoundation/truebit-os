@@ -133,7 +133,7 @@ module.exports = {
             // console.log("intent", intent)
             // tasks[taskID].intent0 = "0x" + intent
             let hash_str = taskID + account.substr(2) + myHash.substr(2)
-            await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000 })
+            await incentiveLayer.commitChallenge(web3.utils.soliditySha3(hash_str), { from: account, gas: 350000, gasPrice: web3.gp })
 
             logger.log({
                 level: 'info',
@@ -156,7 +156,7 @@ module.exports = {
 
             // logger.info(`my solution ${taskData.solutionHash}, my hash ${myHash}`)
 
-            await incentiveLayer.revealIntent(taskID, myHash, { from: account, gas: 1000000 })
+            await incentiveLayer.revealIntent(taskID, myHash, { from: account, gas: 1000000, gasPrice: web3.gp })
 
             logger.log({
                 level: 'info',
@@ -175,7 +175,7 @@ module.exports = {
             let lst = await incentiveLayer.getJackpotReceivers.call(taskID)
 
             for (let i = 0; i < lst.length; i++) {
-                if (lst[i].toLowerCase() == account.toLowerCase()) await incentiveLayer.receiveJackpotPayment(taskID, i, { from: account, gas: 100000 })
+                if (lst[i].toLowerCase() == account.toLowerCase()) await incentiveLayer.receiveJackpotPayment(taskID, i, { from: account, gas: 100000, gasPrice: web3.gp })
             }
 
         })
@@ -193,7 +193,7 @@ module.exports = {
             let taskID = result.args.taskID
 
             if (tasks[taskID]) {
-                await incentiveLayer.unbondDeposit(taskID, { from: account, gas: 100000 })
+                await incentiveLayer.unbondDeposit(taskID, { from: account, gas: 100000, gasPrice: web3.gp })
                 delete tasks[taskID]
                 logger.log({
                     level: 'info',
@@ -262,7 +262,7 @@ module.exports = {
                     lowStep,
                     highStep,
                     num,
-                    { from: account }
+                    { from: account, gasPrice: web3.gp }
                 )
 
             }
@@ -284,7 +284,7 @@ module.exports = {
                 let taskID = games[gameID].taskID
 
                 if (test) {
-                    await disputeResolutionLayer.selectPhase(gameID, lowStep, phases[3], 3, { from: account })
+                    await disputeResolutionLayer.selectPhase(gameID, lowStep, phases[3], 3, { from: account, gasPrice: web3.gp })
                 } else {
 
                     let states = (await tasks[taskID].vm.getStep(lowStep, tasks[taskID].interpreterArgs)).states
@@ -296,7 +296,7 @@ module.exports = {
                                 lowStep,
                                 phases[i],
                                 i,
-                                { from: account }
+                                { from: account, gasPrice: web3.gp }
                             )
                             return
                         }
@@ -327,7 +327,7 @@ module.exports = {
                     message: `VERIFIER: Winning verification game for task ${taskID}`
                 })
 
-                await incentiveLayer.solverLoses(taskID, { from: account })
+                await incentiveLayer.solverLoses(taskID, { from: account, gasPrice: web3.gp })
 
             }
             if (await incentiveLayer.isTaskTimeout.call(taskID, { from: account })) {
@@ -338,7 +338,7 @@ module.exports = {
                     message: `VERIFIER: Timeout in task ${taskID}`
                 })
 
-                await incentiveLayer.taskTimeout(taskID, { from: account })
+                await incentiveLayer.taskTimeout(taskID, { from: account, gasPrice: web3.gp })
 
             }
         }
@@ -354,7 +354,7 @@ module.exports = {
                     message: `Triggering game over, game: ${gameID}`
                 })
 
-                await disputeResolutionLayer.gameOver(gameID, { from: account })
+                await disputeResolutionLayer.gameOver(gameID, { from: account, gasPrice: web3.gp })
             }
         }
 
