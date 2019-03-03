@@ -84,7 +84,7 @@ Type `?` to list commands
 `solve -a 1`, `solve -a 2`, .... creates additional Solvers.
 
 
-### Goerli testnet
+## Goerli testnet
 
 Build and run the docker image at truebit-os directory:
 ```
@@ -104,6 +104,71 @@ parity --chain goerli --unlock=$(cat goerliparity) --password=supersecret.txt --
 ```
 
 Remember to send eth to the generated address. Faucet: https://faucet.goerli.mudit.blog/
+
+### Goerli testnet tutorial
+
+*Quickstart: try running these steps!*
+
+1. Install Docker.
+
+2. Open a terminal window.
+
+3. Start a session:
+
+```
+docker run -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 mrsmkl/truebit-goerli:latest /bin/bash
+```
+
+4. Initiate ```tmux```.
+
+5. Create three windows by typing ```ctrl-b "``` then ```ctrl-b %```.
+
+6. *Start IPFS.*  Navigate to one of the smaller windows on the the bottom ``ctrl-b (down arrow)'' and type
+
+```ipfs daemon```
+
+7. *Set up a new parity account.* Navigate to the other small window and type:
+
+```
+echo plort > supersecret.txt
+parity --chain goerli account new --password=supersecret.txt > goerliparity
+```
+To check addresses created, type
+
+```parity --chain goerli account list```.
+
+In case more than one account was created, you will need to add flags to command listed below (e.g. ```claim -a 1``` rather than ```claim```).
+
+8. *Connect to Goerli*.  Type:
+
+```parity --chain goerli --unlock=$(cat goerliparity) --password=supersecret.txt --jsonrpc-cors=all --jsonrpc-interface=all```
+
+8. *Get testnet tokens* for the account(s) above here: https://goerli-faucet.slock.it/
+
+9.  *Start Truebit-OS.* Wait a few minutes to sync with Goerli.  Console will say "Imported" when ready.  Navigate to the top window ```ctrl-b (up arrow)``` and type
+```
+cd truebit-os
+npm run truebit
+claim
+balance
+```
+The balance command should show that you've claimed TRU testnet tokens.
+
+10. *Task - Solve - Verify!*  Start a Solver:
+```
+start solve
+```
+Start a Verifier:
+```
+start verifier
+```
+Issue a task (factorial example):
+```
+task
+```
+
+10. Check your decentralized computations on the blockchain here: https://goerli.etherscan.io/address/0xa1c1d1e822b458457e599a4b5ae29a9c51cf89f1
+
 
 # Building from source
 
