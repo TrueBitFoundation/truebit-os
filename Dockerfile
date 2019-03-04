@@ -23,26 +23,29 @@ RUN cd bin \
 RUN wget -O rustup.sh https://sh.rustup.rs \
  && sh rustup.sh -y \
  && source $HOME/.cargo/env \
- && rustup toolchain add stable
-
-RUN git clone https://github.com/goerli/parity-goerli.git \
+ && rustup toolchain add stable \
+ && git clone https://github.com/goerli/parity-goerli.git \
  && cd parity-goerli \
  && source $HOME/.cargo/env \
  && apt-get install -y libudev-dev \
- && cargo build --release --features final
+ && cargo build --release --features final \
+ && rm -rf parity-goerli ~/.rustup ~/.cargo
 
 RUN wget https://dist.ipfs.io/go-ipfs/v0.4.17/go-ipfs_v0.4.17_linux-amd64.tar.gz \
  && tar xf go-ipfs_v0.4.17_linux-amd64.tar.gz \
  && cd go-ipfs \
  && ./install.sh \
- && ipfs init
+ && ipfs init \
+ && cd / \
+ && rm -rf go-ipfs*
 
 RUN git clone https://github.com/mrsmkl/truebit-os \
  && cd truebit-os \
- && git checkout v2test \
- && npm i --production\
+ && git checkout v2gp \
+ && npm i --production \
  && npm run deps \
- && npm run compile
+ && npm run compile \
+ && rm -rf ~/.opam
 
 RUN git clone https://github.com/mrsmkl/example-app \
  && cd example-app \

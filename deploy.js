@@ -50,8 +50,6 @@ async function deploy() {
     let tru = await deployContract('TRU', { from: accounts[0], gas: 2000000 })
     let exchangeRateOracle = await deployContract('ExchangeRateOracle', { from: accounts[0], gas: 1000000 })
 
-    let whitelist = await deployContract('WhiteList', { from: accounts[0], gas: 2000000 })
-
     let incentiveLayer = await deployContract(
         'IncentiveLayer',
         { from: accounts[0], gas: 5200000 },
@@ -62,13 +60,6 @@ async function deploy() {
         ]
     )
 
-    let ss_incentiveLayer = await deployContract(
-        'SingleSolverIncentiveLayer',
-        { from: accounts[0], gas: 5200000 },
-        [interactive._address, fileSystem._address, whitelist._address]
-    )
-
-    if (networkName == "private") await web3.eth.sendTransaction({from: accounts[0], to: ss_incentiveLayer._address, value: web3.utils.toWei("20", "ether")})
 
     // tru.methods.transferOwnership(incentiveLayer._address).send({from: accounts[0], gas: 1000000})
 
@@ -78,7 +69,7 @@ async function deploy() {
     else if (networkName == "goerli") wait = 15000
     else if (networkName == "ropsten") wait = 30000
 
-    fs.writeFileSync(filename, JSON.stringify({
+    let config = {
         WAIT_TIME: wait,
         fileSystem: exportContract(fileSystem),
         judge: exportContract(judge),
@@ -86,19 +77,41 @@ async function deploy() {
         tru: exportContract(tru),
         exchangeRateOracle: exportContract(exchangeRateOracle),
         incentiveLayer: exportContract(incentiveLayer),
-        ss_incentiveLayer: exportContract(ss_incentiveLayer),
-    }))
+    }
+
+    if (networkName == "private") {
+        let whitelist = await deployContract('WhiteList', { from: accounts[0], gas: 2000000 })
+        let stake_whitelist = await deployContract('StakeWhitelist', { from: accounts[0], gas: 2000000 })
+        let testbook = await deployContract('TestBook', { from: accounts[0], gas: 2000000 })
+
+        let ss_incentiveLayer = await deployContract(
+            'SingleSolverIncentiveLayer',
+            { from: accounts[0], gas: 5200000 },
+            [interactive._address, fileSystem._address, whitelist._address]
+        )
+        
+        await web3.eth.sendTransaction({ from: accounts[0], to: ss_incentiveLayer._address, value: web3.utils.toWei("2", "ether") })
+
+        await stake_whitelist.methods.setToken(tru._address).send({ from: accounts[0], gas: 300000 })
+        await stake_whitelist.methods.setTaskBook(testbook._address).send({ from: accounts[0], gas: 300000 })
+
+        config.ss_incentiveLayer = exportContract(ss_incentiveLayer)
+        config.stake_whitelist = exportContract(stake_whitelist)
+        config.testbook = exportContract(testbook)
+
+        // Mint tokens for testing
+        accounts.forEach(async addr => {
+            await tru.methods.addMinter(addr).send({ from: accounts[0], gas: 300000 })
+            await tru.methods.mint(addr, "100000000000000000000000").send({ from: addr, gas: 300000 })
+        })
+    }
+
+    fs.writeFileSync(filename, JSON.stringify(config))
 
     // Set exchange rate oracle for testing, main net should come from external data source (dex, oraclize, etc..)
     // const TRUperUSD = 2000
     const TRUperUSD = 0
     await exchangeRateOracle.methods.updateExchangeRate(TRUperUSD).send({ from: accounts[0] })
-
-    // Mint tokens for testing
-    if (networkName == "private") accounts.forEach(async addr => {
-        await tru.methods.addMinter(addr).send({ from: accounts[0], gas: 300000 })
-        await tru.methods.mint(addr, "100000000000000000000000").send({ from: addr, gas: 300000 })
-    })
 
     if (networkName != "ethereum") {
         tru.methods.enableFaucet().send({ from: accounts[0], gas: 300000 })

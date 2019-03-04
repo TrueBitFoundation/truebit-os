@@ -39,9 +39,8 @@ In the next window
 ```
 cd truebit-os
 npm run deploy
-node send.js --to=address
-npm run truebit
 ```
+Note that you have to deploy the contracts each time after you have started up ganache.
 
 To run truebit client in JIT solving mode, use
 ```
@@ -83,27 +82,6 @@ Type `?` to list commands
 
 `solve -a 1`, `solve -a 2`, .... creates additional Solvers.
 
-
-## Goerli testnet
-
-Build and run the docker image at truebit-os directory:
-```
-docker build . -t truebit-os:latest
-docker run -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 truebit-os:latest /bin/bash
-```
-
-Setup a new parity account:
-```
-echo plort > supersecret.txt
-parity --chain goerli account new --password=supersecret.txt > goerliparity
-```
-
-Start the parity node, it should take a few minutes to sync:
-```
-parity --chain goerli --unlock=$(cat goerliparity) --password=supersecret.txt --jsonrpc-cors=all --jsonrpc-interface=all
-```
-
-Remember to send eth to the generated address. Faucet: https://faucet.goerli.mudit.blog/
 
 ### Goerli testnet tutorial
 
@@ -237,14 +215,12 @@ Finally, we can submit our task:
 task -a 0 -t testWasmTask.json
 ```
 
-If you are using the Kovan testnet you can look at the progress of your transactions [here](https://kovan.etherscan.io/address/0x9da6f9b3dfd4b4053096246ec1658ae227d80b7c).
-
 We have specified to submit a task from account 0. And the data related to the task is located at testWasmTask.json
 
 If you are running this on a development test net you will need to skip blocks to see the solution in the solutions directory.
 ```
-skip 200 # Go past the challenge period
-skip 300 # Go past reveal period and finalize task
+skip -n 120 # Go past the challenge period
+skip -n 120 # Go past reveal period and finalize task
 ```
 
 *NOTE* These parameters are subject to future change

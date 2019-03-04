@@ -1,9 +1,9 @@
-dist: xenial
+dist: bionic
 sudo: required
 language: node_js
 node_js:
   - "8.11.3"
-  
+
 cache:
   directories:
     - "node_modules"
@@ -26,22 +26,13 @@ before_install:
   - sleep 5
   - curl http://localhost:5001/api/v0/id
 
-  # Install ocaml-offchain
-#  - sudo apt-get install -y wget gcc ocaml opam libzarith-ocaml-dev m4 pkg-config zlib1g-dev
+  # Install ocaml
+  - sudo apt-get install -y wget gcc ocaml opam libzarith-ocaml-dev m4 pkg-config zlib1g-dev libffi-dev
+  - opam init -y --comp=4.06.1
 #  - opam init -y --comp=4.05.0
 #  - eval $(opam config env)
 #  - opam update
-#  - opam install -y cryptokit yojson
-#  - cd ./wasm-client/ocaml-offchain/interpreter
-#  - make
-#  - cd ../../..
-
-  # Install webasm-solidity
-#  - cd ./wasm-client/webasm-solidity
-#  - npm i
-#  - npm run compile
-#  - npm run deploy
-#  - cd ../..
+#  - opam install -y cryptokit yojson ctypes ctypes-foreign
 
 install:
   - npm run fixperms

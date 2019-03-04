@@ -671,7 +671,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
     }
 
     function getTaskInfo(bytes32 taskID) public view returns (address, bytes32, CodeType, bytes32, bytes32) {
-	Task storage t = tasks[taskID];
+	    Task storage t = tasks[taskID];
         return (t.owner, t.initTaskHash, t.codeType, t.bundleId, taskID);
     }
 

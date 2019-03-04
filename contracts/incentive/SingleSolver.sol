@@ -27,7 +27,14 @@ contract WhiteList is IWhiteList {
 
 }
 
-contract SingleSolverIncentiveLayer  is Ownable {
+interface ITruebit {
+    function isFailed(bytes32 taskID) external view returns (bool);
+    function isFinalized(bytes32 taskID) external view returns (bool);
+    function getBlock(bytes32 taskID) external view returns (uint);
+    function getSolution(bytes32 taskID) external view returns (bytes32);
+}
+
+contract SingleSolverIncentiveLayer is Ownable, ITruebit {
 
     uint private numTasks = 0;
     uint private taxMultiplier = 5;
@@ -77,8 +84,8 @@ contract SingleSolverIncentiveLayer  is Ownable {
     }
 
     event SlashedDeposit(bytes32 taskID, address account, address opponent, uint amount);
-    event TaskCreated(bytes32 taskID, uint blockNumber, uint reward, CodeType codeType, StorageType storageType, string storageAddress);
-    event SolutionsCommitted(bytes32 taskID, CodeType codeType, StorageType storageType, string storageAddress, bytes32 solutionHash);
+    event TaskCreated(bytes32 taskID, uint blockNumber, uint reward, CodeType codeType, bytes32 bundleId);
+    event SolutionsCommitted(bytes32 taskID, CodeType codeType, bytes32 bundleId, bytes32 solutionHash);
     event SolutionRevealed(bytes32 taskID);
     event VerificationCommitted(bytes32 taskID, address verifier, uint index);
     event VerificationGame(address indexed solver, uint currentChallenger); 
@@ -113,9 +120,8 @@ contract SingleSolverIncentiveLayer  is Ownable {
         // uint jackpotID;
         // uint cost;
         CodeType codeType;
-        StorageType storageType;
-        string storageAddress;
-        
+        bytes32 bundleId;
+
         bool requiredCommitted;
         RequiredFile[] uploads;
         
@@ -126,12 +132,7 @@ contract SingleSolverIncentiveLayer  is Ownable {
     }
 
     struct Solution {
-        // bytes32 solutionCommit; // keccak256(solutionHash0)
         bytes32 solutionHash;
-        // bytes32 solutionHash1;
-        // bool solution0Correct;
-        // address[] solution0Challengers;
-        // address[] solution1Challengers;
         address payable [] allChallengers;
         address payable currentChallenger;
         bool solverConvicted;
@@ -159,6 +160,11 @@ contract SingleSolverIncentiveLayer  is Ownable {
         whitelist = IWhiteList(wl_addr);
     }
 
+    // TODO: unsafe
+    function setWhitelist(address wl_addr) public {
+        whitelist = IWhiteList(wl_addr);
+    }
+
     function defaultParameters(bytes32 taskID) internal {
         VMParameters storage params = vmParams[taskID];
         params.stackSize = 14;
@@ -175,12 +181,12 @@ contract SingleSolverIncentiveLayer  is Ownable {
     // @param taskData – tbd. could be hash of the wasm file on a filesystem.
     // @param numBlocks – the number of blocks to adjust for task difficulty
     // @return – boolean
-    function createTaskAux(bytes32 initTaskHash, CodeType codeType, StorageType storageType, string memory storageAddress, uint maxDifficulty, uint reward) internal returns (bytes32) {
+    function createTaskAux(bytes32 initTaskHash, CodeType codeType, bytes32 bundleId, uint maxDifficulty, uint reward) internal returns (bytes32) {
         // Get minDeposit required by task
 	    require(maxDifficulty > 0);
 	    require(reward > 0);
 
-        bytes32 id = keccak256(abi.encodePacked(initTaskHash, codeType, storageType, storageAddress, maxDifficulty, reward, numTasks));
+        bytes32 id = keccak256(abi.encodePacked(initTaskHash, codeType, bundleId, maxDifficulty, reward, numTasks));
         numTasks++;
 
         Task storage t = tasks[id];
@@ -189,8 +195,7 @@ contract SingleSolverIncentiveLayer  is Ownable {
 
         t.initTaskHash = initTaskHash;
         t.codeType = codeType;
-        t.storageType = storageType;
-        t.storageAddress = storageAddress;
+        t.bundleId = bundleId;
         
         t.timeoutBlock = block.number + IPFS_TIMEOUT + BASIC_TIMEOUT;
         t.initBlock = block.number;
@@ -203,17 +208,17 @@ contract SingleSolverIncentiveLayer  is Ownable {
     // @param taskData – tbd. could be hash of the wasm file on a filesystem.
     // @param numBlocks – the number of blocks to adjust for task difficulty
     // @return – boolean
-    function createTask(bytes32 initTaskHash, CodeType codeType, StorageType storageType, string memory storageAddress, uint maxDifficulty) public payable returns (bytes32) {
-        bytes32 id = createTaskAux(initTaskHash, codeType, storageType, storageAddress, maxDifficulty, msg.value);
+    function createTask(bytes32 initTaskHash, CodeType codeType, bytes32 bundleId, uint maxDifficulty) public payable returns (bytes32) {
+        bytes32 id = createTaskAux(initTaskHash, codeType, bundleId, maxDifficulty, msg.value);
         defaultParameters(id);
 	    commitRequiredFiles(id);
         
         return id;
     }
 
-    function createTaskWithParams(bytes32 initTaskHash, CodeType codeType, StorageType storageType, string memory storageAddress, uint maxDifficulty,
+    function createTaskWithParams(bytes32 initTaskHash, CodeType codeType, bytes32 bundleId, uint maxDifficulty,
                                   uint8 stack, uint8 mem, uint8 globals, uint8 table, uint8 call, uint32 limit) public payable returns (bytes32) {
-        bytes32 id = createTaskAux(initTaskHash, codeType, storageType, storageAddress, maxDifficulty, msg.value);
+        bytes32 id = createTaskAux(initTaskHash, codeType, bundleId, maxDifficulty, msg.value);
         VMParameters storage param = vmParams[id];
         require(stack > 5 && mem > 5 && globals > 5 && table > 5 && call > 5);
         require(stack < 30 && mem < 30 && globals < 30 && table < 30 && call < 30);
@@ -237,7 +242,7 @@ contract SingleSolverIncentiveLayer  is Ownable {
         Task storage t = tasks[id];
         require (msg.sender == t.owner);
         t.requiredCommitted = true;
-        emit TaskCreated(id, t.timeoutBlock, t.reward, t.codeType, t.storageType, t.storageAddress);
+        emit TaskCreated(id, t.timeoutBlock, t.reward, t.codeType, t.bundleId);
     }
     
     function getUploadNames(bytes32 id) public view returns (bytes32[] memory) {
@@ -280,7 +285,7 @@ contract SingleSolverIncentiveLayer  is Ownable {
         t.state = State.SolutionCommitted;
         t.timeoutBlock = block.number + BASIC_TIMEOUT + IPFS_TIMEOUT + (1+vm.gasLimit/RUN_RATE);
         t.challengeTimeout = t.timeoutBlock; // End of challenge period
-        emit SolutionsCommitted(taskID, t.codeType, t.storageType, t.storageAddress, solutionHash0);
+        emit SolutionsCommitted(taskID, t.codeType, t.bundleId, solutionHash0);
         return true;
     }
 
@@ -510,6 +515,16 @@ contract SingleSolverIncentiveLayer  is Ownable {
         return (t.state == State.TaskTimeout);
     }
     
+    function getBlock(bytes32 taskID) public view returns (uint) {
+        Task storage t = tasks[taskID];
+        return t.initBlock;
+    }
+    
+    function getSolution(bytes32 taskID) public view returns(bytes32) {
+        Solution storage s = solutions[taskID];
+        return s.solutionHash;
+    }
+
     function canFinalizeTask(bytes32 taskID) public view returns (bool) {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
@@ -534,15 +549,15 @@ contract SingleSolverIncentiveLayer  is Ownable {
         return (params.stackSize, params.memorySize, params.globalsSize, params.tableSize, params.callSize, params.gasLimit);
     }
 
-    function getTaskInfo(bytes32 taskID) public view returns (address, bytes32, CodeType, StorageType, string memory, bytes32) {
+    function getTaskInfo(bytes32 taskID) public view returns (address, bytes32, CodeType, bytes32, bytes32) {
         Task storage t = tasks[taskID];
-        return (t.owner, t.initTaskHash, t.codeType, t.storageType, t.storageAddress, taskID);
+        return (t.owner, t.initTaskHash, t.codeType, t.bundleId, taskID);
     }
 
-    function getSolutionInfo(bytes32 taskID) public view returns(bytes32, bytes32, bytes32, CodeType, StorageType, string memory) {
+    function getSolutionInfo(bytes32 taskID) public view returns(bytes32, bytes32, bytes32, CodeType, bytes32) {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
-        return (taskID, s.solutionHash, t.initTaskHash, t.codeType, t.storageType, t.storageAddress);
+        return (taskID, s.solutionHash, t.initTaskHash, t.codeType, t.bundleId);
     }
 
 }

@@ -119,7 +119,7 @@ module.exports = {
             // console.log("debug", depo.toString(10))
 
             // console.log("secret", secret, web3.utils.soliditySha3(secret))
-            await incentiveLayer.registerForTask(taskID, web3.utils.soliditySha3(secret), { from: account, gas: 500000 })
+            await incentiveLayer.registerForTask(taskID, web3.utils.soliditySha3(secret), { from: account, gas: 500000, gasPrice: web3.gp })
 
             // console.log("ok")
 
@@ -169,7 +169,7 @@ module.exports = {
                 logger.info(`SOLVER: Committing solution ${solution.hash} (hashed ${web3.utils.soliditySha3(solution.hash)})`)
 
                 try {
-                    await incentiveLayer.commitSolution(taskID, web3.utils.soliditySha3(solution.hash), { from: account, gas: 1000000 })
+                    await incentiveLayer.commitSolution(taskID, web3.utils.soliditySha3(solution.hash), { from: account, gas: 1000000, gasPrice: web3.gp })
 
                     logger.log({
                         level: 'info',
@@ -207,7 +207,7 @@ module.exports = {
                 let vm = tasks[taskID].solution.vm
                 let secret = "0x" + helpers.makeSecret(taskID)
                 console.log("secret", secret)
-                await incentiveLayer.revealSolution(taskID, secret, vm.code, vm.input_size, vm.input_name, vm.input_data, { from: account, gas: 1000000 })
+                await incentiveLayer.revealSolution(taskID, secret, vm.code, vm.input_size, vm.input_name, vm.input_data, { from: account, gas: 1000000, gasPrice: web3.gp })
                 await helpers.uploadOutputs(taskID, tasks[taskID].vm)
 
                 logger.log({
@@ -223,7 +223,7 @@ module.exports = {
 
             if (tasks[taskID]) {
                 delete tasks[taskID]
-                await incentiveLayer.unbondDeposit(taskID, { from: account, gas: 100000 })
+                await incentiveLayer.unbondDeposit(taskID, { from: account, gas: 100000, gasPrice: web3.gp })
                 logger.log({
                     level: 'info',
                     message: `SOLVER: Task ${taskID} finalized. Tried to unbond deposits.`
@@ -301,7 +301,7 @@ module.exports = {
 
                 let stateHash = await tasks[taskID].vm.getLocation(stepNumber, tasks[taskID].interpreterArgs)
 
-                await disputeResolutionLayer.report(gameID, indices.low, indices.high, [stateHash], { from: account })
+                await disputeResolutionLayer.report(gameID, indices.low, indices.high, [stateHash], { from: account, gasPrice: web3.gp })
 
                 logger.log({
                     level: 'info',
@@ -330,7 +330,7 @@ module.exports = {
 
                     let stateHash = await tasks[taskID].vm.getLocation(stepNumber, tasks[taskID].interpreterArgs)
 
-                    await disputeResolutionLayer.report(gameID, lowStep, highStep, [stateHash], { from: account })
+                    await disputeResolutionLayer.report(gameID, lowStep, highStep, [stateHash], { from: account, gasPrice: web3.gp })
 
                     logger.info(`SOLVER: Reported state for step ${stepNumber}`)
 
@@ -348,7 +348,7 @@ module.exports = {
                         states,
                         {
                             from: account,
-                            gas: 400000
+                            gas: 400000, gasPrice: web3.gp
                         }
                     )
 
@@ -423,7 +423,7 @@ module.exports = {
                         proof.merkle.list,
                         merkleComputer.getRoots(vm),
                         merkleComputer.getPointers(vm),
-                        { from: account, gas: 500000 }
+                        { from: account, gas: 500000, gasPrice: web3.gp }
                     )
 
                     //TODO
@@ -441,7 +441,7 @@ module.exports = {
                         [m.reg1, m.reg2, m.reg3, m.ireg],
                         merkleComputer.getRoots(vm),
                         merkleComputer.getPointers(vm),
-                        { from: account, gas: 5000000 }
+                        { from: account, gas: 5000000, gasPrice: web3.gp }
                     )
                 }
 
@@ -478,7 +478,7 @@ module.exports = {
             if (await disputeResolutionLayer.gameOver.call(gameID)) {
 
                 working(gameID)
-                await disputeResolutionLayer.gameOver(gameID, { from: account })
+                await disputeResolutionLayer.gameOver(gameID, { from: account, gasPrice: web3.gp })
 
                 logger.log({
                     level: 'info',
@@ -504,7 +504,7 @@ module.exports = {
                 // console.log("Ending challenge")
 
                 working(taskID)
-                await incentiveLayer.endChallengePeriod(taskID, { from: account, gas: 100000 })
+                await incentiveLayer.endChallengePeriod(taskID, { from: account, gas: 100000, gasPrice: web3.gp })
 
                 logger.log({
                     level: 'info',
@@ -518,7 +518,7 @@ module.exports = {
             if (endReveal) {
 
                 working(taskID)
-                await incentiveLayer.endRevealPeriod(taskID, { from: account, gas: 100000 })
+                await incentiveLayer.endRevealPeriod(taskID, { from: account, gas: 100000, gasPrice: web3.gp })
 
                 logger.log({
                     level: 'info',
@@ -530,7 +530,7 @@ module.exports = {
             if (await incentiveLayer.canRunVerificationGame.call(taskID)) {
 
                 working(taskID)
-                await incentiveLayer.runVerificationGame(taskID, { from: account, gas: 1000000 })
+                await incentiveLayer.runVerificationGame(taskID, { from: account, gas: 1000000, gasPrice: web3.gp })
 
                 logger.log({
                     level: 'info',
@@ -544,7 +544,7 @@ module.exports = {
                 // console.log("Tax should be", (await incentiveLayer.getTax.call(taskID)).toString())
 
                 working(taskID)
-                await incentiveLayer.finalizeTask(taskID, { from: account, gas: 1000000 })
+                await incentiveLayer.finalizeTask(taskID, { from: account, gas: 1000000 , gasPrice: web3.gp})
 
                 logger.log({
                     level: 'info',

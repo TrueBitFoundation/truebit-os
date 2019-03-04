@@ -1,5 +1,5 @@
 
-const setupVM = require('./util/setupVM')
+const setupVM = require('./util/setupVM_new')
 const fs = require("fs")
 
 let secret = fs.readFileSync(__dirname + "/secret")
@@ -54,9 +54,9 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
             else arr.push("0" + buf[i].toString(16))
         }
         // console.log("Nonce file", nonce, {arr:arr, buf:buf, arranged: arrange(arr)})
-        var tx = await fileSystem.createFileWithContents(fname, nonce, arrange(arr), buf.length, { from: account, gas: 200000, gasPrice: web3.gp })
-        var id = await fileSystem.calcId.call(nonce, { from: account, gas: 200000, gasPrice: web3.gp })
-        var lst = await fileSystem.getData.call(id, { from: account, gas: 200000, gasPrice: web3.gp })
+        var tx = await fileSystem.methods.createFileWithContents(fname, nonce, arrange(arr), buf.length).send( { from: account, gas: 200000 })
+        var id = await fileSystem.methods.calcId(nonce).call( { from: account, gas: 200000 })
+        var lst = await fileSystem.methods.getData(id).call( { from: account, gas: 200000 })
         // console.log("Ensure upload", {data:lst})
         return id
     }
@@ -75,20 +75,20 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
         let info = merkleComputer.merkleRoot(web3, buf)
         let nonce = await web3.eth.getTransactionCount(account)
         console.log("Adding ipfs file", fname, buf.length, hash.hash, info, nonce)
-        await fileSystem.addIPFSFile(fname, buf.length, hash.hash, info, nonce, { from: account, gas: 200000, gasPrice: web3.gp })
+        await fileSystem.methods.addIPFSFile(fname, buf.length, hash.hash, info, nonce).send( { from: account, gas: 200000 })
         logger.info("Calculating ID")
-        let id = await fileSystem.calcId.call(nonce, { from: account, gas: 200000 })
+        var id = await fileSystem.methods.calcId(nonce).call( { from: account, gas: 200000 })
         return id
     }
 
     async function createContractFile(fname, buf) {
-        let contractAddress = await merkleComputer.uploadOnchain(buf, web3, { from: account, gas: 30000, gasPrice: web3.gp })
+        let contractAddress = await merkleComputer.uploadOnchain(buf, web3, { from: account, gas: 30000 })
         let nonce = await web3.eth.getTransactionCount(base)
         let info = merkleComputer.merkleRoot(buf)
 
-        await fileSystem.addContractFile(fname, nonce, contractAddress, info.root, buf.length, { from: account, gas: 200000, gasPrice: web3.gp })
+        await fileSystem.methods.addContractFile(fname, nonce, contractAddress, info.root, buf.length).send( { from: account, gas: 200000 })
 
-        let fileID = await fileSystem.calcId.call(nonce, { from: account  })
+        let fileID = await fileSystem.calcId(nonce).call( { from: account })
 
         return fileID
     }
@@ -113,8 +113,8 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
     }
 
     async function uploadOutputs(taskID, vm) {
-        let lst = await incentiveLayer.getUploadNames.call(taskID)
-        let types = await incentiveLayer.getUploadTypes.call(taskID)
+        let lst = await incentiveLayer.methods.getUploadNames(taskID).call()
+        let types = await incentiveLayer.methods.getUploadTypes(taskID).call()
         console.log("Uploading", { names: lst, types: types })
         if (lst.length == 0) return
         let proofs = await vm.fileProofs() // common.exec(config, ["-m", "-input-proofs", "-input2"])
@@ -137,32 +137,32 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
 
             let fileID = await uploadFile(fname, buf, types[i].toNumber())
 
-            await incentiveLayer.uploadFile(taskID, i, fileID, proof.name, proof.data, proof.loc, { from: account, gas: 1000000, gasPrice: web3.gp })
+            await incentiveLayer.methods.uploadFile(taskID, i, fileID, proof.name, proof.data, proof.loc).send( { from: account, gas: 1000000 })
         }
     }
 
     async function getFile(fileID) {
-        let fileType = (await fileSystem.getFileType.call(fileID)).toNumber()
-        let fileName = await fileSystem.getName.call(fileID)
+        let fileType = parseInt(await fileSystem.methods.getFileType(fileID).call())
+        let fileName = await fileSystem.methods.getName(fileID).call()
 
         let fileData
 
-        let size = await fileSystem.getByteSize.call(fileID)
+        let size = await fileSystem.methods.getByteSize(fileID).call()
         console.log("Getting file", fileName, "Type:", fileType, "Size:", size)
 
         if (fileType == 0) {
             // Retrieve from bytes
 
-            let data = await fileSystem.getData.call(fileID)
+            let data = await fileSystem.methods.getData(fileID).call()
 
             fileData = parseData(data, size)
         } else if (fileType == 1) {
             // Retrieve from contract
-            let hexData = await fileSystem.getCode.call(fileID)
+            let hexData = await fileSystem.methods.getCode(fileID).call()
             fileData = Buffer.from(hexData.substr(2), "hex")
         } else if (fileType == 2) {
             // Retrieve from IPFS
-            let ipfsHash = await fileSystem.getHash.call(fileID)
+            let ipfsHash = await fileSystem.methods.getHash(fileID).call()
             fileData = (await mcFileSystem.download(ipfsHash, "task.wast")).content
         } else {
             throw new Error("File type unrecognized " + fileType)
@@ -175,8 +175,8 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
         let taskID = taskInfo.taskID
         let bundleID = taskInfo.bundleId
 
-        let codeFileID = await fileSystem.getCodeFileID.call(bundleID)
-        let fileIDs = await fileSystem.getFiles.call(bundleID)
+        let codeFileID = await fileSystem.methods.getCodeFileID(bundleID).call()
+        let fileIDs = await fileSystem.methods.getFiles(bundleID).call()
 
         let [codeName, codeBuf] = await getFile(codeFileID)
 

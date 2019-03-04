@@ -102,7 +102,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
         let bundleNonce = Math.floor(Math.random() * Math.pow(2, 60))
         let bundleId = await tbFileSystem.calcId.call(bundleNonce, { from: account })
 
-        await tbFileSystem.makeBundle(bundleNonce, { from: account, gas: 300000 })
+        await tbFileSystem.makeBundle(bundleNonce, { from: account, gas: 300000, gasPrice: web3.gp })
 
         return bundleId
     }
@@ -125,11 +125,11 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
         let codeFileID = await tbFileSystem.calcId.call(randomNum, { from: from })
 
-        await tbFileSystem.addIPFSFile(name, size, ipfsHash, fileRoot, randomNum, { from: from, gas: 300000 })
+        await tbFileSystem.addIPFSFile(name, size, ipfsHash, fileRoot, randomNum, { from: from, gas: 300000, gasPrice: web3.gp })
 
-        await tbFileSystem.setCodeRoot(codeFileID, codeRoot, { from: from, gas: 100000 })
+        await tbFileSystem.setCodeRoot(codeFileID, codeRoot, { from: from, gas: 100000, gasPrice: web3.gp })
 
-        await tbFileSystem.finalizeBundle(bundleID, codeFileID)
+        await tbFileSystem.finalizeBundle(bundleID, codeFileID, { from: from, gas: 100000, gasPrice: web3.gp })
 
         let initHash = await tbFileSystem.getInitHash.call(bundleID)
 
@@ -174,23 +174,23 @@ module.exports = async (web3, logger, mcFileSystem) => {
                 fileIPFSHash,
                 fileRoot,
                 fileNonce,
-                { from: from, gas: 200000 }
+                { from: from, gas: 200000, gasPrice: web3.gp }
             )
 
-            await tbFileSystem.addToBundle(bundleID, fileID, { from: from })
+            await tbFileSystem.addToBundle(bundleID, fileID, { from: from, gasPrice: web3.gp })
         }
 
         let randomNum = Math.floor(Math.random() * Math.pow(2, 60))
-        let codeFileId = await tbFileSystem.calcId(randomNum, { from: from })
+        let codeFileId = await tbFileSystem.calcId(randomNum, { from: from, gasPrice: web3.gp })
 
         config.files = newFiles
 
         let codeRoot = await getCodeRoot(config, dirPath)
         let fileRoot = merkleComputer.merkleRoot(web3, codeBuf)
 
-        await tbFileSystem.addIPFSCodeFile(codeName, codeSize, ipfsHash, fileRoot, codeRoot, randomNum, { from: from, gas: 300000 })
+        await tbFileSystem.addIPFSCodeFile(codeName, codeSize, ipfsHash, fileRoot, codeRoot, randomNum, { from: from, gas: 300000, gasPrice: web3.gp })
 
-        await tbFileSystem.finalizeBundle(bundleID, codeFileId, { from: from, gas: 1500000 })
+        await tbFileSystem.finalizeBundle(bundleID, codeFileId, { from: from, gas: 1500000, gasPrice: web3.gp })
 
         let initHash = await tbFileSystem.getInitHash.call(bundleID)
 
@@ -256,7 +256,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
         } else { //store file on blockchain
 
-            let contractAddress = await uploadOnchain(codeBuf, { from: task.from, gas: 4000000 })
+            let contractAddress = await uploadOnchain(codeBuf, { from: task.from, gas: 4000000, gasPrice: web3.gp })
 
             logger.log({
                 level: 'info',
@@ -272,13 +272,13 @@ module.exports = async (web3, logger, mcFileSystem) => {
 
             let size = Buffer.byteLength(codeBuf, 'utf8');
 
-            await tbFileSystem.addContractFile("task.wasm", codeFileNonce, contractAddress, fileRoot, size, { from: task.from, gas: 300000 })
-            await tbFileSystem.setCodeRoot(codeFileId, codeRoot, { from: task.from, gas: 100000 })
+            await tbFileSystem.addContractFile("task.wasm", codeFileNonce, contractAddress, fileRoot, size, { from: task.from, gas: 300000, gasPrice: web3.gp })
+            await tbFileSystem.setCodeRoot(codeFileId, codeRoot, { from: task.from, gas: 100000 , gasPrice: web3.gp})
 
             let bundleID = await makeBundle(task.from)
 
-            await tbFileSystem.finalizeBundle(bundleID, codeFileId, { from: task.from, gas: 3000000 })
-            let initHash = await tbFileSystem.finalizeBundle.call(bundleID, codeFileId, { from: task.from, gas: 3000000 })
+            await tbFileSystem.finalizeBundle(bundleID, codeFileId, { from: task.from, gas: 3000000, gasPrice: web3.gp })
+            let initHash = await tbFileSystem.finalizeBundle.call(bundleID, codeFileId, { from: task.from, gas: 3000000, gasPrice: web3.gp })
 
             logger.log({
                 level: 'info',
@@ -308,7 +308,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
             task.bundleID,
             task.maxDifficulty,
             task.reward,
-            { gas: 1000000, from: task.from }
+            { gas: 1000000, from: task.from, gasPrice: web3.gp }
         )
 
         logger.log({

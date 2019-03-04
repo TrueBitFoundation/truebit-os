@@ -21,8 +21,8 @@ module.exports = async (web3, incentiveLayer, tru, account, minDeposit) => {
         let difference = deposit.subtract(currentDeposit)
 
         if (difference.gt(0)) {
-            await tru.approve(incentiveLayer.address, difference.toString(10), { from: account })            
-            await incentiveLayer.makeDeposit(difference.toString(10), { from: account })
+            await tru.approve(incentiveLayer.address, difference.toString(10), { from: account, gasPrice: web3.gp })            
+            await incentiveLayer.makeDeposit(difference.toString(10), { from: account, gasPrice: web3.gp })
             // console.log("difference", difference)
         }
     }

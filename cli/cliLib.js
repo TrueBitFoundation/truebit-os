@@ -151,8 +151,8 @@ module.exports.deposit = async ({ os, args }) => {
   const incentiveLayer = await contract(httpProvider, config['incentiveLayer'])
   const tru = await contract(httpProvider, config['tru'])
 
-  await tru.approve(incentiveLayer.address, num, { from: account })            
-  await incentiveLayer.makeDeposit(num, { from: account })  
+  await tru.approve(incentiveLayer.address, num, { from: account, gasPrice:os.web3.gp })            
+  await incentiveLayer.makeDeposit(num, { from: account, gasPrice:os.web3.gp })  
 
   module.exports.balance({os, args})
 }
@@ -171,7 +171,7 @@ module.exports.claimTokens = async ({ os, args }) => {
     })
   }
   else {
-    await tru.getTestTokens({from:account, gas:100000})
+    await tru.getTestTokens({from:account, gas:100000, gasPrice:os.web3.gp})
     os.logger.log({
       level: 'info',
       message: `${account}: Claimed test tokens`
