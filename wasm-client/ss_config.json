@@ -10,5 +10,6 @@
 	"protocol": "http",
 	"merkleComputer": "../wasm-client/merkle-computer/"
     },
-    "throttle" : 20
+    "throttle" : 20,
+    "incentiveLayer": "incentiveLayer"
 }

@@ -16,9 +16,9 @@ console.log(chalk.blue(figlet.textSync('task solve verify')))
 let configPath = process.argv[2] || "wasm-client/config.json"
 
 let os
-;(async () => {
-  os = await cliLib.setup(configPath)
-})()
+  ; (async () => {
+    os = await cliLib.setup(configPath)
+  })()
 
 vorpal
   .command('version', 'display package version')
@@ -43,7 +43,7 @@ vorpal
       case 'solve':
         return cliLib.initSolver({ os, account, recover, test })
       case 'verify':
-        return cliLib.initVerifier({ os, account, recover, test  })
+        return cliLib.initVerifier({ os, account, recover, test })
       default:
         os.logger.log({
           level: 'error',
@@ -68,19 +68,19 @@ vorpal
   })
 
 vorpal
-    .command(
-	'hash',
-	'Given task information generates an initial hash for the code including input files'
-    )
-    .option('-t, --task <pathToTask>', 'the path to a task json file')
-    .action(async (args, callback) => {
-	let initHash = await cliLib.initHash({
-	    os,
-	    args
-	})
-	console.log("Initial hash: " + initHash)
-	callback()
+  .command(
+    'hash',
+    'Given task information generates an initial hash for the code including input files'
+  )
+  .option('-t, --task <pathToTask>', 'the path to a task json file')
+  .action(async (args, callback) => {
+    let initHash = await cliLib.initHash({
+      os,
+      args
     })
+    console.log("Initial hash: " + initHash)
+    callback()
+  })
 
 
 vorpal
@@ -106,7 +106,7 @@ vorpal
     callback()
   })
 
-  vorpal
+vorpal
   .command('balance', 'show the balance of an account')
   .option('-a, --account <num>', 'index of web3 account to use.')
   .action(async (args, callback) => {
@@ -117,7 +117,18 @@ vorpal
     callback()
   })
 
-  vorpal
+vorpal
+  .command('ticket', 'buy ticket from whitelist')
+  .option('-a, --account <num>', 'index of web3 account to use.')
+  .option('-v, --value <num>', 'amount of tickets.')
+  .action(async (args, callback) => {
+    await cliLib.ticket({
+      os,
+      args
+    })
+    callback()
+  })
+vorpal
   .command('claim', 'claim test tokens')
   .option('-a, --account <num>', 'index of web3 account to use.')
   .action(async (args, callback) => {
@@ -127,7 +138,7 @@ vorpal
     })
     callback()
   })
-  vorpal
+vorpal
   .command('deposit', 'deposit tokens to incentive layer')
   .option('-a, --account <num>', 'index of web3 account to use.')
   .option('-v, --value <num>', 'amount of tokens.')

@@ -123,6 +123,10 @@ module.exports = {
 
             // console.log("ok")
 
+            if (!tasks[taskID]) {
+                task_list.push(taskID)
+            }
+
             tasks[taskID] = { minDeposit: minDeposit }
 
                     // tasks[taskID].secret = secret

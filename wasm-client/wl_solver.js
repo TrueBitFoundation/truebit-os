@@ -110,8 +110,9 @@ module.exports = {
         let [incentiveLayer, fileSystem, disputeResolutionLayer, wl] = await setup(web3)
 
         // For testing, setup the contracts
-        wl.methods.setTaskBook(incentiveLayer._address).send({from:account})
-        incentiveLayer.methods.setWhitelist(wl._address).send({from:account})
+        console.log("addresses", incentiveLayer.options.address, wl.options.address)
+        wl.methods.setTaskBook(incentiveLayer.options.address).send({from:account})
+        incentiveLayer.methods.setWhitelist(wl.options.address).send({from:account})
 
         let taskbook = incentiveLayer
 
@@ -139,10 +140,16 @@ module.exports = {
 
             event_handlers.forEach(async function (h) {
                 let lst = await h.contract.getPastEvents(h.name, {fromBlock: lastBlock-5})
-                lst.forEach(ev => {
+                lst.forEach(async ev => {
                     if (handled[ev.id]) return
                     handled[ev.id] = true
-                    h.handler(ev.returnValues)
+                    try {
+                        await h.handler(ev.returnValues)
+                    }
+                    catch (e) {
+                        logger.error(`While handling ${h.name}`)
+                        console.log(e)
+                    }
                 })
             })
 
@@ -272,11 +279,13 @@ module.exports = {
 
             let taskID = result.taskID
             let user = result.owner
-            let idx = result.idx
+            let idx = result.ticket
 
             // check from the whitelist, if we are selected as candidate
             let tickets = await getTickets(wl, initBlock)
             tickets.push({ticket:idx, owner:user})
+
+            console.log("select", tickets, taskID)
 
             let lst = await selectCandidates(wl, tickets, taskID)
             let selected = lst.slice(0, 2).map(a => a.ticket)
@@ -286,7 +295,16 @@ module.exports = {
                 return
             }
 
-            let taskInfo = toTaskInfo(await incentiveLayer.methods.getTaskInfo(taskID).call())
+            let data = await incentiveLayer.methods.getTaskInfo(taskID).call()
+            // console.log(data)
+            let taskInfo = {
+                giver: data[0],
+                initStateHash: data[1],
+                codeType: parseInt(data[2]),
+                bundleId: data[3],
+                uniqueNum: data[4]
+            }
+
             if (!tasks[taskID]) tasks[taskID] = {}
             tasks[taskID].taskInfo = taskInfo
             taskInfo.taskID = taskID
@@ -308,7 +326,12 @@ module.exports = {
 
             logger.info(`VERIFIER: Found solution ${solution.hash}`)
 
-            let solver = checkSolver(wl, taskbook, taskID, solution.hash, tickets)
+            let solver = await checkSolver(wl, taskbook, taskID, solution.hash, tickets)
+
+            if (!solver) {
+                logger.error(`VERIFIER: Cannot determine solver`)
+                return
+            }
 
             if (solver.owner.toLowerCase() == user.toLowerCase()) {
                 logger.info(`VERIFIER: Solver was correct`)
@@ -357,45 +380,50 @@ module.exports = {
 
             let taskID = result.taskID
             let solverHash0 = result.solutionHash
-            let taskInfo = toTaskInfo(await incentiveLayer.methods.getTaskInfo(taskID).call())
+            let data = await incentiveLayer.methods.getTaskInfo(taskID).call()
+            // console.log(data)
+            let taskInfo = {
+                giver: data[0],
+                initStateHash: data[1],
+                codeType: parseInt(data[2]),
+                bundleId: data[3],
+                uniqueNum: data[4]
+            }
             taskInfo.taskID = taskID
 
-            if (Object.keys(tasks).length <= throttle) {
+            logger.info("VERIFIER: Setting up VM")
+            let vm = await helpers.setupVMWithFS(taskInfo)
 
-                logger.info("VERIFIER: Setting up VM")
-                let vm = await helpers.setupVMWithFS(taskInfo)
+            logger.info("VERIFIER: Executing task")
+            let interpreterArgs = []
+            solution = await vm.executeWasmTask(interpreterArgs)
 
-                logger.info("VERIFIER: Executing task")
-                let interpreterArgs = []
-                solution = await vm.executeWasmTask(interpreterArgs)
+            logger.log({
+                level: 'info',
+                message: `VERIFIER: Executed task ${taskID}. Checking solutions`
+            })
+
+            task_list.push(taskID)
+
+            let myHash = solution.hash
+            if (test) myHash = "0x" + helpers.makeSecret(myHash)
+
+            tasks[taskID] = {
+                solverHash0: solverHash0,
+                solutionHash: solution.hash,
+                vm: vm,
+            }
+
+            if (myHash != solverHash0) {
+                await incentiveLayer.makeChallenge(taskID, { from: account, gas: 350000, value: web3.utils.toWei("0.1", "ether") })
 
                 logger.log({
                     level: 'info',
-                    message: `VERIFIER: Executed task ${taskID}. Checking solutions`
+                    message: `VERIFIER: Challenged solution for task ${taskID}`
                 })
-
-                task_list.push(taskID)
-
-                let myHash = solution.hash
-                if (test) myHash = "0x" + helpers.makeSecret(myHash)
-
-                tasks[taskID] = {
-                    solverHash0: solverHash0,
-                    solutionHash: solution.hash,
-                    vm: vm,
-                }
-
-                if (myHash != solverHash0) {
-                    await incentiveLayer.makeChallenge(taskID, { from: account, gas: 350000, value: web3.utils.toWei("0.1", "ether") })
-
-                    logger.log({
-                        level: 'info',
-                        message: `VERIFIER: Challenged solution for task ${taskID}`
-                    })
-                }
-
-
             }
+
+
         })
 
         addEvent("EndRevealPeriod", incentiveLayer, async (result) => {
