@@ -80,7 +80,7 @@ Type `?` to list commands
 
 `start verify -t` to create a Verifier that initiates verification games
 
-`solve -a 1`, `solve -a 2`, .... creates additional Solvers.
+`start solve -a 1`, `start solve -a 2`, .... creates additional Solvers.
 
 
 ### Goerli testnet tutorial
