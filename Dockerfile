@@ -41,10 +41,11 @@ RUN wget https://dist.ipfs.io/go-ipfs/v0.4.17/go-ipfs_v0.4.17_linux-amd64.tar.gz
 
 RUN git clone https://github.com/mrsmkl/truebit-os \
  && cd truebit-os \
- && git checkout v2test \
- && npm i --production\
+ && git checkout v2gp \
+ && npm i --production \
  && npm run deps \
- && npm run compile
+ && npm run compile \
+ && rm -rf ~/.opam
 
 RUN git clone https://github.com/mrsmkl/example-app \
  && cd example-app \
@@ -68,11 +69,9 @@ RUN git clone https://github.com/TruebitFoundation/wasm-ports \
  && ln -s /wasm-ports/samples /var/www/html \
  && browserify pairing/public/app.js -o pairing/public/bundle.js \
  && cd pairing \
- && solc --abi --optimize --overwrite --bin -o build contract.sol \
- && rm -rf ~/.opam
+ && solc --abi --optimize --overwrite --bin -o build contract.sol
 
-RUN cp /parity-goerli/target/release/parity /bin \
- && rm -rf go-ipfs* parity-goerli ~/.rustup ~/.cargo 
+RUN cp /parity-goerli/target/release/parity /bin
 
 # ipfs and eth ports
 EXPOSE 4001 30303 80 8545
