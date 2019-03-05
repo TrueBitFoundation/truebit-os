@@ -110,7 +110,7 @@ module.exports = {
         let [incentiveLayer, fileSystem, disputeResolutionLayer, wl] = await setup(web3)
 
         // For testing, setup the contracts
-        console.log("addresses", incentiveLayer.options.address, wl.options.address)
+        // console.log("addresses", incentiveLayer.options.address, wl.options.address)
         wl.methods.setTaskBook(incentiveLayer.options.address).send({from:account})
         incentiveLayer.methods.setWhitelist(wl.options.address).send({from:account})
 
@@ -249,7 +249,7 @@ module.exports = {
 
             try {
                 await wl.methods.useTicket(solver.ticket, taskID).send({ from: account, gas: 1000000 })
-                logger.info("SOLVER: Used ticket")
+                logger.info(`SOLVER: Used ticket ${solver.ticket}`)
 
                 await incentiveLayer.methods.commitSolution(taskID, solution.hash).send({ from: account, gas: 1000000 })
 
@@ -261,6 +261,7 @@ module.exports = {
                 tasks[taskID]["solution"] = solution
                 tasks[taskID]["vm"] = vm
                 tasks[taskID]["interpreterArgs"] = interpreterArgs
+                tasks[taskID].ticket = solver.ticket
 
             } catch (e) {
                 logger.info(`SOLVER: Unsuccessful submission for task ${taskID}`)
@@ -305,11 +306,13 @@ module.exports = {
                 uniqueNum: data[4]
             }
 
-            if (!tasks[taskID]) tasks[taskID] = {}
+            if (!tasks[taskID]) {
+                tasks[taskID] = {}
+                task_list.push(taskID)
+            }
             tasks[taskID].taskInfo = taskInfo
             taskInfo.taskID = taskID
 
-            task_list.push(taskID)
 
             logger.log({
                 level: 'info',
@@ -403,16 +406,17 @@ module.exports = {
                 message: `VERIFIER: Executed task ${taskID}. Checking solutions`
             })
 
-            task_list.push(taskID)
+            if (!tasks[taskID]) {
+                task_list.push(taskID)
+                tasks[taskID] = {}
+            }
 
             let myHash = solution.hash
             if (test) myHash = "0x" + helpers.makeSecret(myHash)
 
-            tasks[taskID] = {
-                solverHash0: solverHash0,
-                solutionHash: solution.hash,
-                vm: vm,
-            }
+            tasks[taskID].solverHash0 = solverHash0
+            tasks[taskID].solutionHash = solution.hash
+            tasks[taskID].vm = vm
 
             if (myHash != solverHash0) {
                 await incentiveLayer.makeChallenge(taskID, { from: account, gas: 350000, value: web3.utils.toWei("0.1", "ether") })
@@ -446,12 +450,10 @@ module.exports = {
             let taskID = result.taskID
 
             if (tasks[taskID]) {
+                let task = tasks[taskID]
+                logger.info(`SOLVER: Task ${taskID} finalized, releasing ticket ${task.ticket}.`)
+                await wl.methods.releaseTicket(task.ticket).send({ from: account, gas: 1000000 })
                 delete tasks[taskID]
-                logger.log({
-                    level: 'info',
-                    message: `SOLVER: Task ${taskID} finalized.`
-                })
-
             }
 
         })
