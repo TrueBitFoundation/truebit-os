@@ -11,5 +11,5 @@
 	"merkleComputer": "../wasm-client/merkle-computer/"
     },
     "throttle" : 20,
-    "incentiveLayer": "incentiveLayer"
+    "incentiveLayer": "ss_incentiveLayer"
 }

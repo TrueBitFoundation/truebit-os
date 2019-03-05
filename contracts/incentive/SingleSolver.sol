@@ -73,6 +73,10 @@ contract SingleSolverIncentiveLayer is Ownable, ITruebit {
         deposits[msg.sender] += msg.value;
     }
 
+    function getDeposit(address a) public view returns (uint) {
+        return deposits[a];
+    }
+
     function () payable external {
         deposits[msg.sender] += msg.value;
     }
