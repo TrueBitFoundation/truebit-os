@@ -157,6 +157,20 @@ module.exports.deposit = async ({ os, args }) => {
   module.exports.balance({os, args})
 }
 
+/** deposit tokens to incentive contract */
+module.exports.depositEther = async ({ os, args }) => {
+  const account = os.accounts[args.options.account || 0]
+  const num_eth = (args.options.value || "1").toString()
+  const num = os.web3.utils.toWei(num_eth)
+  const httpProvider = os.web3.currentProvider
+	const config = await contractsConfig(os.web3)
+  const incentiveLayer = await contract(httpProvider, config["ss_incentiveLayer"])
+
+  await incentiveLayer.makeDeposit({ value: num, from: account, gasPrice:os.web3.gp })
+
+  module.exports.balance({os, args})
+}
+
 function makeRandom(n) {
   let res = ""
   for (let i = 0; i < n * 2; i++) {

@@ -138,12 +138,23 @@ vorpal
     })
     callback()
   })
-vorpal
+  vorpal
   .command('deposit', 'deposit tokens to incentive layer')
   .option('-a, --account <num>', 'index of web3 account to use.')
   .option('-v, --value <num>', 'amount of tokens.')
   .action(async (args, callback) => {
     await cliLib.deposit({
+      os,
+      args
+    })
+    callback()
+  })
+  vorpal
+  .command('deposit-ether', 'deposit ether to incentive layer')
+  .option('-a, --account <num>', 'index of web3 account to use.')
+  .option('-v, --value <num>', 'amount of tokens.')
+  .action(async (args, callback) => {
+    await cliLib.depositEther({
       os,
       args
     })
