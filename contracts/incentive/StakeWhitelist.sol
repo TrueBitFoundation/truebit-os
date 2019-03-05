@@ -90,6 +90,10 @@ contract StakeWhitelist is IWhitelist {
         deposit[msg.sender] += _deposit;
     }
 
+    function getDeposit(address a) public view returns (uint) {
+        return deposit[a];
+    }
+
     function setTaskBook(address tb_addr) public {
         require(owner == msg.sender, "Only owner can change taskbook");
         tb = ITruebit(tb_addr);

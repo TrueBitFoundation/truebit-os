@@ -44,7 +44,7 @@ RUN git clone https://github.com/mrsmkl/truebit-os \
  && git checkout v2gp \
  && npm i --production \
  && npm run deps \
- && npm run compile \
+ && npm run  compile \
  && rm -rf ~/.opam
 
 RUN git clone https://github.com/mrsmkl/example-app \

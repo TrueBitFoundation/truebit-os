@@ -11,5 +11,6 @@
 	"merkleComputer": "../wasm-client/merkle-computer/"
     },
     "jit_path": "/jit-runner/jit.js",
-    "throttle" : 20
+    "throttle" : 20,
+    "incentiveLayer": "incentiveLayer"
 }

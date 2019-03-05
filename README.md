@@ -10,10 +10,40 @@ The basic components of an operating system are a kernel designed to manage proc
 
 If you want to talk to the developers working on this project feel free to say hello on our [Gitter](https://gitter.im/TrueBitFoundation/Lobby).  You can install Truebit using Docker or build it from source.  One can install locally or run over the Goerli testnet.
 
-
 # Running on Docker
 
 Install [Docker](https://www.docker.com/) and [Metamask](https://metamask.io/), and open a Terminal.  
+
+## Compiling and running Truebit tasks
+
+First start up the docker image:
+```
+docker run -ti mrsmkl/wasm-ports:latest /bin/bash
+```
+(If you have old version of the docker image, use `docker pull` to download a new one).
+
+Start up ganache and IPFS, also deploy contracts:
+```
+cd truebit-os
+sh scripts/start-env.sh
+```
+
+Set up the emscripten environment variables:
+```
+source /emsdk/emsdk_env.sh
+```
+
+Compile the scrypt C++ program:
+```
+cd scrypt-data
+sh compile.sh
+```
+
+Run the test
+```
+cd ..
+mocha test/os-wasm-scrypt.js
+```
 
 ## Private network
 
@@ -21,11 +51,6 @@ Run
 ```
 docker run -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 mrsmkl/truebit-os:latest /bin/bash
 ```
-The corresponding Docker file is here:
-
-https://github.com/mrsmkl/truebit-os/blob/master/Dockerfile
-
-One can use this file for reference to build from source as an alternative to the instructions below.
 
 To get started, use `tmux` to have several windows. New windows can be made with `ctrl-b c`. Use `ctrl-b <num>` to switch between windows. Alternatively, to split plane horizontally, use `ctrl+b "` and to split plane vertically `ctrl-b %`.  Shift between windows with `ctrl+b` followed by a cursor key. 
 
@@ -33,14 +58,22 @@ In the first window, run `ipfs daemon`
 
 In second window, run `ganache-cli -h 0.0.0.0`
 
-Find out what is your address in metamask (`address`), in hex format without 0x prefix.
-
 In the next window
 ```
 cd truebit-os
 npm run deploy
 ```
 Note that you have to deploy the contracts each time after you have started up ganache.
+Find out what is your address in metamask (`address`), in hex format without 0x prefix.
+
+```
+node send.js --to=address
+```
+
+Start up the Truebit console with
+```
+npm run truebit
+```
 
 To run truebit client in JIT solving mode, use
 ```
@@ -64,8 +97,7 @@ With a web browser, go to `localhost:3000/app`
 After you have submitted the task, go to the tmux window with Truebit console, and type
  `skip` a few times until the task is finalized.
 
-
-To run the pairing sample application enter:
+To run the bilinear pairing sample application enter:
 
 ```
 cd /wasm-ports/samples/pairing/
@@ -83,7 +115,7 @@ Type `?` to list commands
 `start solve -a 1`, `start solve -a 2`, .... creates additional Solvers.
 
 
-### Goerli testnet tutorial
+## Goerli testnet tutorial
 
 *Quickstart: try running these steps!*
 
@@ -103,7 +135,9 @@ docker run -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 mrsmkl/truebi
 
 6. *Start IPFS.*  Navigate to one of the smaller windows on the the bottom ``ctrl-b (down arrow)'' and type
 
-```ipfs daemon```
+```
+ipfs daemon
+```
 
 7. *Set up a new parity account.* Navigate to the other small window and type:
 
@@ -113,13 +147,17 @@ parity --chain goerli account new --password=supersecret.txt > goerliparity
 ```
 To check addresses created, type
 
-```parity --chain goerli account list```.
+```
+parity --chain goerli account list
+```.
 
 In case more than one account was created, you will need to add flags to command listed below (e.g. ```claim -a 1``` rather than ```claim```).
 
 8. *Connect to Goerli*.  Type:
 
-```parity --chain goerli --unlock=$(cat goerliparity) --password=supersecret.txt --jsonrpc-cors=all --jsonrpc-interface=all```
+```
+parity --chain goerli --unlock=$(cat goerliparity) --password=supersecret.txt --jsonrpc-cors=all --jsonrpc-interface=all
+```
 
 8. *Get testnet tokens* for the account(s) above here: https://goerli-faucet.slock.it/
 
@@ -138,15 +176,14 @@ start solve
 ```
 Start a Verifier:
 ```
-start verifier
+start verify
 ```
 Issue a task (factorial example):
 ```
 task
 ```
 
-10. Check your decentralized computations on the blockchain here: https://goerli.etherscan.io/address/0xa1c1d1e822b458457e599a4b5ae29a9c51cf89f1
-
+10. Check your decentralized computations on the blockchain here: https://goerli.etherscan.io/address/0xb82b9df474dd7c5fa04cbe090dfee0ebaa9a0105
 
 # Building from source
 

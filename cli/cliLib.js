@@ -129,7 +129,7 @@ module.exports.balance = async ({ os, args }) => {
   const httpProvider = os.web3.currentProvider
 	const config = await contractsConfig(os.web3)
   const tru = await contract(httpProvider, config['tru'])
-  const incentiveLayer = await contract(httpProvider, config['incentiveLayer'])
+  const incentiveLayer = await contract(httpProvider, config[os.config.incentiveLayer])
   let truBalance_raw = await tru.balanceOf.call(account)
   let truBalance = os.web3.utils.fromWei(truBalance_raw.toString(10))
   let deposit_raw = await incentiveLayer.getDeposit.call(account)
@@ -144,16 +144,52 @@ module.exports.balance = async ({ os, args }) => {
 /** deposit tokens to incentive contract */
 module.exports.deposit = async ({ os, args }) => {
   const account = os.accounts[args.options.account || 0]
-  const num_tru = args.options.value.toString() || "1"
+  const num_tru = (args.options.value || "1").toString()
   const num = os.web3.utils.toWei(num_tru)
   const httpProvider = os.web3.currentProvider
 	const config = await contractsConfig(os.web3)
-  const incentiveLayer = await contract(httpProvider, config['incentiveLayer'])
+  const incentiveLayer = await contract(httpProvider, config[os.config.incentiveLayer])
   const tru = await contract(httpProvider, config['tru'])
 
-  await tru.approve(incentiveLayer.address, num, { from: account, gasPrice:os.web3.gp })            
-  await incentiveLayer.makeDeposit(num, { from: account, gasPrice:os.web3.gp })  
+  await tru.approve(incentiveLayer.address, num, { from: account, gasPrice:os.web3.gp })
+  await incentiveLayer.makeDeposit(num, { from: account, gasPrice:os.web3.gp })
 
+  module.exports.balance({os, args})
+}
+
+/** deposit tokens to incentive contract */
+module.exports.depositEther = async ({ os, args }) => {
+  const account = os.accounts[args.options.account || 0]
+  const num_eth = (args.options.value || "1").toString()
+  const num = os.web3.utils.toWei(num_eth)
+  const httpProvider = os.web3.currentProvider
+	const config = await contractsConfig(os.web3)
+  const incentiveLayer = await contract(httpProvider, config["ss_incentiveLayer"])
+
+  await incentiveLayer.makeDeposit({ value: num, from: account, gasPrice:os.web3.gp })
+
+  module.exports.balance({os, args})
+}
+
+function makeRandom(n) {
+  let res = ""
+  for (let i = 0; i < n * 2; i++) {
+      res += Math.floor(Math.random() * 16).toString(16)
+  }
+  return "0x" + res
+}
+
+/** deposit tokens to incentive contract */
+module.exports.ticket = async ({ os, args }) => {
+  const account = os.accounts[args.options.account || 0]
+  const num = args.options.value || 1
+  const httpProvider = os.web3.currentProvider
+	const config = await contractsConfig(os.web3)
+  const wl = await contract(httpProvider, config["stake_whitelist"])
+  for (let i = 0; i < num; i++) {
+    let ticket = makeRandom(32)
+    await wl.buyTicket(ticket, { from: account, gas: 1000000, gasPrice: os.web3.gp })
+  }
   module.exports.balance({os, args})
 }
 

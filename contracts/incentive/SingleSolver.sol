@@ -44,8 +44,8 @@ contract SingleSolverIncentiveLayer is Ownable, ITruebit {
     uint constant RUN_RATE = 100000;
     uint constant INTERPRET_RATE = 100000;
 
-    uint constant SOLVER_DEPOSIT = 1 ether;
-    uint constant VERIFIER_DEPOSIT = 0.1 ether;
+    uint constant SOLVER_DEPOSIT = 0.1 ether;
+    uint constant VERIFIER_DEPOSIT = 0.01 ether;
 
     enum CodeType {
         WAST,
@@ -71,6 +71,10 @@ contract SingleSolverIncentiveLayer is Ownable, ITruebit {
 
     function makeDeposit() public payable {
         deposits[msg.sender] += msg.value;
+    }
+
+    function getDeposit(address a) public view returns (uint) {
+        return deposits[a];
     }
 
     function () payable external {
@@ -319,6 +323,7 @@ contract SingleSolverIncentiveLayer is Ownable, ITruebit {
     function payReward(bytes32 taskID) internal {
         Task storage t = tasks[taskID];
         deposits[t.owner] += t.reward;
+        deposits[t.owner] += SOLVER_DEPOSIT;
     }
 
     function taskTimeout(bytes32 taskID) public {

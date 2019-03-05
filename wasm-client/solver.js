@@ -123,6 +123,10 @@ module.exports = {
 
             // console.log("ok")
 
+            if (!tasks[taskID]) {
+                task_list.push(taskID)
+            }
+
             tasks[taskID] = { minDeposit: minDeposit }
 
                     // tasks[taskID].secret = secret
@@ -147,11 +151,12 @@ module.exports = {
 
                 //TODO: Need to read secret from persistence or else task is lost
                 let taskInfo = toTaskInfo(await incentiveLayer.getTaskInfo.call(taskID))
-                if (!tasks[taskID]) tasks[taskID] = {}
+                if (!tasks[taskID]) {
+                    task_list.push(taskID)
+                    tasks[taskID] = {}
+                }
                 tasks[taskID].taskInfo = taskInfo
                 taskInfo.taskID = taskID
-
-                task_list.push(taskID)
 
                 logger.log({
                     level: 'info',
