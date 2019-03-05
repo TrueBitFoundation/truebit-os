@@ -149,7 +149,7 @@ To check addresses created, type
 
 ```
 parity --chain goerli account list
-```.
+```
 
 In case more than one account was created, you will need to add flags to command listed below (e.g. ```claim -a 1``` rather than ```claim```).
 
