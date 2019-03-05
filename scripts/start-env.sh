@@ -7,3 +7,7 @@ ipfs daemon  > ~/ipfs_log 2>&1 &
 
 echo "Logs should be at ~/ganache_log and ~/ipfs_log"
 
+sleep 5
+
+npm run deploy
+

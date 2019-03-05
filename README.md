@@ -14,6 +14,35 @@ If you want to talk to the developers working on this project feel free to say h
 
 Install [Docker](https://www.docker.com/) and [Metamask](https://metamask.io/), and open a Terminal.  
 
+## Compiling and running Truebit tasks
+
+First start up the docker image:
+```
+docker run -ti mrsmkl/wasm-ports:latest /bin/bash
+```
+
+Start up ganache and IPFS, also deploy contracts:
+```
+cd truebit-os
+sh scripts/start-env.sh
+```
+
+Set up the emscripten environment variables:
+```
+source /emsdk/emsdk_env.sh
+```
+
+Compile the scrypt C++ program:
+```
+cd scrypt-data
+sh compile.sh
+```
+
+Run the test
+```
+mocha test/os-wasm-scrypt.js
+```
+
 ## Private network
 
 Run
@@ -84,7 +113,7 @@ Type `?` to list commands
 `start solve -a 1`, `start solve -a 2`, .... creates additional Solvers.
 
 
-### Goerli testnet tutorial
+## Goerli testnet tutorial
 
 *Quickstart: try running these steps!*
 
