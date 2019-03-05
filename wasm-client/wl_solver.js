@@ -61,7 +61,7 @@ async function selectSolver(wl, taskbook, tickets, task, solution) {
     let bn = await taskbook.methods.getBlock(task).call()
 
     for(let t of tickets) {
-        let w = await wl.methods.getSolverWeight(t.ticket, solution, bn).call()
+        let w = await wl.methods.getSolverWeight(t.ticket, task, solution, bn).call()
         lst.push({ticket:t, weight:bigInt(w)})
     }
 
