@@ -20,6 +20,7 @@ First start up the docker image:
 ```
 docker run -ti mrsmkl/wasm-ports:latest /bin/bash
 ```
+(If you have old version of the docker image, use `docker pull` to download a new one).
 
 Start up ganache and IPFS, also deploy contracts:
 ```
@@ -40,6 +41,7 @@ sh compile.sh
 
 Run the test
 ```
+cd ..
 mocha test/os-wasm-scrypt.js
 ```
 
