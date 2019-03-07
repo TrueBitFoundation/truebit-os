@@ -1,0 +1,10 @@
+{
+  "name": "truebit-util",
+  "version": "1.0.0",
+  "description": "Utilities for the Truebit system",
+  "main": "index.js",
+  "author": "mrsmkl",
+  "license": "ISC",
+  "dependencies": {
+  }
+}

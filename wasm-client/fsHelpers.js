@@ -17,12 +17,6 @@ function getLeaf(lst, loc) {
     else return lst[0]
 }
 
-function parseId(str) {
-    var res = ""
-    for (var i = 0; i < str.length; i++) res = (str.charCodeAt(i) - 65).toString(16) + res
-    return "0x" + res;
-}
-
 function parseData(lst, size) {
     var res = []
     lst.forEach(function (v) {
@@ -84,7 +78,7 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
     async function createContractFile(fname, buf) {
         let contractAddress = await merkleComputer.uploadOnchain(buf, web3, { from: account, gas: 30000, gasPrice: web3.gp })
         let nonce = await web3.eth.getTransactionCount(base)
-        let info = merkleComputer.merkleRoot(buf)
+        let info = merkleComputer.merkleRoot(web3, buf)
 
         await fileSystem.addContractFile(fname, nonce, contractAddress, info.root, buf.length, { from: account, gas: 200000, gasPrice: web3.gp })
 
