@@ -185,7 +185,7 @@ task
 
 10. Check your decentralized computations on the blockchain here: https://goerli.etherscan.io/address/0xb82b9df474dd7c5fa04cbe090dfee0ebaa9a0105
 
-# Building from source
+# Building from source in Linux
 
 ## Getting Started
 
