@@ -2,8 +2,10 @@
 // No logic should be implemented in this file, the correct place to implement logic is the cliLib.
 const figlet = require('figlet')
 const chalk = require('chalk')
-const logger = require('../os/logger')
 const vorpal = require('vorpal')()
+let argv = require('minimist')(process.argv.slice(2))
+
+// console.log(argv)
 
 const cliLib = require('./cliLib')
 
@@ -13,11 +15,16 @@ console.log(
 
 console.log(chalk.blue(figlet.textSync('task solve verify')))
 
-let configPath = process.argv[2] || "wasm-client/config.json"
+let configPath = argv._[0] || "wasm-client/config.json"
 
 let os
   ; (async () => {
     os = await cliLib.setup(configPath)
+    if (!argv.c) return
+    if (typeof argv.c == "string") argv.c = [argv.c]
+    for (let c of argv.c || []) {
+      await vorpal.exec(c)
+    }
   })()
 
 vorpal
@@ -182,8 +189,6 @@ vorpal
     callback()
   })
 
-vorpal
-  // current behavior is shell, this can be altered by uncommenting this line
-  // .parse(process.argv)
-  .delimiter('$ ')
-  .show()
+if (!argv["batch"]) {
+  vorpal.delimiter('$ ').show()
+}

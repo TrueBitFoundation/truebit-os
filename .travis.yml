@@ -15,7 +15,7 @@ before_install:
   - sudo apt-get install software-properties-common
   - sudo apt-get install solc
   # Install Ganache & Truffle
-  - npm i -g ganache-cli@6.1.0 truffle@4.1.8
+  - npm i -g ganache-cli truffle@4.1.8
   - ganache-cli &>/dev/null &
   # Install IPFS
   - wget "https://dist.ipfs.io/go-ipfs/v0.4.9/go-ipfs_v0.4.9_linux-amd64.tar.gz" -O /tmp/ipfs.tar.gz
