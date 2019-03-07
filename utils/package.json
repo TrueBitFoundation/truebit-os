@@ -1,6 +1,6 @@
 {
   "name": "truebit-util",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Utilities for the Truebit system",
   "main": "index.js",
   "author": "mrsmkl",

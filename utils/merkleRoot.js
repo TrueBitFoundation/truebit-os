@@ -46,5 +46,3 @@ module.exports = calc
 module.exports.web3 = function (web3, input) {
 	return calc(a => web3.utils.soliditySha3({ t: "bytes", v: a }).substr(2), input)
 }
-
-
