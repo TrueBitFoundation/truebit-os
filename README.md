@@ -63,7 +63,6 @@ Test scrypt example task:
 cd /example-app
 node deploy.js
 mocha test.js
-node send.js <string>
 ```
 
 Test bilinear pairing example task:
@@ -71,7 +70,6 @@ Test bilinear pairing example task:
 cd /wasm-ports/samples/pairing
 node ../deploy.js
 mocha test.js
-node send.js <string>
 ```
 
 Test chess example task:
@@ -79,7 +77,6 @@ Test chess example task:
 cd /wasm-ports/samples/chess
 node ../deploy.js
 mocha test.js
-node send.js <string>
 ```
 
 Test WebAssembly validation example task:
@@ -87,7 +84,6 @@ Test WebAssembly validation example task:
 cd /wasm-ports/samples/wasm
 node ../deploy.js
 mocha test.js
-node send.js <file>
 ```
 
 ## Private network

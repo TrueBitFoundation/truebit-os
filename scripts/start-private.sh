@@ -13,7 +13,7 @@ npm run deploy
 
 echo "Starting up Truebit"
 
-node cli/index.js -c "start solve" --batch > ~/tb_log 2>&1 &
+node cli/index.js wasm-client/config-jit.json -c "start solve" --batch > ~/tb_log 2>&1 &
 
 echo "Logs should be at ~/tb_log"
 
