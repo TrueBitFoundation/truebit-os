@@ -11,5 +11,10 @@ sleep 5
 
 npm run deploy
 
-node cli/index.js -c "start solve" --batch &
+echo "Starting up Truebit"
 
+node cli/index.js -c "start solve" --batch > ~/tb_log 2>&1 &
+
+echo "Logs should be at ~/tb_log"
+
+sleep 2
