@@ -11,5 +11,5 @@ sleep 5
 
 npm run deploy
 
-node cli/index.js -c "start solve" --batch
+node cli/index.js -c "start solve" --batch &
 

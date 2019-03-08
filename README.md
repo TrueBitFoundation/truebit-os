@@ -45,11 +45,24 @@ cd ..
 mocha test/os-wasm-scrypt.js
 ```
 
+### Running tests for different tasks
+
+First start up the docker image:
+```
+docker run -ti mrsmkl/wasm-ports:latest /bin/bash
+```
+
+Start up the Truebit environment:
+```
+cd truebit-os
+sh scripts/start-private.sh
+```
+
 ## Private network
 
 Run
 ```
-docker run -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 mrsmkl/truebit-os:latest /bin/bash
+docker run --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 mrsmkl/truebit-goerli:latest /bin/bash
 ```
 
 To get started, use `tmux` to have several windows. New windows can be made with `ctrl-b c`. Use `ctrl-b <num>` to switch between windows. Alternatively, to split plane horizontally, use `ctrl+b "` and to split plane vertically `ctrl-b %`.  Shift between windows with `ctrl+b` followed by a cursor key. 
@@ -126,7 +139,7 @@ Type `?` to list commands
 3. Start a session:
 
 ```
-docker run -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 mrsmkl/truebit-goerli:latest /bin/bash
+docker run --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.local/share/io.parity.ethereum mrsmkl/truebit-goerli:latest /bin/bash
 ```
 
 4. Initiate ```tmux```.
@@ -142,6 +155,7 @@ ipfs daemon
 7. *Set up a new parity account.* Navigate to the other small window and type:
 
 ```
+cd ~/.local/share/io.parity.ethereum
 echo plort > supersecret.txt
 parity --chain goerli account new --password=supersecret.txt > goerliparity
 ```
