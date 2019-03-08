@@ -39,6 +39,11 @@ contract FileManager is FSUtils {
 	}
     }
 
+    function calc_depth(uint x) internal pure returns (uint) {
+        if (x <= 1) return 0;
+        else return 1 + calc_depth(x / 2);
+	}
+
     //Creates file out of bytes data
     function createFileWithContents(string memory name, uint nonce, bytes32[] memory arr, uint sz) public returns (bytes32) {
 	bytes32 id = keccak256(abi.encodePacked(msg.sender, nonce));
@@ -49,9 +54,8 @@ contract FileManager is FSUtils {
 	f.name = name;
 	f.bytesize = sz;
 	f.codeRootSet = false;
-	uint size = 0;
-	uint tmp = arr.length;
-	while (tmp > 1) { size++; tmp = tmp/2; }
+	uint size = arr.length > 0 ? calc_depth(arr.length*2 - 1) : 0;
+	// if (size == 0) size = 1;
 	f.root = fileMerkle(arr, 0, size);
 	return id;
     }
