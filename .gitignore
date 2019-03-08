@@ -1,6 +1,6 @@
 /node_modules
 solutions/*.json
-
+package-lock.json
 combined.log.json
 
 .vscode
