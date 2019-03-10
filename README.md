@@ -183,6 +183,44 @@ task
 
 10. Check your decentralized computations on the blockchain here: https://goerli.etherscan.io/address/0xb82b9df474dd7c5fa04cbe090dfee0ebaa9a0105
 
+
+# Building from source in MacOS
+
+1. Install brew.
+```
+/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+```
+
+2. Clone this repo.
+```
+git clone https://github.com/TrueBitFoundation/truebit-os
+cd truebit-os
+```
+
+3. Install Solidity, NPM, IPFS, and the off-chain interpreter.
+```
+sh macinstall.sh
+```
+
+4. Compile and deploy the contracts.
+```
+npm run compile
+npm run deploy
+```
+Check that everything works with `npm run test`. Type `npm run` for more options.
+
+
+5. Task-Solve-Verify.  Open a separate Terminal and start an Ethereum client, i.e.
+```
+ganache-cli
+```
+and optionally open another terminal with IPFS via `ipfs daemon`.  Finally, start Truebit-OS!
+```
+npm run truebit
+```
+To get some tokens, type `claim`, and check your address using `balance`.  If you need ETH, then `exit` Truebit-OS  and use `node send.js address=[youraddress]` to send test ETH.  Remember to omit the "0x" prefix for the address.  Use `help` For assistance with other Truebit-OS commands.
+
+
 # Building from source in Linux
 
 ## Getting Started
