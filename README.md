@@ -12,7 +12,7 @@ If you want to talk to the developers working on this project feel free to say h
 
 # Running on Docker
 
-Install [Docker](https://www.docker.com/) and [Metamask](https://metamask.io/), and open a Terminal.  
+Install [Docker](https://www.docker.com/), and open a Terminal.  
 
 ## Compiling and running Truebit tasks
 
@@ -47,7 +47,7 @@ mocha test/os-wasm-scrypt.js
 
 ## Private network
 
-Run
+For the private network, you'll need to install [Metamask](https://metamask.io/).  Run
 ```
 docker run -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 mrsmkl/truebit-os:latest /bin/bash
 ```
@@ -104,15 +104,13 @@ cd /wasm-ports/samples/pairing/
 node ../deploy.js
 ```
 
-This page will be at `localhost:3000/samples/pairing/public`
+This page will be at `localhost:3000/samples/pairing/public`.
 
-Other commands:
+Type `help` to list or get more details on specific commands.  For example, you can try
 
-Type `?` to list commands
+`start verify -t` to create a Verifier that initiates verification games, or
 
-`start verify -t` to create a Verifier that initiates verification games
-
-`start solve -a 1`, `start solve -a 2`, .... creates additional Solvers.
+`start solve -a 1`, `start solve -a 2`, .... to create additional Solvers.
 
 
 ## Goerli testnet tutorial
