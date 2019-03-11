@@ -78,7 +78,6 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         uint reward;
         uint tax;
         bytes32 initTaskHash;
-        mapping(address => bytes32) challenges;
         State state;
         bytes32 blockhash;
         bytes32 randomBitsHash;
@@ -485,7 +484,8 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
     // @param intent – submit 0 to challenge solution0, 1 to challenge solution1, anything else challenges both
     // @return – boolean
     function revealIntent(bytes32 taskID, bytes32 solution0) public returns (bool) {
-        uint cblock = challenges[keccak256(abi.encodePacked(taskID, msg.sender, solution0))];
+        bytes32 id = keccak256(abi.encodePacked(taskID, msg.sender, solution0));
+        uint cblock = challenges[id];
         Task storage t = tasks[taskID];
         require(t.state == State.ChallengesAccepted);
         require(t.challengeTimeout > cblock);
@@ -497,7 +497,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         uint position = solutions[taskID].allChallengers.length;
         solutions[taskID].allChallengers.push(msg.sender);
 
-        delete tasks[taskID].challenges[msg.sender];
+        delete challenges[id];
         emit VerificationCommitted(taskID, msg.sender, tasks[taskID].jackpotID, solution0, position);
         return true;
     }

@@ -164,23 +164,25 @@ Type `?` to list commands
 
 2. Open a terminal window.
 
-3. Start a session:
+3. Create directory `~/goerli` to store your blockchain data.
+
+4. Start a session:
 
 ```
 docker run --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.local/share/io.parity.ethereum mrsmkl/truebit-goerli:latest /bin/bash
 ```
 
-4. Initiate ```tmux```.
+5. Initiate ```tmux```.
 
-5. Create three windows by typing ```ctrl-b "``` then ```ctrl-b %```.
+6. Create three windows by typing ```ctrl-b "``` then ```ctrl-b %```.
 
-6. *Start IPFS.*  Navigate to one of the smaller windows on the the bottom ``ctrl-b (down arrow)'' and type
+7. *Start IPFS.*  Navigate to one of the smaller windows on the the bottom ``ctrl-b (down arrow)'' and type
 
 ```
 ipfs daemon
 ```
 
-7. *Set up a new parity account.* Navigate to the other small window and type:
+8. *Set up a new parity account.* Navigate to the other small window and type:
 
 ```
 cd ~/.local/share/io.parity.ethereum
@@ -195,15 +197,15 @@ parity --chain goerli account list
 
 In case more than one account was created, you will need to add flags to command listed below (e.g. ```claim -a 1``` rather than ```claim```).
 
-8. *Connect to Goerli*.  Type:
+9. *Connect to Goerli*.  Type:
 
 ```
 parity --chain goerli --unlock=$(cat goerliparity) --password=supersecret.txt --jsonrpc-cors=all --jsonrpc-interface=all
 ```
 
-8. *Get testnet tokens* for the account(s) above here: https://goerli-faucet.slock.it/
+10. *Get testnet tokens* for the account(s) above here: https://goerli-faucet.slock.it/
 
-9.  *Start Truebit-OS.* Wait a few minutes to sync with Goerli.  Console will say "Imported" when ready.  Navigate to the top window ```ctrl-b (up arrow)``` and type
+11.  *Start Truebit-OS.* Wait a few minutes to sync with Goerli.  Console will say "Imported" when ready.  Navigate to the top window ```ctrl-b (up arrow)``` and type
 ```
 cd truebit-os
 npm run truebit
@@ -212,7 +214,7 @@ balance
 ```
 The balance command should show that you've claimed TRU testnet tokens.
 
-10. *Task - Solve - Verify!*  Start a Solver:
+12. *Task - Solve - Verify!*  Start a Solver:
 ```
 start solve
 ```
@@ -225,7 +227,7 @@ Issue a task (factorial example):
 task
 ```
 
-10. Check your decentralized computations on the blockchain here: https://goerli.etherscan.io/address/0xD8859b0857de197C419f9dFd027c9800F0EC1112
+13. Check your decentralized computations on the blockchain here: https://goerli.etherscan.io/address/0xD8859b0857de197C419f9dFd027c9800F0EC1112
 
 # Building from source
 
