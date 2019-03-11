@@ -104,7 +104,29 @@ Wait for parity to sync, should take few minutes.
 sh scripts/start-tb.sh
 ```
 
+Testing samples, Scrypt
+```
+cd /example-app
+node send.js <text>
+```
 
+Bilinear pairing
+```
+cd /wasm-ports/samples/pairing
+node send.js <text>
+```
+
+Chess sample
+```
+cd /wasm-ports/samples/chess
+node send.js <text>
+```
+
+Validate WASM file
+```
+cd /wasm-ports/samples/wasm
+node send.js <wasm file>
+```
 
 ## Private network
 
