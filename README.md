@@ -182,6 +182,9 @@ docker run --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 -v 
 ipfs daemon
 ```
 
+If it looks like IPFS doesn't find files, try `ipfs swarm connect /ip4/213.251.185.41/tcp/4001/ipfs/QmSob847F3sPkmveU5p2aPmjRgaXXdhXb7nnmJtkBZ1QDz`
+to connect to a Truebit node running IPFS.
+
 8. *Set up a new parity account.* Navigate to the other small window and type:
 
 ```
