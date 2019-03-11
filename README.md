@@ -86,6 +86,26 @@ node ../deploy.js
 mocha test.js
 ```
 
+### Testing on Goerli network
+
+```
+docker run --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.local/share/io.parity.ethereum mrsmkl/wasm-ports:latest /bin/bash
+```
+
+Start up IPFS and Parity:
+```
+cd truebit-os
+sh scripts/start-goerli.sh
+```
+Wait for parity to sync, should take few minutes.
+
+(Optional) After parity has synced, you can start Truebit:
+```
+sh scripts/start-tb.sh
+```
+
+
+
 ## Private network
 
 Run
