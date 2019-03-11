@@ -225,7 +225,7 @@ Issue a task (factorial example):
 task
 ```
 
-10. Check your decentralized computations on the blockchain here: https://goerli.etherscan.io/address/0xb82b9df474dd7c5fa04cbe090dfee0ebaa9a0105
+10. Check your decentralized computations on the blockchain here: https://goerli.etherscan.io/address/0xD8859b0857de197C419f9dFd027c9800F0EC1112
 
 # Building from source
 

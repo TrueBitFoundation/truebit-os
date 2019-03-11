@@ -44,7 +44,7 @@ RUN wget https://dist.ipfs.io/go-ipfs/v0.4.17/go-ipfs_v0.4.17_linux-amd64.tar.gz
 
 RUN git clone https://github.com/mrsmkl/truebit-os \
  && cd truebit-os \
- && git checkout utils \
+ && git checkout  utils \
  && npm i --production \
  && npm run deps \
  && npm run  compile \
@@ -52,7 +52,7 @@ RUN git clone https://github.com/mrsmkl/truebit-os \
 
 RUN git clone https://github.com/mrsmkl/example-app \
  && cd example-app \
- && git checkout v2 \
+ && git checkout  v2 \
  && npm i \
  && ln -s /truebit-os . \
  && ln -s /example-app/public /var/www/html/app \
