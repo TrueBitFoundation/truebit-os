@@ -84,7 +84,7 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
     async function createContractFile(fname, buf) {
         let contractAddress = await merkleComputer.uploadOnchain(buf, web3, { from: account, gas: 30000 })
         let nonce = await web3.eth.getTransactionCount(base)
-        let info = merkleComputer.merkleRoot(buf)
+        let info = merkleComputer.merkleRoot(web3, buf)
 
         await fileSystem.methods.addContractFile(fname, nonce, contractAddress, info.root, buf.length).send( { from: account, gas: 200000 })
 

@@ -47,11 +47,94 @@ cd ..
 mocha test/os-wasm-scrypt.js
 ```
 
+### Running tests for different tasks
+
+First start up the docker image:
+```
+docker run -ti mrsmkl/wasm-ports:latest /bin/bash
+```
+
+Start up the Truebit environment:
+```
+cd truebit-os
+sh scripts/start-private.sh
+```
+
+Test scrypt example task:
+```
+cd /example-app
+node deploy.js
+mocha test.js
+```
+
+Test bilinear pairing example task:
+```
+cd /wasm-ports/samples/pairing
+node ../deploy.js
+mocha test.js
+```
+
+Test chess example task:
+```
+cd /wasm-ports/samples/chess
+node ../deploy.js
+mocha test.js
+```
+
+Test WebAssembly validation example task:
+```
+cd /wasm-ports/samples/wasm
+node ../deploy.js
+mocha test.js
+```
+
+### Testing on Goerli network
+
+```
+docker run --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.local/share/io.parity.ethereum mrsmkl/wasm-ports:latest /bin/bash
+```
+
+Start up IPFS and Parity:
+```
+cd truebit-os
+sh scripts/start-goerli.sh
+```
+Wait for parity to sync, should take few minutes.
+
+(Optional) After parity has synced, you can start Truebit:
+```
+sh scripts/start-tb.sh
+```
+
+Testing samples, Scrypt
+```
+cd /example-app
+node send.js <text>
+```
+
+Bilinear pairing
+```
+cd /wasm-ports/samples/pairing
+node send.js <text>
+```
+
+Chess sample
+```
+cd /wasm-ports/samples/chess
+node send.js <text>
+```
+
+Validate WASM file
+```
+cd /wasm-ports/samples/wasm
+node send.js <wasm file>
+```
+
 ## Private network
 
 For the private network, you'll need to install [Metamask](https://metamask.io/).  Run
 ```
-docker run -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 mrsmkl/truebit-os:latest /bin/bash
+docker run --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 mrsmkl/truebit-goerli:latest /bin/bash
 ```
 
 To get started, use `tmux` to have several windows. New windows can be made with `ctrl-b c`. Use `ctrl-b <num>` to switch between windows. Alternatively, to split plane horizontally, use `ctrl+b "` and to split plane vertically `ctrl-b %`.  Shift between windows with `ctrl+b` followed by a cursor key. 
@@ -123,25 +206,31 @@ Type `help` to list or get more details on specific commands.  For example, you 
 
 2. Open a terminal window.
 
-3. Start a session:
+3. Create directory `~/goerli` to store your blockchain data.
+
+4. Start a session:
 
 ```
-docker run -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 mrsmkl/truebit-goerli:latest /bin/bash
+docker run --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.local/share/io.parity.ethereum mrsmkl/truebit-goerli:latest /bin/bash
 ```
 
-4. Initiate ```tmux```.
+5. Initiate ```tmux```.
 
-5. Create three windows by typing ```ctrl-b "``` then ```ctrl-b %```.
+6. Create three windows by typing ```ctrl-b "``` then ```ctrl-b %```.
 
-6. *Start IPFS.*  Navigate to one of the smaller windows on the the bottom ``ctrl-b (down arrow)'' and type
+7. *Start IPFS.*  Navigate to one of the smaller windows on the the bottom ``ctrl-b (down arrow)'' and type
 
 ```
 ipfs daemon
 ```
 
-7. *Set up a new parity account.* Navigate to the other small window and type:
+If it looks like IPFS doesn't find files, try `ipfs swarm connect /ip4/213.251.185.41/tcp/4001/ipfs/QmSob847F3sPkmveU5p2aPmjRgaXXdhXb7nnmJtkBZ1QDz`
+to connect to a Truebit node running IPFS.
+
+8. *Set up a new parity account.* Navigate to the other small window and type:
 
 ```
+cd ~/.local/share/io.parity.ethereum
 echo plort > supersecret.txt
 parity --chain goerli account new --password=supersecret.txt > goerliparity
 ```
@@ -153,15 +242,15 @@ parity --chain goerli account list
 
 In case more than one account was created, you will need to add flags to command listed below (e.g. ```claim -a 1``` rather than ```claim```).
 
-8. *Connect to Goerli*.  Type:
+9. *Connect to Goerli*.  Type:
 
 ```
 parity --chain goerli --unlock=$(cat goerliparity) --password=supersecret.txt --jsonrpc-cors=all --jsonrpc-interface=all
 ```
 
-8. *Get testnet tokens* for the account(s) above here: https://goerli-faucet.slock.it/
+10. *Get testnet tokens* for the account(s) above here: https://goerli-faucet.slock.it/
 
-9.  *Start Truebit-OS.* Wait a few minutes to sync with Goerli.  Console will say "Imported" when ready.  Navigate to the top window ```ctrl-b (up arrow)``` and type
+11.  *Start Truebit-OS.* Wait a few minutes to sync with Goerli.  Console will say "Imported" when ready.  Navigate to the top window ```ctrl-b (up arrow)``` and type
 ```
 cd truebit-os
 npm run truebit
@@ -170,7 +259,7 @@ balance
 ```
 The balance command should show that you've claimed TRU testnet tokens.
 
-10. *Task - Solve - Verify!*  Start a Solver:
+12. *Task - Solve - Verify!*  Start a Solver:
 ```
 start solve
 ```
@@ -183,7 +272,7 @@ Issue a task (factorial example):
 task
 ```
 
-10. Check your decentralized computations on the blockchain here: https://goerli.etherscan.io/address/0xb82b9df474dd7c5fa04cbe090dfee0ebaa9a0105
+13. Check your decentralized computations on the blockchain here: https://goerli.etherscan.io/address/0xD8859b0857de197C419f9dFd027c9800F0EC1112
 
 
 # Building from source in MacOS

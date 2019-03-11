@@ -13,12 +13,12 @@ function requireHelper(cb) {
 
 function ipfsFileSystemHelper(config) {
     if (config["ipfs"]) {
-	const ipfs = require('ipfs-api')(config.ipfs.host, config.ipfs.port, {protocol: config.ipfs.protocol})
-	const merkleComputer = require(config.ipfs.merkleComputer)()
-	const fileSystem = merkleComputer.fileSystem(ipfs)
-	return fileSystem
+        const ipfs = require('ipfs-api')(config.ipfs.host, config.ipfs.port, { protocol: config.ipfs.protocol })
+        const merkleComputer = require('../wasm-client/merkle-computer')()
+        const fileSystem = merkleComputer.fileSystem(ipfs)
+        return fileSystem
     } else {
-	return undefined
+        return undefined
     }
 }
 
@@ -44,9 +44,9 @@ module.exports = async (configPath) => {
     }
 
     os.taskSubmitter = await submitter(
-	    os.web3,
-	    os.logger,
-	    os.fileSystem
+        os.web3,
+        os.logger,
+        os.fileSystem
     )
 
     return os

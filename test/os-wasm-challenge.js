@@ -106,9 +106,9 @@ describe('Truebit OS WASM Challenge', async function() {
 	    await timeout(8000)
 	    // console.log("SOLVER should have committed solution")
 	    // console.log("VERIFIER should have challenged by now")
-	    await mineBlocks(os.web3, 110)
+	    await mineBlocks(os.web3, 10)
 	    await timeout(5000)
-	    await mineBlocks(os.web3, 110)
+	    await mineBlocks(os.web3, 10)
 	    await timeout(30000)
 	    
 	    let tasks = os.taskGiver.getTasks()

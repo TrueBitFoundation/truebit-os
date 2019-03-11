@@ -39,21 +39,47 @@ contract FileManager is FSUtils {
 	}
     }
 
+    function calc_depth(uint x) internal pure returns (uint) {
+        if (x <= 1) return 0;
+        else return 1 + calc_depth(x / 2);
+	}
+
     //Creates file out of bytes data
     function createFileWithContents(string memory name, uint nonce, bytes32[] memory arr, uint sz) public returns (bytes32) {
 	bytes32 id = keccak256(abi.encodePacked(msg.sender, nonce));
 	File storage f = files[id];
-	require(files[id].root == 0);
+	require(files[id].root == 0, "file exists");
+	require(arr.length == (sz+31)/32, "data size doesn't match byte size");
 	f.fileType = 0;
 	f.data = arr;
 	f.name = name;
 	f.bytesize = sz;
 	f.codeRootSet = false;
-	uint size = 0;
-	uint tmp = arr.length;
-	while (tmp > 1) { size++; tmp = tmp/2; }
+	uint size = arr.length > 0 ? calc_depth(arr.length*2 - 1) : 0;
+	// if (size == 0) size = 1;
 	f.root = fileMerkle(arr, 0, size);
 	return id;
+    }
+
+	function formatData(bytes memory data) internal pure returns (bytes32[] memory output) {
+      //Format data
+      uint sz = (data.length+31)/32;
+      output = new bytes32[](sz);
+      for (uint i = 0; i < sz; i++) {
+         uint a;
+         for (uint j = 0; j < 32; j++) {
+            a = a*256;
+            if (i*32+j < data.length) a += uint8(data[i*32+j]);
+         }
+         output[i] = bytes32(a);
+      }
+
+      return output;
+   }
+
+
+    function createFileFromBytes(string memory name, uint nonce, bytes memory arr) public returns (bytes32) {
+		return createFileWithContents(name, nonce, formatData(arr), arr.length);
     }
 
     function addContractFile(string memory name, uint nonce, address _address, bytes32 root, uint size) public returns (bytes32) {

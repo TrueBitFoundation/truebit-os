@@ -27,8 +27,11 @@ RUN wget -O rustup.sh https://sh.rustup.rs \
  && git clone https://github.com/goerli/parity-goerli.git \
  && cd parity-goerli \
  && source $HOME/.cargo/env \
+ && apt-get update \
  && apt-get install -y libudev-dev \
  && cargo build --release --features final \
+ && cd / \
+ && cp /parity-goerli/target/release/parity /bin \
  && rm -rf parity-goerli ~/.rustup ~/.cargo
 
 RUN wget https://dist.ipfs.io/go-ipfs/v0.4.17/go-ipfs_v0.4.17_linux-amd64.tar.gz \
@@ -41,7 +44,7 @@ RUN wget https://dist.ipfs.io/go-ipfs/v0.4.17/go-ipfs_v0.4.17_linux-amd64.tar.gz
 
 RUN git clone https://github.com/mrsmkl/truebit-os \
  && cd truebit-os \
- && git checkout v2gp \
+ && git checkout  utils \
  && npm i --production \
  && npm run deps \
  && npm run  compile \
@@ -49,7 +52,7 @@ RUN git clone https://github.com/mrsmkl/truebit-os \
 
 RUN git clone https://github.com/mrsmkl/example-app \
  && cd example-app \
- && git checkout v2 \
+ && git checkout  v2 \
  && npm i \
  && ln -s /truebit-os . \
  && ln -s /example-app/public /var/www/html/app \
@@ -71,11 +74,9 @@ RUN git clone https://github.com/TruebitFoundation/wasm-ports \
  && cd pairing \
  && solc --abi --optimize --overwrite --bin -o build contract.sol
 
-RUN cp /parity-goerli/target/release/parity /bin
-
 # ipfs and eth ports
 EXPOSE 4001 30303 80 8545
 
 # docker build . -t truebit-os:latest
-# docker run -it -p 3000:80 -p 8545:8548 -p 4001:4001 -p 30303:30303 -v ~/kovan:/root/.local/share/io.parity.ethereum truebit-os:latest /bin/bash
+# docker run -it -p 3000:80 -p 8545:8548 -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.local/share/io.parity.ethereum truebit-os:latest /bin/bash
 # ipfs swarm connect /ip4/176.9.9.249/tcp/4001/ipfs/QmS6C9YNGKVjWK2ctksqYeRo3zGoosEPRuPhCvgAVHBXtg

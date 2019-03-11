@@ -1,5 +1,5 @@
 const execFile = require('child_process').execFile
-const merkleRoot = require('./merkleRoot')
+const merkleRoot = require('../utils/merkleRoot').web3
 const fs = require('fs')
 
 const defaultWasmInterpreterPath = "./../../ocaml-offchain/interpreter/wasm"
@@ -8,7 +8,7 @@ const CodeType = {
     WAST: 0,
     WASM: 1,
     INTERNAL: 2,
-    INPUT : 3,
+    INPUT: 3,
 }
 
 const StorageType = {
@@ -34,27 +34,27 @@ const phaseTable = {
 
 function buildArgs(args, config) {
     if (config.actor.error) {
-	args.push("-insert-error")
-	args.push("" + config.actor.error_location)
+        args.push("-insert-error")
+        args.push("" + config.actor.error_location)
     }
     if (config.vm_parameters) {
-	args.push("-memory-size")
-	args.push(config.vm_parameters.mem)
-	args.push("-stack-size")
-	args.push(config.vm_parameters.stack)
-	args.push("-table-size")
-	args.push(config.vm_parameters.table)
-	args.push("-globals-size")
-	args.push(config.vm_parameters.globals)
-	args.push("-call-stack-size")
-	args.push(config.vm_parameters.call)
+        args.push("-memory-size")
+        args.push(config.vm_parameters.mem)
+        args.push("-stack-size")
+        args.push(config.vm_parameters.stack)
+        args.push("-table-size")
+        args.push(config.vm_parameters.table)
+        args.push("-globals-size")
+        args.push(config.vm_parameters.globals)
+        args.push("-call-stack-size")
+        args.push(config.vm_parameters.call)
     }
     for (i in config.files) {
-	args.push("-file")
-	args.push("" + config.files[config.files.length - i - 1])
+        args.push("-file")
+        args.push("" + config.files[config.files.length - i - 1])
     }
     if (config.code_type == CodeType.WAST) ["-case", "0", config.code_file].forEach(a => args.push(a))
-    else ["-wasm", config.code_file].forEach(a => args.push(a))
+    else["-wasm", config.code_file].forEach(a => args.push(a))
     //logger.info("Built args", {args:args})
     return args
 }
@@ -64,7 +64,7 @@ let num = 0
 const MAX_SIMULTANEOUS = 1
 
 function singletonExec(path, args, opt, cont) {
-    queue.push({path, args, opt, cont})
+    queue.push({ path, args, opt, cont })
     execQueue()
 }
 
@@ -89,14 +89,14 @@ function doExec(e, args, path) {
         })
     })
 }
-    
+
 module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath, jit_path) => {
 
     function exec(config, lst, interpreterArgs, path) {
         let args = buildArgs(lst, config).concat(interpreterArgs)
         return new Promise(function (resolve, reject) {
             logger.info("Executing: " + wasmInterpreterPath + " " + args.join(" "))
-            singletonExec(wasmInterpreterPath, args, {cwd:path}, function (error, stdout, stderr) {
+            singletonExec(wasmInterpreterPath, args, { cwd: path }, function (error, stdout, stderr) {
                 if (error) console.error("error", error, stderr)
                 resolve(stdout)
             })
@@ -113,13 +113,13 @@ module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath, jit_
             else if (sz.length == 2) sz = "00" + sz
             else if (sz.length == 3) sz = "0" + sz
 
-            let init_code = "61"+sz+"600061"+sz+"600e600039f3"
+            let init_code = "61" + sz + "600061" + sz + "600e600039f3"
 
             let contract = new web3.eth.Contract([])
 
             let hex_data = Buffer.from(data).toString("hex")
 
-            contract = await contract.deploy({data: '0x' + init_code + hex_data}).send(options)
+            contract = await contract.deploy({ data: '0x' + init_code + hex_data }).send(options)
 
             return contract.options.address
         },
@@ -131,9 +131,9 @@ module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath, jit_
         run: (args, path) => {
             return new Promise(function (resolve, reject) {
                 logger.info("Executing: " + wasmInterpreterPath + " " + args.join(" "))
-                singletonExec(wasmInterpreterPath, args, {cwd:path}, function (error, stdout, stderr) {
-                        if (error) console.error("error", error, stderr)
-                        resolve(stdout)
+                singletonExec(wasmInterpreterPath, args, { cwd: path }, function (error, stdout, stderr) {
+                    if (error) console.error("error", error, stderr)
+                    resolve(stdout)
                 })
             })
         },
@@ -145,11 +145,11 @@ module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath, jit_
                     return JSON.parse(stdout)
                 },
 
-                executeWasmTask: async(interpreterArgs = []) => {
+                executeWasmTask: async (interpreterArgs = []) => {
                     if (config.code_type != CodeType.WAST && jit_path) {
                         let jit_args = [].concat.apply([], config.files.map(a => ["--file", a]));
                         jit_args.push("--memory-size")
-                        let mem_size = Math.pow(2, config.vm_parameters.mem-13)
+                        let mem_size = Math.pow(2, config.vm_parameters.mem - 13)
                         jit_args.push(mem_size)
                         let jitout = await doExec("node", [jit_path].concat(jit_args), path)
                         logger.info(`solved with JIT: ${jitout}`)
@@ -163,18 +163,18 @@ module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath, jit_
                     }
                 },
 
-                getOutputVM: async(interpreterArgs = []) => {
+                getOutputVM: async (interpreterArgs = []) => {
                     let stdout = await exec(config, ["-m", "-disable-float", "-output"], interpreterArgs, path)
                     return JSON.parse(stdout)
                 },
 
-                getLocation: async(stepNumber, interpreterArgs = []) => {
+                getLocation: async (stepNumber, interpreterArgs = []) => {
                     let stdout = await exec(config, ["-m", "-disable-float", "-location", stepNumber], interpreterArgs, path)
 
                     return JSON.parse(stdout)
                 },
 
-                getStep: async(stepNumber, interpreterArgs = []) => {
+                getStep: async (stepNumber, interpreterArgs = []) => {
                     let stdout = await exec(config, ["-m", "-disable-float", "-step", stepNumber], interpreterArgs, path)
 
                     return JSON.parse(stdout)
@@ -186,17 +186,17 @@ module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath, jit_
 
                 readFile: async (fname_) => {
                     let fname = path + "/" + fname_
-                    return new Promise(function (cont,err) {
+                    return new Promise(function (cont, err) {
                         fs.readFile(fname, function (err, buf) {
                             if (err) {
-                                console.log("Error reading file, assuming it should be empty", {err:err});
-                                cont(Buffer.from("")) 
+                                console.log("Error reading file, assuming it should be empty", { err: err });
+                                cont(Buffer.from(""))
                             }
                             else cont(buf)
                         })
                     })
                 },
-                
+
             }
 
         },
@@ -230,14 +230,14 @@ module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath, jit_
         fileSystem: (ipfs) => {
             return {
                 upload: async (content, path) => {
-                    return ipfs.files.add([{content: content, path: path}])
+                    return ipfs.files.add([{ content: content, path: path }])
                 },
 
                 download: async (fileID, filename) => {
                     return new Promise((resolve, reject) => {
                         ipfs.get(fileID, (err, stream) => {
                             let output
-                            if(err) {
+                            if (err) {
                                 reject(err)
                             } else {
                                 stream.on('data', (file) => {
@@ -247,7 +247,7 @@ module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath, jit_
                                         chunks.push(chunk)
                                     })
                                     file.content.on('end', () => {
-                                        output = {name: filename, content: Buffer.concat(chunks)}
+                                        output = { name: filename, content: Buffer.concat(chunks) }
                                     })
                                 })
                                 stream.on('end', () => {
@@ -258,6 +258,6 @@ module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath, jit_
                     })
                 }
             }
-        }	
+        }
     }
 }
