@@ -104,7 +104,7 @@ describe('Truebit OS WASM Alphabet Challenge', async function() {
 	    await mineBlocks(os.web3, 10)
 	    await timeout(5000)
 	    await mineBlocks(os.web3, 10)
-            await timeout(60000)
+        await timeout(60000)
 	    
 	    let tasks = os.taskGiver.getTasks()
 	    //taskID = Object.keys(tasks)[0]
