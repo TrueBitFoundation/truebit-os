@@ -5,9 +5,12 @@ import "./CommonOnchain.sol";
 contract Judge is CommonOnchain {
 
     address winner;
-    
-    bytes32 mask = bytes32(uint256(0xffffffffffffffffffffffffffffffffffffffffffffffff));
-    
+
+    constructor () public {
+    }
+
+    bytes32 constant mask = bytes32(uint256(0xffffffffffffffffffffffffffffffffffffffffffffffff));
+
     function checkProof(bytes32[] memory pr, bytes32[] memory pr2) internal view {
        if (pr2.length == 0 && !(phase == 7 && getHint(7) == 0x0c)) require (pr.length == 0 || (pr.length != 1 && pr[0] == pr[0]&mask && pr[1] == pr[1]&mask));
     }

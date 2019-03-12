@@ -125,9 +125,10 @@ module.exports = {
 
             if (!tasks[taskID]) {
                 task_list.push(taskID)
+                tasks[taskID] = {  }
             }
 
-            tasks[taskID] = { minDeposit: minDeposit }
+            tasks[taskID].minDeposit = minDeposit
 
                     // tasks[taskID].secret = secret
         }
@@ -170,6 +171,8 @@ module.exports = {
                 let interpreterArgs = []
                 let solution = await vm.executeWasmTask(interpreterArgs)
                 tasks[taskID].solution = solution
+                tasks[taskID].vm = vm
+                tasks[taskID].interpreterArgs = interpreterArgs
 
                 logger.info(`SOLVER: Committing solution ${solution.hash} (hashed ${web3.utils.soliditySha3(solution.hash)})`)
 
@@ -181,9 +184,6 @@ module.exports = {
                         message: `SOLVER: Submitted solution for task ${taskID} successfully`
                     })
 
-                    tasks[taskID]["solution"] = solution
-                    tasks[taskID]["vm"] = vm
-                    tasks[taskID]["interpreterArgs"] = interpreterArgs
 
                 } catch (e) {
                     logger.info(`SOLVER: Unsuccessful submission for task ${taskID}`)

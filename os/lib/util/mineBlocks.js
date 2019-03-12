@@ -1,12 +1,7 @@
 module.exports = async (web3, n) => {
-    for(let i = 0; i < n; i++) {
-      await new Promise((resolve, reject) => {
-        web3.eth.currentProvider.send({
-          jsonrpc: '2.0',
-          method: 'evm_mine',
-          params: [],
-          id: 0,
-        }, () => {resolve()})
-      })
-    }
+  let accounts = await web3.eth.getAccounts()
+  
+  for (let i = 0; i < n; i++) {
+    await web3.eth.sendTransaction({ from: accounts[0], to: accounts[0], value: 123 })
+  }
 }

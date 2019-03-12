@@ -95,10 +95,10 @@ describe('Truebit OS WASM Alphabet', async function() {
 	    await taskSubmitter.submitTask(exampleTask)
 
 	    await timeout(8000)
-	    await mineBlocks(os.web3, 110)
+	    await mineBlocks(os.web3, 20)
 	    await timeout(5000)
-	    await mineBlocks(os.web3, 110)
-	    await timeout(5000)
+	    await mineBlocks(os.web3, 20)
+	    await timeout(10000)
 	    
 	    let tasks = os.taskGiver.getTasks()
 	    //taskID = Object.keys(tasks)[0]

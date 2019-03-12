@@ -58,33 +58,14 @@ cd truebit-os
 sh scripts/start-private.sh
 ```
 
-Test scrypt example task:
+Run test tasks:
 ```
-cd /example-app
-node deploy.js
-mocha test.js
-```
-
-Test bilinear pairing example task:
-```
-cd /wasm-ports/samples/pairing
-node ../deploy.js
-mocha test.js
+cd /wasm-ports/samples
+sh deploy.sh
+mocha
 ```
 
-Test chess example task:
-```
-cd /wasm-ports/samples/chess
-node ../deploy.js
-mocha test.js
-```
-
-Test WebAssembly validation example task:
-```
-cd /wasm-ports/samples/wasm
-node ../deploy.js
-mocha test.js
-```
+If you want to recompile a sample, go to the sample directory, and then use `compile.sh` script. You'll also have to re-deploy with `node ../deploy.js`
 
 ### Testing on Goerli network
 
@@ -132,7 +113,7 @@ node send.js <wasm file>
 
 Run
 ```
-docker run --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 mrsmkl/truebit-goerli:latest /bin/bash
+docker run --rm --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 mrsmkl/truebit-goerli:latest /bin/bash
 ```
 
 To get started, use `tmux` to have several windows. New windows can be made with `ctrl-b c`. Use `ctrl-b <num>` to switch between windows. Alternatively, to split plane horizontally, use `ctrl+b "` and to split plane vertically `ctrl-b %`.  Shift between windows with `ctrl+b` followed by a cursor key. 

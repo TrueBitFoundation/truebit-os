@@ -5,6 +5,7 @@ let host = argv.host || 'http://localhost:8545'
 
 const Web3 = require('web3')
 const web3 = new Web3(new Web3.providers.HttpProvider(host))
+// const web3 = new Web3(new Web3.providers.WebsocketProvider(host))
 const fs = require('fs')
 const getNetwork = async () => {
     let id = await web3.eth.net.getId()
@@ -24,15 +25,16 @@ function getArtifacts(name) {
 async function deployContract(name, options = {}, args = []) {
     let artifacts = getArtifacts(name)
     let contract = new web3.eth.Contract(artifacts.abi)
-    return await contract
-        .deploy({ data: "0x" + artifacts.bin, arguments: args })
-        .send(options)
+    let res = await contract.deploy({ data: "0x" + artifacts.bin, arguments: args }).send(options)
+    res.abi = artifacts.abi
+    return res
 }
 
 function exportContract(contract) {
+    // console.log(contract.abi)
     return {
-        address: contract._address,
-        abi: contract._jsonInterface
+        address: contract.options.address,
+        abi: contract.abi
     }
 }
 
@@ -42,10 +44,16 @@ async function deploy() {
     console.log("Writing to", filename)
 
     let accounts = await web3.eth.getAccounts()
-    let fileSystem = await deployContract('Filesystem', { from: accounts[0], gas: 5500000 })
-    let judge = await deployContract('Judge', { from: accounts[0], gas: 5600000 })
 
-    let interactive = await deployContract('Interactive', { from: accounts[0], gas: 5500000 }, [judge._address])
+//    console.log("bg limit", await web3.eth.getBlock(1))
+
+    let fileSystem = await deployContract('Filesystem', { from: accounts[0], gas: 5500000 })
+    console.log("Filesystem", fileSystem.options.address)
+    let judge = await deployContract('Judge', { from: accounts[0], gas: 5600000 })
+    console.log("Judge", judge.options.address)
+
+    let interactive = await deployContract('Interactive', { from: accounts[0], gas: 5500000 }, [judge.options.address])
+    console.log("Interactive", interactive.options.address)
 
     let tru = await deployContract('TRU', { from: accounts[0], gas: 2000000 })
     let exchangeRateOracle = await deployContract('ExchangeRateOracle', { from: accounts[0], gas: 1000000 })
@@ -53,10 +61,10 @@ async function deploy() {
     let incentiveLayer = await deployContract(
         'IncentiveLayer',
         { from: accounts[0], gas: 5200000 },
-        [tru._address,
-        exchangeRateOracle._address,
-        interactive._address,
-        fileSystem._address,
+        [tru.options.address,
+        exchangeRateOracle.options.address,
+        interactive.options.address,
+        fileSystem.options.address,
         ]
     )
 
@@ -87,13 +95,13 @@ async function deploy() {
         let ss_incentiveLayer = await deployContract(
             'SingleSolverIncentiveLayer',
             { from: accounts[0], gas: 5200000 },
-            [interactive._address, fileSystem._address, whitelist._address]
+            [interactive.options.address, fileSystem.options.address, whitelist.options.address]
         )
         
-        await web3.eth.sendTransaction({ from: accounts[0], to: ss_incentiveLayer._address, value: web3.utils.toWei("2", "ether") })
+        await web3.eth.sendTransaction({ from: accounts[0], to: ss_incentiveLayer.options.address, value: web3.utils.toWei("2", "ether") })
 
-        await stake_whitelist.methods.setToken(tru._address).send({ from: accounts[0], gas: 300000 })
-        await stake_whitelist.methods.setTaskBook(testbook._address).send({ from: accounts[0], gas: 300000 })
+        await stake_whitelist.methods.setToken(tru.options.address).send({ from: accounts[0], gas: 300000 })
+        await stake_whitelist.methods.setTaskBook(testbook.options.address).send({ from: accounts[0], gas: 300000 })
 
         config.ss_incentiveLayer = exportContract(ss_incentiveLayer)
         config.stake_whitelist = exportContract(stake_whitelist)
@@ -101,6 +109,7 @@ async function deploy() {
 
         // Mint tokens for testing
         accounts.forEach(async addr => {
+            await web3.eth.sendTransaction({ from: accounts[0], to: addr, value: web3.utils.toWei("2", "ether") })
             await tru.methods.addMinter(addr).send({ from: accounts[0], gas: 300000 })
             await tru.methods.mint(addr, "100000000000000000000000").send({ from: addr, gas: 300000 })
         })

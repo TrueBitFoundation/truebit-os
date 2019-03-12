@@ -11,7 +11,39 @@ function makeRandom(n) {
     return Buffer.from(res, "hex")
 }
 
+async function wait(web3, fs, acc) {
+    
+    let bn = await web3.eth.getBlockNumber()
+    fs.methods.ev().send({from:acc})
+    console.log("block", bn)
 
+    await (new Promise((resolve, reject) => {
+        fs.once("MakeEvent", {fromBlock:bn}, (err,ev) => {
+            console.log(ev)
+            if (err) reject(err); else resolve(ev) })
+    }))
+
+    let bn2 = await web3.eth.getBlockNumber()
+    console.log("block", bn2)
+
+}
+
+async function waitFor(web3, fs, evn) {
+    
+    let bn = await web3.eth.getBlockNumber()
+    // console.log("block", bn)
+
+    let res = await (new Promise((resolve, reject) => {
+        fs.once(evn, {fromBlock:bn}, (err,ev) => {
+            // console.log(ev)
+            if (err) reject(err); else resolve(ev) })
+    }))
+
+    let bn2 = await web3.eth.getBlockNumber()
+    // console.log("block", bn2)
+    return res
+
+}
 
 function contract(web3, info) {
     return new web3.eth.Contract(info.abi, info.address)    
@@ -25,7 +57,7 @@ async function setup(web3) {
     ]
 }
 
-describe('Truebit Whitelist Smart Contract Unit Tests', function () {
+describe('Truebit Filesystem Smart Contract Unit Tests', function () {
     this.timeout(60000)
 
     let accounts, web3, filesystem
@@ -38,16 +70,20 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
 
         web3 = os.web3
 
-        accounts = [os.accounts[0], os.accounts[1], os.accounts[2], os.accounts[3]]
+        accounts = [os.accounts[0]]
     })
 
     let rnd = Math.floor(Math.random()*1000000)
 
     it("creating empty file", async () => {
         let buf = Buffer.from("")
-        await filesystem.methods.createFileFromBytes("file", rnd, "0x"+buf.toString("hex")).send({from:accounts[0], gas:5000000})
+        let res = await filesystem.methods.createFileFromBytes("file", rnd, "0x"+buf.toString("hex")).send({from:accounts[0], gas:5000000})
+        assert.equal(res.events.CreatedFile.returnValues.root, merkleRoot(web3, buf))
+        /*
         let file = await filesystem.methods.calcId(rnd).call()
+        console.log("umm here", file)
         assert.equal(await filesystem.methods.getRoot(file).call(), merkleRoot(web3, buf))
+        */
     })
 
     it("creating smaller file", async () => {
@@ -55,9 +91,12 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
 
         let sz = Math.floor(Math.random() * 32)
         let buf = Buffer.from(makeRandom(sz))
-        await filesystem.methods.createFileFromBytes("file", rnd, "0x"+buf.toString("hex")).send({from:accounts[0], gas:5000000})
+        let res = await filesystem.methods.createFileFromBytes("file", rnd, "0x"+buf.toString("hex")).send({from:accounts[0], gas:5000000})
+        assert.equal(res.events.CreatedFile.returnValues.root, merkleRoot(web3, buf))
+        /*
         let file = await filesystem.methods.calcId(rnd).call()
         assert.equal(await filesystem.methods.getRoot(file).call(), merkleRoot(web3, buf))
+        */
     })
 
     it("a bit larger file", async () => {
@@ -65,9 +104,8 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
 
         let sz = Math.floor(Math.random() * 32) + 32
         let buf = Buffer.from(makeRandom(sz))
-        await filesystem.methods.createFileFromBytes("file", rnd, "0x"+buf.toString("hex")).send({from:accounts[0], gas:5000000})
-        let file = await filesystem.methods.calcId(rnd).call()
-        assert.equal(await filesystem.methods.getRoot(file).call(), merkleRoot(web3, buf))
+        let res = await filesystem.methods.createFileFromBytes("file", rnd, "0x"+buf.toString("hex")).send({from:accounts[0], gas:5000000})
+        assert.equal(res.events.CreatedFile.returnValues.root, merkleRoot(web3, buf))
     })
 
     it("more larger file", async () => {
@@ -75,9 +113,8 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
 
         let sz = Math.floor(Math.random() * 1000) + 64
         let buf = Buffer.from(makeRandom(sz))
-        await filesystem.methods.createFileFromBytes("file", rnd, "0x"+buf.toString("hex")).send({from:accounts[0], gas:5000000})
-        let file = await filesystem.methods.calcId(rnd).call()
-        assert.equal(await filesystem.methods.getRoot(file).call(), merkleRoot(web3, buf))
+        let res = await filesystem.methods.createFileFromBytes("file", rnd, "0x"+buf.toString("hex")).send({from:accounts[0], gas:5000000})
+        assert.equal(res.events.CreatedFile.returnValues.root, merkleRoot(web3, buf))
     })
 
 })

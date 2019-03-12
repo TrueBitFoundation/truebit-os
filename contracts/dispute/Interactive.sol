@@ -468,5 +468,5 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
     function calcStateHash(bytes32[10] memory roots, uint[4] memory pointers) public returns (bytes32) {
         return judge.calcStateHash(roots, pointers);
     }
-    
+
 }

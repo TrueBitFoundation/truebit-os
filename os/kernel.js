@@ -24,8 +24,10 @@ function ipfsFileSystemHelper(config) {
 
 module.exports = async (configPath) => {
     const config = JSON.parse(fs.readFileSync(configPath))
-    const httpProvider = new Web3.providers.HttpProvider(config["http-url"])
-    const web3 = new Web3(httpProvider)
+    let provider
+    if (config["ws-url"]) provider = new Web3.providers.WebsocketProvider(config["ws-url"])
+    else provider = new Web3.providers.HttpProvider(config["http-url"])
+    const web3 = new Web3(provider)
     const accounts = await web3.eth.getAccounts()
     const submitter = requireHelper(() => require(config["task-submitter"]))
 

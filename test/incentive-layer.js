@@ -241,7 +241,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
 	it("should end challenge period", async () => {
 		assert(!(await incentiveLayer.endChallengePeriod.call(taskID)))
 
-		await mineBlocks(web3, 110)
+		await mineBlocks(web3, 20)
 
 		assert(await incentiveLayer.endChallengePeriod.call(taskID))
 		await incentiveLayer.endChallengePeriod(taskID, { from: solver })
@@ -250,7 +250,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
 	it("should end reveal period", async () => {
 		assert(!(await incentiveLayer.endRevealPeriod.call(taskID)))
 
-		await mineBlocks(web3, 110)
+		await mineBlocks(web3, 20)
 
 		assert(await incentiveLayer.endRevealPeriod.call(taskID))
 		await incentiveLayer.endRevealPeriod(taskID, { from: solver })
