@@ -281,6 +281,14 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
 		assert(log.args.randomBits)
 	})
 
+	it("should fail revealing solution another time", async () => {
+		return incentiveLayer.revealSolution(taskID, randomBits, 0x0, 0x0, 0x0, 0x0, { from: solver, gas: 300000 })
+			.then(
+				() => Promise.reject(new Error('Expected method to reject')),
+				err => assert(err instanceof Error)
+			)
+	})
+
 	it("should get solution info", async () => {
 		let s = await incentiveLayer.getSolutionInfo.call(taskID)
 
