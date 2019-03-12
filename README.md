@@ -292,7 +292,7 @@ git clone https://github.com/TrueBitFoundation/truebit-os
 cd truebit-os
 ```
 
-3. Install Solidity, NPM, IPFS, and the off-chain interpreter.
+3. Install Solidity, NPM, IPFS, the off-chain interpreter, and client.
 ```
 sh macinstall.sh
 ```
