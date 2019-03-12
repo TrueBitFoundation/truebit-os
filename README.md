@@ -87,6 +87,7 @@ mocha test.js
 Test WebAssembly validation example task:
 ```
 cd /wasm-ports/samples/wasm
+solc --overwrite --bin --abi --optimize contract.sol -o build
 node ../deploy.js
 mocha test.js
 ```
