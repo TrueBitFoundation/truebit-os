@@ -14,7 +14,10 @@ If you want to talk to the developers working on this project feel free to say h
 
 # Running on Docker
 
-Install [Docker](https://www.docker.com/), and open a Terminal.  
+Install [Docker](https://www.docker.com/), and open a Terminal.  If you previously used another Truebit-OS Docker image, you may need to update first:
+```
+docker rm tb; docker pull mrsmkl/truebit-goerli:latest; docker pull mrsmkl/wasm-ports:latest
+```
 
 ## Compiling and running Truebit tasks
 
