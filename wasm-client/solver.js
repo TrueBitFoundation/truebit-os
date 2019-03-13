@@ -238,6 +238,21 @@ module.exports = {
 
         })
 
+        addEvent("TaskTimeout", incentiveLayer.TaskTimeout, async (result) => {
+            let taskID = result.args.taskID
+
+            if (tasks[taskID]) {
+                delete tasks[taskID]
+                await incentiveLayer.unbondDeposit(taskID, { from: account, gas: 100000, gasPrice: web3.gp })
+                logger.log({
+                    level: 'info',
+                    message: `SOLVER: Task ${taskID} failed. Tried to unbond deposits.`
+                })
+
+            }
+
+        })
+
         addEvent("SlashedDeposit", incentiveLayer.SlashedDeposit, async (result) => {
             let addr = result.args.account
 

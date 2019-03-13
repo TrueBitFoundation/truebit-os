@@ -61,6 +61,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
     event EndRevealPeriod(bytes32 taskID);
     event EndChallengePeriod(bytes32 taskID);
     event TaskFinalized(bytes32 taskID);
+    event TaskTimeout(bytes32 taskID);
 
     enum State { TaskInitialized, SolverSelected, SolutionCommitted, ChallengesAccepted, IntentsRevealed, SolutionRevealed, TaskFinalized, TaskTimeout }
     enum Status { Uninitialized, Challenged, Unresolved, SolverWon, ChallengerWon }//For dispute resolution
@@ -406,6 +407,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         Task storage t = tasks[taskID];
         t.state = State.TaskTimeout;
         delete t.selectedSolver;
+        emit TaskTimeout(taskID);
         bool ok;
         bytes memory res;
         (ok, res) = t.owner.call(abi.encodeWithSignature("cancel(bytes32)", taskID));
