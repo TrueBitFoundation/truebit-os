@@ -23,38 +23,7 @@ docker rm tb; docker pull mrsmkl/truebit-goerli:latest; docker pull mrsmkl/wasm-
 
 First start up the docker image:
 ```
-docker run -ti mrsmkl/wasm-ports:latest /bin/bash
-```
-(If you have old version of the docker image, use `docker pull` to download a new one).
-
-Start up ganache and IPFS, also deploy contracts:
-```
-cd truebit-os
-sh scripts/start-env.sh
-```
-
-Set up the emscripten environment variables:
-```
-source /emsdk/emsdk_env.sh
-```
-
-Compile the scrypt C++ program:
-```
-cd scrypt-data
-sh compile.sh
-```
-
-Run the test
-```
-cd ..
-mocha test/os-wasm-scrypt.js
-```
-
-### Running tests for different tasks
-
-First start up the docker image:
-```
-docker run -ti mrsmkl/wasm-ports:latest /bin/bash
+docker run -ti mrsmkl/wasm-ports:19-03-13 /bin/bash
 ```
 
 Start up the Truebit environment:
@@ -70,12 +39,17 @@ sh deploy.sh
 mocha
 ```
 
-If you want to recompile a sample, go to the sample directory, and then use `compile.sh` script. You'll also have to re-deploy with `node ../deploy.js`
+If you want to recompile a sample, go to the sample directory, and then first setup the environment with
+```
+source /emsdk/emsdk_env.sh
+```
+Then use the `compile.sh` script. You'll also have to re-deploy with `node ../deploy.js`
 
 ### Testing on Goerli network
 
+To speed up network sync the next time, make a directory `~/goerli` and then mount it with docker:
 ```
-docker run --rm --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.local/share/io.parity.ethereum mrsmkl/wasm-ports:latest /bin/bash
+docker run --rm --name=tb -it -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.local/share/io.parity.ethereum mrsmkl/wasm-ports:19-03-13 /bin/bash
 ```
 
 Start up IPFS and Parity:
@@ -83,7 +57,13 @@ Start up IPFS and Parity:
 cd truebit-os
 sh scripts/start-goerli.sh
 ```
-Wait for parity to sync, should take few minutes.
+Wait for parity to sync, should take few minutes. (For example `tail -F ~/goerli_log`)
+
+Find out your Goerli ETH address:
+```
+parity --chain=goerli account list
+```
+Then use the faucet to get some GÖETH:  https://goerli-faucet.slock.it/
 
 To connect to IPFS nodes, try `ipfs swarm connect /ip4/213.251.185.41/tcp/4001/ipfs/QmSob847F3sPkmveU5p2aPmjRgaXXdhXb7nnmJtkBZ1QDz`
 
@@ -115,6 +95,8 @@ Validate WASM file
 cd /wasm-ports/samples/wasm
 node send.js <wasm file>
 ```
+
+Progress can be followed from  https://goerli.etherscan.io/address/0xD8859b0857de197C419f9dFd027c9800F0EC1112
 
 ## Private network
 
