@@ -6,13 +6,18 @@
   <img src="./gundam-schematic.gif"/>
 </p>
 
-The basic components of an operating system are a kernel designed to manage processes and resources and a shell. The shell is an interactive abstraction over the kernel. We have our own kernel module designed to manage processes and utilities related to using the Truebit protocol. We also provide a nice shell (CLI) to interface with the kernel. If you want to be a miner (solver/verifier) in our network you can follow the instructions below to setup your node with Docker. For technical reasons, this repository also contains all of our smart contracts.  If you are interested in interfacing with Truebit via smart contract you'll want to check out this [example](https://github.com/TrueBitFoundation/example-app) application. It demonstrates how to use Truebit-OS as a dependency in your own development process. 
+The basic components of an operating system are a kernel designed to manage processes and resources and a shell. The shell is an interactive abstraction over the kernel. We have our own kernel module designed to manage processes and utilities related to using the Truebit protocol. We also provide a nice shell (CLI) to interface with the kernel. If you want to be a miner (solver/verifier) in our network you can follow the instructions below to setup your node with Docker. For technical reasons, this repository also contains all of our smart contracts.
+
+If you are interested in interfacing with Truebit via smart contract you'll want to check out this [example](https://github.com/TrueBitFoundation/DApp-example) DApp or experiment with this older [version](https://github.com/TrueBitFoundation/example-app). They demonstrates how to use Truebit-OS as a dependency in your own development process.  You can also generate your own Truebit task from C, C++, or Rust code using the [Truebit toolchain](https://github.com/TrueBitFoundation/truebit-toolchain).
 
 If you want to talk to the developers working on this project feel free to say hello on our [Gitter](https://gitter.im/TrueBitFoundation/Lobby).  You can install Truebit using Docker or build it from source.  One can install locally or run over the Goerli testnet.
 
 # Running on Docker
 
-Install [Docker](https://www.docker.com/) and [Metamask](https://metamask.io/), and open a Terminal.  
+Install [Docker](https://www.docker.com/), and open a Terminal.  If you previously used another Truebit-OS Docker image, you may need to update first:
+```
+docker rm tb; docker pull mrsmkl/truebit-goerli:latest; docker pull mrsmkl/wasm-ports:latest
+```
 
 ## Compiling and running Truebit tasks
 
@@ -113,7 +118,7 @@ node send.js <wasm file>
 
 ## Private network
 
-Run
+For the private network, you'll need to install [Metamask](https://metamask.io/).  Run
 ```
 docker run --rm --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 mrsmkl/truebit-goerli:latest /bin/bash
 ```
@@ -170,15 +175,13 @@ cd /wasm-ports/samples/pairing/
 node ../deploy.js
 ```
 
-This page will be at `localhost:3000/samples/pairing/public`
+This page will be at `localhost:3000/samples/pairing/public`.
 
-Other commands:
+Type `help` to list or get more details on specific commands.  For example, you can try
 
-Type `?` to list commands
+`start verify -t` to create a Verifier that initiates verification games, or
 
-`start verify -t` to create a Verifier that initiates verification games
-
-`start solve -a 1`, `start solve -a 2`, .... creates additional Solvers.
+`start solve -a 1`, `start solve -a 2`, .... to create additional Solvers.
 
 
 ## Goerli testnet tutorial
@@ -257,7 +260,45 @@ task
 
 13. Check your decentralized computations on the blockchain here: https://goerli.etherscan.io/address/0xD8859b0857de197C419f9dFd027c9800F0EC1112
 
-# Building from source
+
+# Building from source in MacOS
+
+1. Install brew.
+```
+/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+```
+
+2. Clone this repo.
+```
+git clone https://github.com/TrueBitFoundation/truebit-os
+cd truebit-os
+```
+
+3. Install Solidity, NPM, IPFS, the off-chain interpreter, and client.
+```
+sh macinstall.sh
+```
+
+4. Compile and deploy the contracts.
+```
+npm run compile
+npm run deploy
+```
+Check that everything works with `npm run test`. Type `npm run` for more options.
+
+
+5. Task-Solve-Verify.  Open a separate Terminal and start an Ethereum client, i.e.
+```
+ganache-cli
+```
+and optionally open another terminal with IPFS via `ipfs daemon`.  Finally, start Truebit-OS!
+```
+npm run truebit
+```
+To get some tokens, type `claim`, and check your address using `balance`.  If you need ETH, then `exit` Truebit-OS  and use `node send.js address=[youraddress]` to send test ETH.  Remember to omit the "0x" prefix for the address.  Use `help` For assistance with other Truebit-OS commands.
+
+
+# Building from source in Linux
 
 ## Getting Started
 
