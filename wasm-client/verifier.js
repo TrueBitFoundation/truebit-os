@@ -193,8 +193,8 @@ module.exports = {
             let taskID = result.args.taskID
 
             if (tasks[taskID]) {
-                delete tasks[taskID]
                 await incentiveLayer.unbondDeposit(taskID, { from: account, gas: 100000, gasPrice: web3.gp })
+                delete tasks[taskID]
                 logger.log({
                     level: 'info',
                     message: `VERIFIER: Task ${taskID} finalized. Tried to unbond deposits.`
@@ -208,8 +208,8 @@ module.exports = {
             let taskID = result.args.taskID
 
             if (tasks[taskID]) {
-                delete tasks[taskID]
                 await incentiveLayer.unbondDeposit(taskID, { from: account, gas: 100000, gasPrice: web3.gp })
+                delete tasks[taskID]
                 logger.log({
                     level: 'info',
                     message: `VERIFIER: Task ${taskID} failed. Tried to unbond deposits.`
