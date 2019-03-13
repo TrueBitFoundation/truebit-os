@@ -87,7 +87,7 @@ sh scripts/start-tb.sh
 
 Testing samples, Scrypt
 ```
-cd /example-app
+cd /wasm-ports/samples/scrypt
 node send.js <text>
 ```
 
