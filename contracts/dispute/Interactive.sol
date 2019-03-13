@@ -349,6 +349,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         return games[gameID].proof[loc];
     }
     
+    // TODO: check the array here, too
     function query(bytes32 gameID, uint i1, uint i2, uint num) public {
         Game storage g = games[gameID];
         require(g.state == State.Running && num <= g.size && i1 == g.idx1 && i2 == g.idx2 && msg.sender == g.challenger && g.challenger == g.next);

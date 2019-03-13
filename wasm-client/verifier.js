@@ -257,6 +257,7 @@ module.exports = {
 
                 let lowStep = result.args.idx1.toNumber()
                 let highStep = result.args.idx2.toNumber()
+                let reportedStateHash = result.args.arr[0]
                 let taskID = games[gameID].taskID
 
                 logger.log({
@@ -265,8 +266,6 @@ module.exports = {
                 })
 
                 let stepNumber = midpoint(lowStep, highStep)
-
-                let reportedStateHash = await disputeResolutionLayer.getStateAt.call(gameID, stepNumber)
 
                 let stateHash = await tasks[taskID].vm.getLocation(stepNumber, tasks[taskID].interpreterArgs)
 
