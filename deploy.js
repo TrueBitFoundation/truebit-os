@@ -57,6 +57,7 @@ async function deploy() {
 
     let tru = await deployContract('TRU', { from: accounts[0], gas: 2000000 })
     let exchangeRateOracle = await deployContract('ExchangeRateOracle', { from: accounts[0], gas: 1000000 })
+    console.log("TRU", tru.options.address)
 
     let incentiveLayer = await deployContract(
         'IncentiveLayer',
