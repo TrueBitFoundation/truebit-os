@@ -321,7 +321,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
     }
     
     function blockedTime(bytes32 gameID) public view returns (uint) {
-        return blocked[gameID] + 5;
+        return blocked[gameID];
     }
 
     function getIter(bytes32 gameID) internal view returns (uint it, uint i1, uint i2) {
@@ -385,7 +385,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
     function getResult(bytes32 gameID)  public view returns (bytes32[13] memory) {
         return games[gameID].result;
     }
-    
+
     function selectPhase(bytes32 gameID, uint i1, bytes32 st, uint q) public {
         Game storage g = games[gameID];
         require(g.state == State.PostedPhases && msg.sender == g.challenger && g.idx1 == i1 && g.result[q] == st && g.next == g.challenger && q < 13);
@@ -396,7 +396,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         g.next = g.prover;
         g.state = State.SelectedPhase;
     }
-    
+
     function getState(bytes32 gameID) public view returns (State) {
         return games[gameID].state;
     }
@@ -419,7 +419,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         emit WinnerSelected(gameID);
         g.winner = g.prover;
         g.status = Status.SolverWon;
-        blocked[g.task_id] = 0;
+        blocked[g.task_id] = block.number + g.timeout;
         g.state = State.Finished;
     }
 
@@ -428,7 +428,7 @@ contract Interactive is IGameMaker, IDisputeResolutionLayer {
         if (g.sub_task == 0 || !g.judge.resolved(g.sub_task, g.ex_state, g.ex_size)) return false;
         emit WinnerSelected(gameID);
         g.winner = g.prover;
-        blocked[g.task_id] = 0;
+        blocked[g.task_id] = block.number + g.timeout;
         g.state = State.Finished;
         g.status = Status.SolverWon;
         return true;

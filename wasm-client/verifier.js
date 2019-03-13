@@ -117,7 +117,7 @@ module.exports = {
                 message: `VERIFIER: Executed task ${taskID}. Checking solutions`
             })
 
-            task_list.push(taskID)
+            if (!tasks[taskID]) task_list.push(taskID)
 
             let myHash = solution.hash
             if (test) myHash = "0x" + helpers.makeSecret(myHash)
@@ -256,6 +256,8 @@ module.exports = {
                 let stateHash = await tasks[taskID].vm.getLocation(stepNumber, tasks[taskID].interpreterArgs)
 
                 let num = reportedStateHash == stateHash ? 1 : 0
+
+                logger.info(`VERIFIER: At step ${stepNumber} reported ${reportedStateHash}, got ${stateHash}`)
 
                 await disputeResolutionLayer.query(
                     gameID,

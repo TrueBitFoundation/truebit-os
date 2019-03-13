@@ -179,7 +179,7 @@ Type `help` to list or get more details on specific commands.  For example, you 
 4. Start a session:
 
 ```
-docker run --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.local/share/io.parity.ethereum mrsmkl/truebit-goerli:latest /bin/bash
+docker run --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.ethereum mrsmkl/truebit-goerli:19-03-13 /bin/bash
 ```
 
 5. Initiate ```tmux```.
@@ -198,22 +198,21 @@ to connect to a Truebit node running IPFS.
 8. *Set up a new parity account.* Navigate to the other small window and type:
 
 ```
-cd ~/.local/share/io.parity.ethereum
+cd ~/.ethereum
 echo plort > supersecret.txt
-parity --chain goerli account new --password=supersecret.txt > goerliparity
+geth --goerli account new --password=supersecret.txt
 ```
+
 To check addresses created, type
-
 ```
-parity --chain goerli account list
+geth --goerli account list
 ```
-
-In case more than one account was created, you will need to add flags to command listed below (e.g. ```claim -a 1``` rather than ```claim```).
+Make sure there is just one account.
 
 9. *Connect to Goerli*.  Type:
 
 ```
-parity --chain goerli --unlock=$(cat goerliparity) --password=supersecret.txt --jsonrpc-cors=all --jsonrpc-interface=all
+geth --goerli --rpc --unlock 0 --password=supersecret.txt
 ```
 
 10. *Get testnet tokens* for the account(s) above here: https://goerli-faucet.slock.it/
