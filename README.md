@@ -80,6 +80,8 @@ sh scripts/start-goerli.sh
 ```
 Wait for parity to sync, should take few minutes.
 
+To connect to IPFS nodes, try `ipfs swarm connect /ip4/213.251.185.41/tcp/4001/ipfs/QmSob847F3sPkmveU5p2aPmjRgaXXdhXb7nnmJtkBZ1QDz`
+
 (Optional) After parity has synced, you can start Truebit:
 ```
 sh scripts/start-tb.sh
