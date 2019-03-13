@@ -54,6 +54,10 @@ RUN git clone https://github.com/TruebitFoundation/wasm-ports \
  && browserify public/app.js -o public/bundle.js \
  && solc --abi --optimize --overwrite --bin -o build contract.sol
 
+RUN cd truebit-os \
+ && git pull
+
+
 # ipfs and eth ports
 EXPOSE 4001 30303 80 8545
 
