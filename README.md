@@ -39,7 +39,7 @@ sh deploy.sh
 mocha
 ```
 
-If you want to recompile a sample, go to the sample directory, and then first setup the environment with
+If you want to recompile a sample, go to a sample directory, and then first setup the environment with
 ```
 source /emsdk/emsdk_env.sh
 ```
@@ -96,7 +96,7 @@ cd /wasm-ports/samples/wasm
 node send.js <wasm file>
 ```
 
-Progress can be followed from  https://goerli.etherscan.io/address/0xD8859b0857de197C419f9dFd027c9800F0EC1112
+Progress can be followed from https://goerli.etherscan.io/address/0xf018f7f68f6eb999f4e7c02158e9a1ea4d77a067
 
 ## Private network
 
