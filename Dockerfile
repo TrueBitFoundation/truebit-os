@@ -34,7 +34,7 @@ RUN git clone https://github.com/TruebitFoundation/jit-runner \
 
 RUN git clone https://github.com/mrsmkl/truebit-os \
  && cd truebit-os \
- && git checkout  testing \
+ && git checkout timeout-fixes \
  && npm i --production \
  && npm run deps \
  && npm run  compile \
@@ -42,7 +42,7 @@ RUN git clone https://github.com/mrsmkl/truebit-os \
 
 RUN git clone https://github.com/TruebitFoundation/wasm-ports \
  && cd wasm-ports \
- && git checkout v2 \
+ && git checkout  v2 \
  && ln -s /truebit-os . \
  && cd samples \
  && npm i \
@@ -59,4 +59,3 @@ EXPOSE 4001 30303 80 8545
 
 # docker build . -t truebit-os:latest
 # docker run -it -p 3000:80 -p 8545:8548 -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.local/share/io.parity.ethereum truebit-os:latest /bin/bash
-# ipfs swarm connect /ip4/176.9.9.249/tcp/4001/ipfs/QmS6C9YNGKVjWK2ctksqYeRo3zGoosEPRuPhCvgAVHBXtg

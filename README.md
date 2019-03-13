@@ -239,7 +239,7 @@ Issue a task (factorial example):
 task
 ```
 
-13. Check your decentralized computations on the blockchain here: https://goerli.etherscan.io/address/0xD8859b0857de197C419f9dFd027c9800F0EC1112
+13. Check your decentralized computations on the blockchain here: https://goerli.etherscan.io/address/0xf018f7f68f6eb999f4e7c02158e9a1ea4d77a067
 
 
 # Building from source in MacOS
