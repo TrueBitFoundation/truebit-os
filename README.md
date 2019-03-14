@@ -12,6 +12,14 @@ If you are interested in interfacing with Truebit via smart contract you'll want
 
 If you want to talk to the developers working on this project feel free to say hello on our [Gitter](https://gitter.im/TrueBitFoundation/Lobby).  You can install Truebit using Docker or build it from source.  One can install locally or run over the Goerli testnet.
 
+# Contents
+
+1. [Running on Docker](#running-on-docker)
+  1. [Compiling and running Truebit tasks](#compiling-and-running-truebit-tasks)
+  2. [Goerli testnet tutorial](#goerli-testnet-tutorial)
+2. [Linux installation](#building-from-source-on-linux)
+3. [MacOS installation](#building-from-source-on-macos)
+
 # Running on Docker
 
 Install [Docker](https://www.docker.com/), and open a Terminal.  If you previously used another Truebit-OS Docker image, you may need to update first:
@@ -78,7 +86,7 @@ cd /wasm-ports/samples/scrypt
 node send.js <text>
 ```
 
-Bilinear pairing
+Bilinear pairing (enter a string with more than 32 characters)
 ```
 cd /wasm-ports/samples/pairing
 node send.js <text>
@@ -98,74 +106,6 @@ node send.js <wasm file>
 
 Progress can be followed from https://goerli.etherscan.io/address/0xf018f7f68f6eb999f4e7c02158e9a1ea4d77a067
 
-## Private network
-
-For the private network, you'll need to install [Metamask](https://metamask.io/).  Run
-```
-docker run --rm --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 mrsmkl/truebit-goerli:latest /bin/bash
-```
-
-To get started, use `tmux` to have several windows. New windows can be made with `ctrl-b c`. Use `ctrl-b <num>` to switch between windows. Alternatively, to split plane horizontally, use `ctrl+b "` and to split plane vertically `ctrl-b %`.  Shift between windows with `ctrl+b` followed by a cursor key. 
-
-In the first window, run `ipfs daemon`
-
-In second window, run `ganache-cli -h 0.0.0.0`
-
-In the next window
-```
-cd truebit-os
-npm run deploy
-```
-Note that you have to deploy the contracts each time after you have started up ganache.
-Find out what is your address in metamask (`address`), in hex format without 0x prefix.
-
-```
-node send.js --to=address
-```
-
-Start up the Truebit console with
-```
-npm run truebit
-```
-
-To run truebit client in JIT solving mode, use
-```
-npm run truebit wasm-client/config-jit.json
-```
-
-In the Truebit console, type
-```
-start solve
-```
-
-Then make a new tmux window
-```
-cd example-app
-node deploy.js
-service apache2 start
-```
-
-With a web browser, go to `localhost:3000/app`
-
-After you have submitted the task, go to the tmux window with Truebit console, and type
- `skip` a few times until the task is finalized.
-
-To run the bilinear pairing sample application enter:
-
-```
-cd /wasm-ports/samples/pairing/
-node ../deploy.js
-```
-
-This page will be at `localhost:3000/samples/pairing/public`.
-
-Type `help` to list or get more details on specific commands.  For example, you can try
-
-`start verify -t` to create a Verifier that initiates verification games, or
-
-`start solve -a 1`, `start solve -a 2`, .... to create additional Solvers.
-
-
 ## Goerli testnet tutorial
 
 *Quickstart: try running these steps!*
@@ -179,7 +119,7 @@ Type `help` to list or get more details on specific commands.  For example, you 
 4. Start a session:
 
 ```
-docker run --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.ethereum mrsmkl/truebit-goerli:19-03-13 /bin/bash
+docker run --rm --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.ethereum mrsmkl/truebit-goerli:19-03-13 /bin/bash
 ```
 
 5. Initiate ```tmux```.
@@ -240,43 +180,6 @@ task
 ```
 
 13. Check your decentralized computations on the blockchain here: https://goerli.etherscan.io/address/0xf018f7f68f6eb999f4e7c02158e9a1ea4d77a067
-
-
-# Building from source in MacOS
-
-1. Install brew.
-```
-/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-```
-
-2. Clone this repo.
-```
-git clone https://github.com/TrueBitFoundation/truebit-os
-cd truebit-os
-```
-
-3. Install Solidity, NPM, IPFS, the off-chain interpreter, and client.
-```
-sh macinstall.sh
-```
-
-4. Compile and deploy the contracts.
-```
-npm run compile
-npm run deploy
-```
-Check that everything works with `npm run test`. Type `npm run` for more options.
-
-
-5. Task-Solve-Verify.  Open a separate Terminal and start an Ethereum client, i.e.
-```
-ganache-cli
-```
-and optionally open another terminal with IPFS via `ipfs daemon`.  Finally, start Truebit-OS!
-```
-npm run truebit
-```
-To get some tokens, type `claim`, and check your address using `balance`.  If you need ETH, then `exit` Truebit-OS  and use `node send.js address=[youraddress]` to send test ETH.  Remember to omit the "0x" prefix for the address.  Use `help` For assistance with other Truebit-OS commands.
 
 
 # Building from source in Linux
@@ -355,6 +258,43 @@ skip -n 120 # Go past reveal period and finalize task
 ```
 
 *NOTE* These parameters are subject to future change
+
+# Building from source in MacOS
+
+1. Install brew.
+```
+/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+```
+
+2. Clone this repo.
+```
+git clone https://github.com/TrueBitFoundation/truebit-os
+cd truebit-os
+```
+
+3. Install Solidity, NPM, IPFS, the off-chain interpreter, and client.
+```
+sh macinstall.sh
+```
+
+4. Compile and deploy the contracts.
+```
+npm run compile
+npm run deploy
+```
+Check that everything works with `npm run test`. Type `npm run` for more options.
+
+
+5. Task-Solve-Verify.  Open a separate Terminal and start an Ethereum client, i.e.
+```
+ganache-cli
+```
+and optionally open another terminal with IPFS via `ipfs daemon`.  Finally, start Truebit-OS!
+```
+npm run truebit
+```
+To get some tokens, type `claim`, and check your address using `balance`.  If you need ETH, then `exit` Truebit-OS  and use `node send.js address=[youraddress]` to send test ETH.  Remember to omit the "0x" prefix for the address.  Use `help` For assistance with other Truebit-OS commands.
+
 
 # Development
 
