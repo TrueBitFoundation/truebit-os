@@ -5,321 +5,329 @@ const contract = require('../wasm-client/contractHelper')
 const mineBlocks = require('../os/lib/util/mineBlocks')
 
 function setup(web3) {
-    return (async () => {
-	const httpProvider = web3.currentProvider
-	const config = await contractsConfig(web3)
-	
-	return Promise.all([
-	    contract(httpProvider, config['incentiveLayer']),
-	    contract(httpProvider, config['tru']),
-	])
-    })()
+	return (async () => {
+		const httpProvider = web3.currentProvider
+		const config = await contractsConfig(web3)
+
+		return Promise.all([
+			contract(httpProvider, config['incentiveLayer']),
+			contract(httpProvider, config['tru']),
+		])
+	})()
 }
 
-describe('Truebit Incentive Layer Smart Contract Unit Tests', function() {
-    this.timeout(60000)
+describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
+	this.timeout(60000)
 
-    let incentiveLayer, tru, taskGiver, solver, verifier, accounts, dummy
-    let minDeposit, taskID, randomBits, randomBitsHash, solution0Hash, solution1Hash, web3
+	let incentiveLayer, tru, taskGiver, solver, verifier, accounts, dummy
+	let minDeposit, taskID, randomBits, randomBitsHash, solution0Hash, solution1Hash, web3
 
-    before(async () => {
-	let os = await require('../os/kernel')('./wasm-client/config.json')
+	before(async () => {
+		let os = await require('../os/kernel')('./wasm-client/config.json')
 
-	let contracts = await setup(os.web3)
+		let contracts = await setup(os.web3)
 
-	web3 = os.web3
+		web3 = os.web3
 
-	incentiveLayer = contracts[0]
-	tru = contracts[1]
+		incentiveLayer = contracts[0]
+		tru = contracts[1]
 
-	taskGiver = os.accounts[0]
-	solver = os.accounts[1]
-	verifier = os.accounts[2]
-	dummy = os.accounts[3]
+		taskGiver = os.accounts[0]
+		solver = os.accounts[1]
+		verifier = os.accounts[2]
+		dummy = os.accounts[3]
 
-	accounts = [taskGiver, solver, verifier]
+		accounts = [taskGiver, solver, verifier]
 
-	minDeposit = "1000000000000000000"
+		minDeposit = "1000000000000000000"
 
-	randomBits = 42
-	randomBitsHash = os.web3.utils.soliditySha3(randomBits)
-	solution0Hash = os.web3.utils.soliditySha3(0x0, 0x0, 0x0, 0x0)
-	solutionCommit = os.web3.utils.soliditySha3(solution0Hash)
+		randomBits = 42
+		randomBitsHash = os.web3.utils.soliditySha3(randomBits)
+		solution0Hash = os.web3.utils.soliditySha3(0x0, 0x0, 0x0, 0x0)
+		solutionCommit = os.web3.utils.soliditySha3(solution0Hash)
 
-	for(let account of accounts) {
-	    await tru.approve(incentiveLayer.address, minDeposit, { from: account })
-	}
+		for (let account of accounts) {
+			await tru.approve(incentiveLayer.address, minDeposit, { from: account })
+		}
 
-    })
+	})
 
-    it("participants should make a deposit", async () => {
+	it("participants should make a deposit", async () => {
 
-	for(let account of accounts) {
-	   
-	    await incentiveLayer.makeDeposit(minDeposit, { from: account })
-	    
-	    let deposit = (await incentiveLayer.getDeposit.call(account)).toNumber()
+		for (let account of accounts) {
 
-	    assert(deposit > 1)
-	    
-	}
-	
-    })
+			await incentiveLayer.makeDeposit(minDeposit, { from: account })
 
-    it("should reject making a deposit of 42 with empty account", async () => {
-	return incentiveLayer.makeDeposit(42, { from: dummy })
-	    .then(
-		() => Promise.reject(new Error('Expected method to reject')),
-		err => assert(err instanceof Error)
-	    )
-    })    
+			let deposit = (await incentiveLayer.getDeposit.call(account)).toNumber()
 
-    it("should reject making a deposit of zero", async () => {
-	return incentiveLayer.makeDeposit(minDeposit, { from: dummy })
-	    .then(
-		() => Promise.reject(new Error('Expected method to reject')),
-		err => assert(err instanceof Error)
-	    )
-    })
+			assert(deposit > 1)
 
-    it("task giver should create a task", async () => {
-	const maxDifficulty = 1
-	const reward = 10000
-	
-	let tx = await incentiveLayer.createTask(0x0, 0, 0x0, maxDifficulty, reward, {from: taskGiver, gas: 300000})
+		}
 
-	let log = tx.logs.find(log => log.event === 'TaskCreated')
+	})
 
-	//confirm existence of params in event
-	assert(log.args.taskID)	
-	assert(log.args.codeType)
-	assert(log.args.bundleId == 0x0)
-	assert(log.args.blockNumber)
-	assert(log.args.reward)
+	it("should reject making a deposit of 42 with empty account", async () => {
+		return incentiveLayer.makeDeposit(42, { from: dummy })
+			.then(
+				() => Promise.reject(new Error('Expected method to reject')),
+				err => assert(err instanceof Error)
+			)
+	})
 
-	//confirm proper economic values
-	assert.equal(log.args.minDeposit.toString(), minDeposit)
-	assert.equal(log.args.tax.toNumber(), (log.args.reward.toNumber() * 5))
+	it("should reject making a deposit of zero", async () => {
+		return incentiveLayer.makeDeposit(minDeposit, { from: dummy })
+			.then(
+				() => Promise.reject(new Error('Expected method to reject')),
+				err => assert(err instanceof Error)
+			)
+	})
 
-	taskID = log.args.taskID
-    })
+	it("task giver should create a task", async () => {
+		const maxDifficulty = 1
+		const reward = 10000
 
-    it("should reject creating a task with no deposit", async () => {
-	return incentiveLayer.createTask(0x0, 0, 0x0, 1, 10000, {from: dummy, gas: 300000})
-	    .then(
-		() => Promise.reject(new Error('Expected method to reject')),
-		err => assert(err instanceof Error)
-	    )
-    })
+		let tx = await incentiveLayer.createTask(0x0, 0, 0x0, maxDifficulty, reward, { from: taskGiver, gas: 300000 })
 
-    it("should reject creating a task with max difficulty set to zero", async () => {
-	return incentiveLayer.createTask(0x0, 0, 0x0, 0, 10000, {from: taskGiver, gas: 300000})
-	    .then(
-		() => Promise.reject(new Error('Expected method to reject')),
-		err => assert(err instanceof Error)
-	    )
-    })
+		let log = tx.logs.find(log => log.event === 'TaskCreated')
 
-    it("should reject creating a task with reward set to zero", async () => {
-	return incentiveLayer.createTask(0x0, 0, 0x0, 1, 0, {from: taskGiver, gas: 300000})
-	    .then(
-		() => Promise.reject(new Error('Expected method to reject')),
-		err => assert(err instanceof Error)
-	    )
-    })
+		//confirm existence of params in event
+		assert(log.args.taskID)
+		assert(log.args.codeType)
+		assert(log.args.bundleId == 0x0)
+		assert(log.args.blockNumber)
+		assert(log.args.reward)
 
-    it("should reject creating a task with improper code type", async () => {
-	return incentiveLayer.createTask(0x0, 42, 0x0, 1, 100000, {from: taskGiver, gas: 300000})
-	    .then(
-		() => Promise.reject(new Error('Expected method to reject')),
-		err => assert(err instanceof Error)
-	    )
-    })    
+		//confirm proper economic values
+		assert.equal(log.args.minDeposit.toString(), minDeposit)
+		assert.equal(log.args.tax.toNumber(), (log.args.reward.toNumber() * 5))
 
-    it("should get vm parameters", async () => {
-	let p = await incentiveLayer.getVMParameters.call(taskID)
-	let params = {
-	    stackSize: p[0],
-	    memorySize: p[1],
-	    globalsSize: p[2],
-	    tableSize: p[3],
-	    callSize: p[4]
-	}
+		taskID = log.args.taskID
+	})
 
-	//Testing for default parameters
-	assert.equal(params.stackSize, 14)
-	assert.equal(params.memorySize, 16)
-	assert.equal(params.globalsSize, 8)
-	assert.equal(params.tableSize, 8)
-	assert.equal(params.callSize, 10)
-    })
+	it("should reject creating a task with no deposit", async () => {
+		return incentiveLayer.createTask(0x0, 0, 0x0, 1, 10000, { from: dummy, gas: 300000 })
+			.then(
+				() => Promise.reject(new Error('Expected method to reject')),
+				err => assert(err instanceof Error)
+			)
+	})
 
-    it("should get task info", async () => {
-	let t = await incentiveLayer.getTaskInfo.call(taskID)
+	it("should reject creating a task with max difficulty set to zero", async () => {
+		return incentiveLayer.createTask(0x0, 0, 0x0, 0, 10000, { from: taskGiver, gas: 300000 })
+			.then(
+				() => Promise.reject(new Error('Expected method to reject')),
+				err => assert(err instanceof Error)
+			)
+	})
 
-	let taskInfo = {
-	    taskGiver: t[0],
-	    taskInitHash: t[1],
-	    codeType: t[2],
-	    bundleId: t[3],
-	    taskID: t[4]
-	}
+	it("should reject creating a task with reward set to zero", async () => {
+		return incentiveLayer.createTask(0x0, 0, 0x0, 1, 0, { from: taskGiver, gas: 300000 })
+			.then(
+				() => Promise.reject(new Error('Expected method to reject')),
+				err => assert(err instanceof Error)
+			)
+	})
 
-	assert.equal(taskInfo.taskGiver, taskGiver.toLowerCase())
-	assert.equal(taskInfo.taskInitHash, 0x0)
-	assert.equal(taskInfo.codeType, 0)
-	assert.equal(taskInfo.bundleId, 0x0)
-	assert.equal(taskInfo.taskID, taskID)
-    })
+	it("should reject creating a task with improper code type", async () => {
+		return incentiveLayer.createTask(0x0, 42, 0x0, 1, 100000, { from: taskGiver, gas: 300000 })
+			.then(
+				() => Promise.reject(new Error('Expected method to reject')),
+				err => assert(err instanceof Error)
+			)
+	})
 
-    it("should reject registering for a task with no deposit", async () => {
-	return incentiveLayer.registerForTask(taskID, randomBitsHash, {from: dummy, gas: 300000})
-	    .then(
-		() => Promise.reject(new Error('Expected method to reject')),
-		err => assert(err instanceof Error)
-	    )
-    })    
-    
-    it("solver should register for task", async () => {
-	
-	let tx = await incentiveLayer.registerForTask(taskID, randomBitsHash, {from: solver, gas: 300000})
+	it("should get vm parameters", async () => {
+		let p = await incentiveLayer.getVMParameters.call(taskID)
+		let params = {
+			stackSize: p[0],
+			memorySize: p[1],
+			globalsSize: p[2],
+			tableSize: p[3],
+			callSize: p[4]
+		}
 
-	let log
+		//Testing for default parameters
+		assert.equal(params.stackSize, 14)
+		assert.equal(params.memorySize, 16)
+		assert.equal(params.globalsSize, 8)
+		assert.equal(params.tableSize, 8)
+		assert.equal(params.callSize, 10)
+	})
 
-        log = tx.logs.find(log => log.event === 'DepositBonded')
-	
-        assert.equal(log.args.taskID, taskID)
-        assert.equal(log.args.account, solver.toLowerCase())
-        assert.equal(log.args.amount.toString(10), minDeposit)
+	it("should get task info", async () => {
+		let t = await incentiveLayer.getTaskInfo.call(taskID)
 
-        log = tx.logs.find(log => log.event === 'SolverSelected')
+		let taskInfo = {
+			taskGiver: t[0],
+			taskInitHash: t[1],
+			codeType: t[2],
+			bundleId: t[3],
+			taskID: t[4]
+		}
 
-        assert.equal(log.args.taskID, taskID)
-        assert.equal(log.args.solver, solver.toLowerCase())
-        assert.equal(log.args.taskData, 0x0)        
-	assert.equal(log.args.randomBitsHash, randomBitsHash)
+		assert.equal(taskInfo.taskGiver, taskGiver.toLowerCase())
+		assert.equal(taskInfo.taskInitHash, 0x0)
+		assert.equal(taskInfo.codeType, 0)
+		assert.equal(taskInfo.bundleId, 0x0)
+		assert.equal(taskInfo.taskID, taskID)
+	})
 
-	assert.equal(log.args.minDeposit, minDeposit)
-	
-    })
+	it("should reject registering for a task with no deposit", async () => {
+		return incentiveLayer.registerForTask(taskID, randomBitsHash, { from: dummy, gas: 300000 })
+			.then(
+				() => Promise.reject(new Error('Expected method to reject')),
+				err => assert(err instanceof Error)
+			)
+	})
 
-    it("should reject registering for a task because solver has been selected", async () => {
-	return incentiveLayer.registerForTask(taskID, randomBitsHash, {from: verifier, gas: 300000})
-	    .then(
-		() => Promise.reject(new Error('Expected method to reject')),
-		err => assert(err instanceof Error)
-	    )
-    })
+	it("solver should register for task", async () => {
 
-    it("should reject committing solution because not selected solver", async () => {
-	return incentiveLayer.commitSolution(taskID, solutionCommit, {from: verifier, gas: 300000})
-	    .then(
-		() => Promise.reject(new Error('Expected method to reject')),
-		err => assert(err instanceof Error)
-	    )
-    })
+		let tx = await incentiveLayer.registerForTask(taskID, randomBitsHash, { from: solver, gas: 300000 })
 
-    it("solver should commit a solution", async () => {
-		let tx = await incentiveLayer.commitSolution(taskID, solutionCommit, {from: solver, gas: 300000})
+		let log
 
-	let log = tx.logs.find(log => log.event === 'SolutionsCommitted')
+		log = tx.logs.find(log => log.event === 'DepositBonded')
 
-	assert(log.args.taskID)
-	assert(log.args.minDeposit)
-	assert(log.args.bundleId == 0x0)
-	assert(log.args.codeType)
-    })
+		assert.equal(log.args.taskID, taskID)
+		assert.equal(log.args.account, solver.toLowerCase())
+		assert.equal(log.args.amount.toString(10), minDeposit)
 
-    it("should reject committing solution again", async () => {
-	return incentiveLayer.commitSolution(taskID, solutionCommit, {from: solver, gas: 300000})
-	    .then(
-		() => Promise.reject(new Error('Expected method to reject')),
-		err => assert(err instanceof Error)
-	    )
-    })
+		log = tx.logs.find(log => log.event === 'SolverSelected')
 
-    it("should end challenge period", async () => {
-	assert(!(await incentiveLayer.endChallengePeriod.call(taskID)))
-	
-	await mineBlocks(web3, 110)
-	
-	assert(await incentiveLayer.endChallengePeriod.call(taskID))
-	await incentiveLayer.endChallengePeriod(taskID, {from: solver})
-    })
+		assert.equal(log.args.taskID, taskID)
+		assert.equal(log.args.solver, solver.toLowerCase())
+		assert.equal(log.args.taskData, 0x0)
+		assert.equal(log.args.randomBitsHash, randomBitsHash)
 
-    it("should end reveal period", async () => {
-	assert(!(await incentiveLayer.endRevealPeriod.call(taskID)))
-	
-	await mineBlocks(web3, 110)
-	
-	assert(await incentiveLayer.endRevealPeriod.call(taskID))
-	await incentiveLayer.endRevealPeriod(taskID, {from: solver})
-    })
+		assert.equal(log.args.minDeposit, minDeposit)
 
-    it("should reject revealing solution if not selected solver", async () => {	
-	return incentiveLayer.revealSolution(taskID, randomBits, 0x0, 0x0, 0x0, 0x0, {from: verifier, gas: 300000})
-	    .then(
-		() => Promise.reject(new Error('Expected method to reject')),
-		err => assert(err instanceof Error)
-	    )
-    })
+	})
 
-    it("should reject revealing solution if not correct random bits", async () => {	
-	return incentiveLayer.revealSolution(taskID, 12345, 0x0, 0x0, 0x0, 0x0, {from: solver, gas: 300000})
-	    .then(
-		() => Promise.reject(new Error('Expected method to reject')),
-		err => assert(err instanceof Error)
-	    )
-    })    
+	it("should reject registering for a task because solver has been selected", async () => {
+		return incentiveLayer.registerForTask(taskID, randomBitsHash, { from: verifier, gas: 300000 })
+			.then(
+				() => Promise.reject(new Error('Expected method to reject')),
+				err => assert(err instanceof Error)
+			)
+	})
 
-    it("should reveal solution", async () => {
-	let tx = await incentiveLayer.revealSolution(taskID, randomBits, 0x0, 0x0, 0x0, 0x0, {from: solver, gas: 300000})
+	it("should reject committing solution because not selected solver", async () => {
+		return incentiveLayer.commitSolution(taskID, solutionCommit, { from: verifier, gas: 300000 })
+			.then(
+				() => Promise.reject(new Error('Expected method to reject')),
+				err => assert(err instanceof Error)
+			)
+	})
 
-	let log = tx.logs.find(log => log.event === 'SolutionRevealed')
+	it("solver should commit a solution", async () => {
+		let tx = await incentiveLayer.commitSolution(taskID, solutionCommit, { from: solver, gas: 300000 })
 
-	assert(log.args.taskID)
-	assert(log.args.randomBits)
-    })
+		let log = tx.logs.find(log => log.event === 'SolutionsCommitted')
 
-    it("should get solution info", async () => {
-		let s = await incentiveLayer.getSolutionInfo.call(taskID) 
-	
+		assert(log.args.taskID)
+		assert(log.args.minDeposit)
+		assert(log.args.bundleId == 0x0)
+		assert(log.args.codeType)
+	})
+
+	it("should reject committing solution again", async () => {
+		return incentiveLayer.commitSolution(taskID, solutionCommit, { from: solver, gas: 300000 })
+			.then(
+				() => Promise.reject(new Error('Expected method to reject')),
+				err => assert(err instanceof Error)
+			)
+	})
+
+	it("should end challenge period", async () => {
+		assert(!(await incentiveLayer.endChallengePeriod.call(taskID)))
+
+		await mineBlocks(web3, 20)
+
+		assert(await incentiveLayer.endChallengePeriod.call(taskID))
+		await incentiveLayer.endChallengePeriod(taskID, { from: solver })
+	})
+
+	it("should end reveal period", async () => {
+		assert(!(await incentiveLayer.endRevealPeriod.call(taskID)))
+
+		await mineBlocks(web3, 20)
+
+		assert(await incentiveLayer.endRevealPeriod.call(taskID))
+		await incentiveLayer.endRevealPeriod(taskID, { from: solver })
+	})
+
+	it("should reject revealing solution if not selected solver", async () => {
+		return incentiveLayer.revealSolution(taskID, randomBits, 0x0, 0x0, 0x0, 0x0, { from: verifier, gas: 300000 })
+			.then(
+				() => Promise.reject(new Error('Expected method to reject')),
+				err => assert(err instanceof Error)
+			)
+	})
+
+	it("should reject revealing solution if not correct random bits", async () => {
+		return incentiveLayer.revealSolution(taskID, 12345, 0x0, 0x0, 0x0, 0x0, { from: solver, gas: 300000 })
+			.then(
+				() => Promise.reject(new Error('Expected method to reject')),
+				err => assert(err instanceof Error)
+			)
+	})
+
+	it("should reveal solution", async () => {
+		let tx = await incentiveLayer.revealSolution(taskID, randomBits, 0x0, 0x0, 0x0, 0x0, { from: solver, gas: 300000 })
+
+		let log = tx.logs.find(log => log.event === 'SolutionRevealed')
+
+		assert(log.args.taskID)
+		assert(log.args.randomBits)
+	})
+
+	it("should fail revealing solution another time", async () => {
+		return incentiveLayer.revealSolution(taskID, randomBits, 0x0, 0x0, 0x0, 0x0, { from: solver, gas: 300000 })
+			.then(
+				() => Promise.reject(new Error('Expected method to reject')),
+				err => assert(err instanceof Error)
+			)
+	})
+
+	it("should get solution info", async () => {
+		let s = await incentiveLayer.getSolutionInfo.call(taskID)
+
 		let solutionInfo = {
 			taskID: s[0],
 			solutionHash0: s[1],
 			solutionCommit: s[2],
 			taskInitHash: s[3],
 			codeType: s[4],
-	    bundleId: s[5],
-	    solver: s[6]
+			bundleId: s[5],
+			solver: s[6]
 		}
-	
+
 		assert.equal(solutionInfo.taskID, taskID)
 		assert.equal(solutionInfo.solutionCommit, solutionCommit)
 		assert.equal(solutionInfo.solutionHash0, solution0Hash)
 		assert.equal(solutionInfo.taskInitHash, 0x0)
 		assert.equal(solutionInfo.codeType, 0)
-  	assert.equal(solutionInfo.bundleId, 0x0)
+		assert.equal(solutionInfo.bundleId, 0x0)
 		assert.equal(solutionInfo.solver, solver.toLowerCase())
-		})
-	
-    // describe("forced error mechanism", async () => {
+	})
 
-    // 	const n = 1000
-    // 	let count = 0
+	// describe("forced error mechanism", async () => {
 
-    // 	before(async () => {
-    // 	    for(let i = 0; i < n; i++) {
-    // 		let r = Math.floor((Math.random() * 100000) + 1)
-    // 		let hash = web3.utils.soliditySha3(r)
-    // 		if(await incentiveLayer.isForcedError.call(r, hash)) count++
-    // 	    }
-    // 	})
+	// 	const n = 1000
+	// 	let count = 0
 
-    // 	it("should have forced error rate above 45%", () => {
-    // 	    console.log(count + " forced errors out of " + n)
-    // 	    assert((count / n) > 0.45)
-    // 	})
-    // })
-    
+	// 	before(async () => {
+	// 	    for(let i = 0; i < n; i++) {
+	// 		let r = Math.floor((Math.random() * 100000) + 1)
+	// 		let hash = web3.utils.soliditySha3(r)
+	// 		if(await incentiveLayer.isForcedError.call(r, hash)) count++
+	// 	    }
+	// 	})
+
+	// 	it("should have forced error rate above 45%", () => {
+	// 	    console.log(count + " forced errors out of " + n)
+	// 	    assert((count / n) > 0.45)
+	// 	})
+	// })
+
 })

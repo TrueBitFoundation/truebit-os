@@ -39,6 +39,8 @@ contract FileManager is FSUtils {
 	}
     }
 
+	event CreatedFile(bytes32 id, bytes32 root);
+
     function calc_depth(uint x) internal pure returns (uint) {
         if (x <= 1) return 0;
         else return 1 + calc_depth(x / 2);
@@ -58,6 +60,7 @@ contract FileManager is FSUtils {
 	uint size = arr.length > 0 ? calc_depth(arr.length*2 - 1) : 0;
 	// if (size == 0) size = 1;
 	f.root = fileMerkle(arr, 0, size);
+	emit CreatedFile(id, f.root);
 	return id;
     }
 
@@ -93,6 +96,7 @@ contract FileManager is FSUtils {
 	f.root = root;
 	f.codeRootSet = false;
 	f.fileType = 1;
+	emit CreatedFile(id, f.root);
 
 	return id;
     }
@@ -108,6 +112,7 @@ contract FileManager is FSUtils {
 	f.root = root;
 	f.codeRootSet = false;
 	f.fileType = 2;
+	emit CreatedFile(id, f.root);
 	return id;
     }
 
@@ -122,6 +127,7 @@ contract FileManager is FSUtils {
 	f.codeRoot = codeRoot;
 	f.codeRootSet = true;
 	f.fileType = 2;
+	emit CreatedFile(id, f.root);
 	return id;
     }
 
@@ -261,6 +267,11 @@ contract FileManager is FSUtils {
 			nodes[id] = Node(n.left, l_id);
 			return id;
 		}
+	}
+
+	event MakeEvent();
+	function ev() public {
+		emit MakeEvent();
 	}
 
 }

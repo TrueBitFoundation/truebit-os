@@ -53,6 +53,8 @@ async function selectCandidates(wl, tickets, task) {
 
     let sorted = lst.sort((b,a) => a.weight.compare(b.weight))
 
+    // console.log(sorted)
+
     return sorted
 
 }
@@ -147,6 +149,7 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
         let solution = makeRandom(32)
 
         await taskBook.methods.addTask(task, solution).send({from:accounts[0]})
+        await mineBlocks(web3, 1)
 
         solver = await findSolver(wl, startBlock, task)
 
@@ -185,7 +188,8 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
         task = makeRandom(32)
         let solution = makeRandom(32)
 
-        await taskBook.methods.addTask(task, solution).send({from:accounts[0]})
+        await taskBook.methods.addTask(task, solution).send({from:accounts[0], gas: 1000000})
+        await mineBlocks(web3, 1)
 
         let tickets = await getTickets(wl, startBlock)
         let lst = await selectCandidates(wl, tickets, task)
@@ -195,10 +199,14 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
 
         let other = lst2[1].ticket
 
-        // console.log("Solver ticket", solver)
+        // console.log("TASK", task)
 
-        await wl.methods.useTicket(solver.ticket, task).send({from:solver.owner})
+        await wl.methods.useTicket(solver.ticket, task).send({from:solver.owner, gas:1000000})
 
+        {
+            let lst = await selectCandidates(wl, tickets, task)
+            let selected = lst.slice(0,2).map(a => a.ticket)
+        }
         let valid = await wl.methods.validTicket(solver.ticket).call()
 
         let approved = await wl.methods.approved(task, solver.owner).call()
@@ -208,12 +216,13 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
 
         let i = 0
         for (let t of selected) {
+            // console.log("adding", solver.ticket, t.ticket, i, other.owner)
             await wl.methods.addChallenge(solver.ticket, t.ticket, i).send({from:other.owner, gas:1000000})
+            // console.log("probably it's really some error")
             i++
         }
 
-        let chals = await wl.methods.getChallenges(solver.ticket).call()
-
+        let chals = await wl.methods.getChallenges(solver.ticket).call({gas: 1000000})
         assert.equal(chals.length, selected.length)
 
     })
@@ -234,6 +243,7 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
         let solution = makeRandom(32)
 
         await taskBook.methods.addTask(task, solution).send({from:accounts[0]})
+        await mineBlocks(web3, 1)
 
         let tickets = await getTickets(wl, startBlock)
         let lst = await selectCandidates(wl, tickets, task)
@@ -282,6 +292,7 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
         let solution = makeRandom(32)
 
         await taskBook.methods.addTask(task, solution).send({from:accounts[0]})
+        await mineBlocks(web3, 1)
 
         let tickets = await getTickets(wl, startBlock)
         let lst = await selectCandidates(wl, tickets, task)
@@ -334,6 +345,7 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
         let solution = makeRandom(32)
 
         await taskBook.methods.addTask(task, solution).send({from:accounts[0]})
+        await mineBlocks(web3, 1)
 
         let tickets = await getTickets(wl, startBlock)
         let lst = await selectCandidates(wl, tickets, task)
@@ -375,5 +387,6 @@ describe('Truebit Whitelist Smart Contract Unit Tests', function () {
         assert.equal(evs.length, 3)
 
     })
+
 })
 

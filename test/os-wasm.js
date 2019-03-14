@@ -89,9 +89,9 @@ describe('Truebit OS WASM', async function() {
 	    await taskSubmitter.submitTask(exampleTask)
 
 	    await timeout(8000)
-	    await mineBlocks(os.web3, 110)
+	    await mineBlocks(os.web3, 20)
 	    await timeout(5000)
-	    await mineBlocks(os.web3, 110)
+	    await mineBlocks(os.web3, 20)
 	    await timeout(5000)
 	    
 	    let tasks = os.taskGiver.getTasks()

@@ -61,6 +61,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
     event EndRevealPeriod(bytes32 taskID);
     event EndChallengePeriod(bytes32 taskID);
     event TaskFinalized(bytes32 taskID);
+    event TaskTimeout(bytes32 taskID);
 
     enum State { TaskInitialized, SolverSelected, SolutionCommitted, ChallengesAccepted, IntentsRevealed, SolutionRevealed, TaskFinalized, TaskTimeout }
     enum Status { Uninitialized, Challenged, Unresolved, SolverWon, ChallengerWon }//For dispute resolution
@@ -406,6 +407,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         Task storage t = tasks[taskID];
         t.state = State.TaskTimeout;
         delete t.selectedSolver;
+        emit TaskTimeout(taskID);
         bool ok;
         bytes memory res;
         (ok, res) = t.owner.call(abi.encodeWithSignature("cancel(bytes32)", taskID));
@@ -415,7 +417,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
         uint g_timeout = IDisputeResolutionLayer(disputeResolutionLayer).timeoutBlock(s.currentGame);
-        require(block.number > g_timeout);
+        require(block.number > g_timeout + BASIC_TIMEOUT);
         require(block.number > t.timeoutBlock + BASIC_TIMEOUT);
         require(t.state != State.TaskTimeout);
         require(t.state != State.TaskFinalized);
@@ -427,7 +429,7 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
         uint g_timeout = IDisputeResolutionLayer(disputeResolutionLayer).timeoutBlock(s.currentGame);
-        if (block.number <= g_timeout) return false;
+        if (block.number <= g_timeout + BASIC_TIMEOUT) return false;
         if (t.state == State.TaskTimeout) return false;
         if (t.state == State.TaskFinalized) return false;
         if (block.number <= t.timeoutBlock + BASIC_TIMEOUT) return false;

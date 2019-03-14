@@ -170,13 +170,11 @@ module.exports = (logger, wasmInterpreterPath = defaultWasmInterpreterPath, jit_
 
                 getLocation: async (stepNumber, interpreterArgs = []) => {
                     let stdout = await exec(config, ["-m", "-disable-float", "-location", stepNumber], interpreterArgs, path)
-
                     return JSON.parse(stdout)
                 },
 
                 getStep: async (stepNumber, interpreterArgs = []) => {
                     let stdout = await exec(config, ["-m", "-disable-float", "-step", stepNumber], interpreterArgs, path)
-
                     return JSON.parse(stdout)
                 },
                 fileProofs: async (interpreterArgs = []) => {

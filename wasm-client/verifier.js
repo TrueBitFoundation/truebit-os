@@ -117,7 +117,7 @@ module.exports = {
                 message: `VERIFIER: Executed task ${taskID}. Checking solutions`
             })
 
-            task_list.push(taskID)
+            if (!tasks[taskID]) task_list.push(taskID)
 
             let myHash = solution.hash
             if (test) myHash = "0x" + helpers.makeSecret(myHash)
@@ -204,6 +204,21 @@ module.exports = {
 
         })
 
+        addEvent("TaskTimeout", incentiveLayer.TaskTimeout, async (result) => {
+            let taskID = result.args.taskID
+
+            if (tasks[taskID]) {
+                await incentiveLayer.unbondDeposit(taskID, { from: account, gas: 100000, gasPrice: web3.gp })
+                delete tasks[taskID]
+                logger.log({
+                    level: 'info',
+                    message: `VERIFIER: Task ${taskID} failed. Tried to unbond deposits.`
+                })
+
+            }
+
+        })
+
         addEvent("SlashedDeposit", incentiveLayer.SlashedDeposit, async (result) => {
             let addr = result.args.account
 
@@ -242,6 +257,7 @@ module.exports = {
 
                 let lowStep = result.args.idx1.toNumber()
                 let highStep = result.args.idx2.toNumber()
+                let reportedStateHash = result.args.arr[0]
                 let taskID = games[gameID].taskID
 
                 logger.log({
@@ -251,11 +267,11 @@ module.exports = {
 
                 let stepNumber = midpoint(lowStep, highStep)
 
-                let reportedStateHash = await disputeResolutionLayer.getStateAt.call(gameID, stepNumber)
-
                 let stateHash = await tasks[taskID].vm.getLocation(stepNumber, tasks[taskID].interpreterArgs)
 
                 let num = reportedStateHash == stateHash ? 1 : 0
+
+                logger.info(`VERIFIER: At step ${stepNumber} reported ${reportedStateHash}, got ${stateHash}`)
 
                 await disputeResolutionLayer.query(
                     gameID,

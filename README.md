@@ -12,6 +12,15 @@ If you are interested in interfacing with Truebit via smart contract you'll want
 
 If you want to talk to the developers working on this project feel free to say hello on our [Gitter](https://gitter.im/TrueBitFoundation/Lobby).  You can install Truebit using Docker or build it from source.  One can install locally or run over the Goerli testnet.
 
+# Contents
+
+1. [Running on Docker](#running-on-docker)
+    1. [Compiling and running Truebit tasks](#compiling-and-running-truebit-tasks)
+    2. [Goerli testnet tutorial](#goerli-testnet-tutorial)
+2. [Linux installation](#building-from-source-in-linux)
+3. [MacOS installation](#building-from-source-in-macos)
+4. [Development](#development)
+
 # Running on Docker
 
 Install [Docker](https://www.docker.com/), and open a Terminal.  If you previously used another Truebit-OS Docker image, you may need to update first:
@@ -23,38 +32,7 @@ docker rm tb; docker pull mrsmkl/truebit-goerli:latest; docker pull mrsmkl/wasm-
 
 First start up the docker image:
 ```
-docker run -ti mrsmkl/wasm-ports:latest /bin/bash
-```
-(If you have old version of the docker image, use `docker pull` to download a new one).
-
-Start up ganache and IPFS, also deploy contracts:
-```
-cd truebit-os
-sh scripts/start-env.sh
-```
-
-Set up the emscripten environment variables:
-```
-source /emsdk/emsdk_env.sh
-```
-
-Compile the scrypt C++ program:
-```
-cd scrypt-data
-sh compile.sh
-```
-
-Run the test
-```
-cd ..
-mocha test/os-wasm-scrypt.js
-```
-
-### Running tests for different tasks
-
-First start up the docker image:
-```
-docker run -ti mrsmkl/wasm-ports:latest /bin/bash
+docker run -ti mrsmkl/wasm-ports:19-03-13 /bin/bash
 ```
 
 Start up the Truebit environment:
@@ -63,39 +41,24 @@ cd truebit-os
 sh scripts/start-private.sh
 ```
 
-Test scrypt example task:
+Run test tasks:
 ```
-cd /example-app
-node deploy.js
-mocha test.js
-```
-
-Test bilinear pairing example task:
-```
-cd /wasm-ports/samples/pairing
-node ../deploy.js
-mocha test.js
+cd /wasm-ports/samples
+sh deploy.sh
+mocha
 ```
 
-Test chess example task:
+If you want to recompile a sample, go to a sample directory, and then first setup the environment with
 ```
-cd /wasm-ports/samples/chess
-node ../deploy.js
-mocha test.js
+source /emsdk/emsdk_env.sh
 ```
-
-Test WebAssembly validation example task:
-```
-cd /wasm-ports/samples/wasm
-solc --overwrite --bin --abi --optimize contract.sol -o build
-node ../deploy.js
-mocha test.js
-```
+Then use the `compile.sh` script. You'll also have to re-deploy with `node ../deploy.js`
 
 ### Testing on Goerli network
 
+To speed up network sync the next time, make a directory `~/goerli` and then mount it with docker:
 ```
-docker run --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.local/share/io.parity.ethereum mrsmkl/wasm-ports:latest /bin/bash
+docker run --rm --name=tb -it -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.local/share/io.parity.ethereum mrsmkl/wasm-ports:19-03-13 /bin/bash
 ```
 
 Start up IPFS and Parity:
@@ -103,7 +66,15 @@ Start up IPFS and Parity:
 cd truebit-os
 sh scripts/start-goerli.sh
 ```
-Wait for parity to sync, should take few minutes.
+Wait for parity to sync, should take few minutes. (For example `tail -F ~/goerli_log`)
+
+Find out your Goerli ETH address:
+```
+parity --chain=goerli account list
+```
+Then use the faucet to get some GÖETH:  https://goerli-faucet.slock.it/
+
+To connect to IPFS nodes, try `ipfs swarm connect /ip4/213.251.185.41/tcp/4001/ipfs/QmSob847F3sPkmveU5p2aPmjRgaXXdhXb7nnmJtkBZ1QDz`
 
 (Optional) After parity has synced, you can start Truebit:
 ```
@@ -112,11 +83,11 @@ sh scripts/start-tb.sh
 
 Testing samples, Scrypt
 ```
-cd /example-app
+cd /wasm-ports/samples/scrypt
 node send.js <text>
 ```
 
-Bilinear pairing
+Bilinear pairing (enter a string with more than 32 characters)
 ```
 cd /wasm-ports/samples/pairing
 node send.js <text>
@@ -134,73 +105,7 @@ cd /wasm-ports/samples/wasm
 node send.js <wasm file>
 ```
 
-## Private network
-
-For the private network, you'll need to install [Metamask](https://metamask.io/).  Run
-```
-docker run --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 mrsmkl/truebit-goerli:latest /bin/bash
-```
-
-To get started, use `tmux` to have several windows. New windows can be made with `ctrl-b c`. Use `ctrl-b <num>` to switch between windows. Alternatively, to split plane horizontally, use `ctrl+b "` and to split plane vertically `ctrl-b %`.  Shift between windows with `ctrl+b` followed by a cursor key. 
-
-In the first window, run `ipfs daemon`
-
-In second window, run `ganache-cli -h 0.0.0.0`
-
-In the next window
-```
-cd truebit-os
-npm run deploy
-```
-Note that you have to deploy the contracts each time after you have started up ganache.
-Find out what is your address in metamask (`address`), in hex format without 0x prefix.
-
-```
-node send.js --to=address
-```
-
-Start up the Truebit console with
-```
-npm run truebit
-```
-
-To run truebit client in JIT solving mode, use
-```
-npm run truebit wasm-client/config-jit.json
-```
-
-In the Truebit console, type
-```
-start solve
-```
-
-Then make a new tmux window
-```
-cd example-app
-node deploy.js
-service apache2 start
-```
-
-With a web browser, go to `localhost:3000/app`
-
-After you have submitted the task, go to the tmux window with Truebit console, and type
- `skip` a few times until the task is finalized.
-
-To run the bilinear pairing sample application enter:
-
-```
-cd /wasm-ports/samples/pairing/
-node ../deploy.js
-```
-
-This page will be at `localhost:3000/samples/pairing/public`.
-
-Type `help` to list or get more details on specific commands.  For example, you can try
-
-`start verify -t` to create a Verifier that initiates verification games, or
-
-`start solve -a 1`, `start solve -a 2`, .... to create additional Solvers.
-
+Progress can be followed from https://goerli.etherscan.io/address/0xf018f7f68f6eb999f4e7c02158e9a1ea4d77a067
 
 ## Goerli testnet tutorial
 
@@ -215,7 +120,7 @@ Type `help` to list or get more details on specific commands.  For example, you 
 4. Start a session:
 
 ```
-docker run --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.local/share/io.parity.ethereum mrsmkl/truebit-goerli:latest /bin/bash
+docker run --rm --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.ethereum mrsmkl/truebit-goerli:19-03-13 /bin/bash
 ```
 
 5. Initiate ```tmux```.
@@ -234,22 +139,21 @@ to connect to a Truebit node running IPFS.
 8. *Set up a new parity account.* Navigate to the other small window and type:
 
 ```
-cd ~/.local/share/io.parity.ethereum
+cd ~/.ethereum
 echo plort > supersecret.txt
-parity --chain goerli account new --password=supersecret.txt > goerliparity
+geth --goerli account new --password=supersecret.txt
 ```
+
 To check addresses created, type
-
 ```
-parity --chain goerli account list
+geth --goerli account list
 ```
-
-In case more than one account was created, you will need to add flags to command listed below (e.g. ```claim -a 1``` rather than ```claim```).
+Make sure there is just one account.
 
 9. *Connect to Goerli*.  Type:
 
 ```
-parity --chain goerli --unlock=$(cat goerliparity) --password=supersecret.txt --jsonrpc-cors=all --jsonrpc-interface=all
+geth --goerli --rpc --unlock 0 --password=supersecret.txt
 ```
 
 10. *Get testnet tokens* for the account(s) above here: https://goerli-faucet.slock.it/
@@ -276,44 +180,7 @@ Issue a task (factorial example):
 task
 ```
 
-13. Check your decentralized computations on the blockchain here: https://goerli.etherscan.io/address/0xD8859b0857de197C419f9dFd027c9800F0EC1112
-
-
-# Building from source in MacOS
-
-1. Install brew.
-```
-/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-```
-
-2. Clone this repo.
-```
-git clone https://github.com/TrueBitFoundation/truebit-os
-cd truebit-os
-```
-
-3. Install Solidity, NPM, IPFS, the off-chain interpreter, and client.
-```
-sh macinstall.sh
-```
-
-4. Compile and deploy the contracts.
-```
-npm run compile
-npm run deploy
-```
-Check that everything works with `npm run test`. Type `npm run` for more options.
-
-
-5. Task-Solve-Verify.  Open a separate Terminal and start an Ethereum client, i.e.
-```
-ganache-cli
-```
-and optionally open another terminal with IPFS via `ipfs daemon`.  Finally, start Truebit-OS!
-```
-npm run truebit
-```
-To get some tokens, type `claim`, and check your address using `balance`.  If you need ETH, then `exit` Truebit-OS  and use `node send.js address=[youraddress]` to send test ETH.  Remember to omit the "0x" prefix for the address.  Use `help` For assistance with other Truebit-OS commands.
+13. Check your decentralized computations on the blockchain here: https://goerli.etherscan.io/address/0xf018f7f68f6eb999f4e7c02158e9a1ea4d77a067
 
 
 # Building from source in Linux
@@ -393,15 +260,51 @@ skip -n 120 # Go past reveal period and finalize task
 
 *NOTE* These parameters are subject to future change
 
+# Building from source in MacOS
+
+1. Install brew.
+```
+/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+```
+
+2. Clone this repo.
+```
+git clone https://github.com/TrueBitFoundation/truebit-os
+cd truebit-os
+```
+
+3. Install Solidity, NPM, IPFS, the off-chain interpreter, and client.
+```
+sh macinstall.sh
+```
+
+4. Compile and deploy the contracts.
+```
+npm run compile
+npm run deploy
+```
+Check that everything works with `npm run test`. Type `npm run` for more options.
+
+
+5. Task-Solve-Verify.  Open a separate Terminal and start an Ethereum client, i.e.
+```
+ganache-cli
+```
+and optionally open another terminal with IPFS via `ipfs daemon`.  Finally, start Truebit-OS!
+```
+npm run truebit
+```
+To get some tokens, type `claim`, and check your address using `balance`.  If you need ETH, then `exit` Truebit-OS  and use `node send.js address=[youraddress]` to send test ETH.  Remember to omit the "0x" prefix for the address.  Use `help` For assistance with other Truebit-OS commands.
+
 # Development
 
 To run the tests use: `npm run test`
 
-# WASM Client
+### WASM Client
 
 The `wasm-client` directory houses the primary Truebit client. It contains 4 relevant JS modules that wrap the internal details of the protocol for a user friendly experience. These modules are designed to interact with the Truebit OS kernel and shell. The four modules are taskGiver, taskSubmitter, solver, and verifier. These modules can be run independently from each other. With the exception of taskGiver and taskSubmitter being recommended to run together.
 
-## Usage
+### Usage
 The way that Truebit OS knows where to load the relevant modules is with a config file. This is a simple JSON file with a couple fields, that tell the OS where to find the modules at. Here is the example config.json provided used for `basic-client`:
 ```javascript
 {
@@ -420,7 +323,7 @@ Logging is provided by [winston](https://github.com/winstonjs/winston). If you w
 NODE_ENV='production' npm run test
 ```
 
-# Git Submodule Commands
+### Git Submodule Commands
 
 Add submodule
 ```
