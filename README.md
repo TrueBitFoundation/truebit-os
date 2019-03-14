@@ -15,10 +15,10 @@ If you want to talk to the developers working on this project feel free to say h
 # Contents
 
 1. [Running on Docker](#running-on-docker)
-  1. [Compiling and running Truebit tasks](#compiling-and-running-truebit-tasks)
-  2. [Goerli testnet tutorial](#goerli-testnet-tutorial)
-2. [Linux installation](#building-from-source-on-linux)
-3. [MacOS installation](#building-from-source-on-macos)
+    1. [Compiling and running Truebit tasks](#compiling-and-running-truebit-tasks)
+    2. [Goerli testnet tutorial](#goerli-testnet-tutorial)
+2. [Linux installation](#building-from-source-in-linux)
+3. [MacOS installation](#building-from-source-in-macos)
 
 # Running on Docker
 
