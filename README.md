@@ -19,6 +19,7 @@ If you want to talk to the developers working on this project feel free to say h
     2. [Goerli testnet tutorial](#goerli-testnet-tutorial)
 2. [Linux installation](#building-from-source-in-linux)
 3. [MacOS installation](#building-from-source-in-macos)
+4. [Development](#development)
 
 # Running on Docker
 
@@ -295,16 +296,15 @@ npm run truebit
 ```
 To get some tokens, type `claim`, and check your address using `balance`.  If you need ETH, then `exit` Truebit-OS  and use `node send.js address=[youraddress]` to send test ETH.  Remember to omit the "0x" prefix for the address.  Use `help` For assistance with other Truebit-OS commands.
 
-
 # Development
 
 To run the tests use: `npm run test`
 
-# WASM Client
+### WASM Client
 
 The `wasm-client` directory houses the primary Truebit client. It contains 4 relevant JS modules that wrap the internal details of the protocol for a user friendly experience. These modules are designed to interact with the Truebit OS kernel and shell. The four modules are taskGiver, taskSubmitter, solver, and verifier. These modules can be run independently from each other. With the exception of taskGiver and taskSubmitter being recommended to run together.
 
-## Usage
+### Usage
 The way that Truebit OS knows where to load the relevant modules is with a config file. This is a simple JSON file with a couple fields, that tell the OS where to find the modules at. Here is the example config.json provided used for `basic-client`:
 ```javascript
 {
@@ -323,7 +323,7 @@ Logging is provided by [winston](https://github.com/winstonjs/winston). If you w
 NODE_ENV='production' npm run test
 ```
 
-# Git Submodule Commands
+### Git Submodule Commands
 
 Add submodule
 ```
