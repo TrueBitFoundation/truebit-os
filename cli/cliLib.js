@@ -165,7 +165,7 @@ module.exports.unbondDeposit = async ({ os, args }) => {
 	const config = await contractsConfig(os.web3)
   const incentiveLayer = await contract(httpProvider, config[os.config.incentiveLayer])
 
-  await incentiveLayer.unbondDeposit(args.options.task, { from: account, gasPrice:os.web3.gp })
+  await incentiveLayer.unbondDeposit(args.task, { from: account, gasPrice:os.web3.gp })
 
   module.exports.balance({os, args})
 }
