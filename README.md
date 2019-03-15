@@ -86,26 +86,36 @@ Testing samples, Scrypt
 cd /wasm-ports/samples/scrypt
 node send.js <text>
 ```
+Computes scrypt, the string is extended to 80 bytes. See source at https://github.com/TrueBitFoundation/wasm-ports/blob/v2/samples/scrypt/scrypthash.cpp
+Originally by @chriseth
+
 
 Bilinear pairing (enter a string with more than 32 characters)
 ```
 cd /wasm-ports/samples/pairing
 node send.js <text>
 ```
+Uses libff to compute bilinear pairing for bn128 curve. Reads two 32 byte data pieces `a` and `b`, they are used like private keys to get `a*O` and `b*O`. Then bilinear pairing is computed. The result has several components, one of them is posted. (To be clear, the code just shows that libff can be used to implement bilinear pairings with Truebit)
+See source at https://github.com/TrueBitFoundation/wasm-ports/blob/v2/samples/pairing/pairing.cpp
 
 Chess sample
 ```
 cd /wasm-ports/samples/chess
 node send.js <text>
 ```
+Checks a game of chess. For example the players could use a state channel to play a match. If there is a disagreement, then the gaem can be posted to Truebit. This will always work for state channels, because both parties have the data available.
+Source at https://github.com/TrueBitFoundation/wasm-ports/blob/v2/samples/chess/chess.cpp
+Doesn't implement all the rules, and not much tested.
 
 Validate WASM file
 ```
 cd /wasm-ports/samples/wasm
 node send.js <wasm file>
 ```
+Uses parity-wasm to read and write a WASM file.
+Source at https://github.com/TrueBitFoundation/wasm-ports/blob/v2/samples/wasm/src/main.rs
 
-Progress can be followed from https://goerli.etherscan.io/address/0xf018f7f68f6eb999f4e7c02158e9a1ea4d77a067
+Progress of tasks can be followed from https://goerli.etherscan.io/address/0xf018f7f68f6eb999f4e7c02158e9a1ea4d77a067
 
 ## Goerli testnet tutorial
 
