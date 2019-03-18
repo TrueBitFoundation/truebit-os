@@ -89,7 +89,6 @@ node send.js <text>
 Computes scrypt, the string is extended to 80 bytes. See source at https://github.com/TrueBitFoundation/wasm-ports/blob/v2/samples/scrypt/scrypthash.cpp
 Originally by @chriseth
 
-
 Bilinear pairing (enter a string with more than 32 characters)
 ```
 cd /wasm-ports/samples/pairing
