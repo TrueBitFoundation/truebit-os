@@ -12,7 +12,6 @@ brew install node ipfs
 
 #Install dependencies for offchain interpreter
 brew install opam libffi pkg-config
-brew upgrade opam
 opam init -y
 eval $(opam config env)
 opam install cryptokit yojson ctypes ctypes-foreign -y
