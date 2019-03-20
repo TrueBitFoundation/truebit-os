@@ -157,6 +157,19 @@ module.exports.deposit = async ({ os, args }) => {
   module.exports.balance({os, args})
 }
 
+/** unbond deposit from task */
+module.exports.unbondDeposit = async ({ os, args }) => {
+  console.log("unbond", args)
+  const account = os.accounts[args.options.account || 0]
+  const httpProvider = os.web3.currentProvider
+	const config = await contractsConfig(os.web3)
+  const incentiveLayer = await contract(httpProvider, config[os.config.incentiveLayer])
+
+  await incentiveLayer.unbondDeposit(args.task, { from: account, gasPrice:os.web3.gp })
+
+  module.exports.balance({os, args})
+}
+
 /** deposit tokens to incentive contract */
 module.exports.depositEther = async ({ os, args }) => {
   const account = os.accounts[args.options.account || 0]

@@ -66,13 +66,7 @@ vorpal
   .command('task', 'submit a task')
   .option('-a, --account <num>', 'index of web3 account to use.')
   .option('-t, --task <pathToTask>', 'the path to a task json file')
-  .action(async (args, callback) => {
-    await cliLib.taskGiver({
-      os,
-      args
-    })
-    callback()
-  })
+  .action(async (args, callback) => { await cliLib.taskGiver({ os, args }); callback() })
 
 vorpal
   .command(
@@ -81,10 +75,7 @@ vorpal
   )
   .option('-t, --task <pathToTask>', 'the path to a task json file')
   .action(async (args, callback) => {
-    let initHash = await cliLib.initHash({
-      os,
-      args
-    })
+    let initHash = await cliLib.initHash({ os, args })
     console.log("Initial hash: " + initHash)
     callback()
   })
@@ -93,101 +84,49 @@ vorpal
 vorpal
   .command('skip', 'skip blocks')
   .option('-n, --number <num>', 'number of blocks to skip.')
-  .action(async (args, callback) => {
-    await cliLib.skipHelper({
-      os,
-      args
-    })
-    callback()
-  })
+  .action(async (args, callback) => { await cliLib.skipHelper({ os, args }); callback() })
 
 vorpal
   .command(
     'accounts',
     'lists the available accounts on the network. Requires a running session.'
   )
-  .action(async (args, callback) => {
-    await cliLib.accounts({
-      os
-    })
-    callback()
-  })
+  .action(async (args, callback) => { await cliLib.accounts({ os }); callback() })
 
 vorpal
   .command('balance', 'show the balance of an account')
   .option('-a, --account <num>', 'index of web3 account to use.')
-  .action(async (args, callback) => {
-    await cliLib.balance({
-      os,
-      args
-    })
-    callback()
-  })
+  .action(async (args, callback) => { await cliLib.balance({ os, args }); callback() })
 
 vorpal
   .command('ticket', 'buy ticket from whitelist')
   .option('-a, --account <num>', 'index of web3 account to use.')
   .option('-v, --value <num>', 'amount of tickets.')
-  .action(async (args, callback) => {
-    await cliLib.ticket({
-      os,
-      args
-    })
-    callback()
-  })
+  .action(async (args, callback) => { await cliLib.ticket({ os, args }); callback() })
+
 vorpal
   .command('claim', 'claim test tokens')
   .option('-a, --account <num>', 'index of web3 account to use.')
-  .action(async (args, callback) => {
-    await cliLib.claimTokens({
-      os,
-      args
-    })
-    callback()
-  })
-  vorpal
+  .action(async (args, callback) => { await cliLib.claimTokens({ os, args }); callback() })
+
+vorpal
   .command('deposit', 'deposit tokens to incentive layer')
   .option('-a, --account <num>', 'index of web3 account to use.')
   .option('-v, --value <num>', 'amount of tokens.')
-  .action(async (args, callback) => {
-    await cliLib.deposit({
-      os,
-      args
-    })
-    callback()
-  })
-  vorpal
+  .action(async (args, callback) => { await cliLib.deposit({ os, args }); callback() })
+
+vorpal
   .command('deposit-ether', 'deposit ether to incentive layer')
   .option('-a, --account <num>', 'index of web3 account to use.')
   .option('-v, --value <num>', 'amount of tokens.')
-  .action(async (args, callback) => {
-    await cliLib.depositEther({
-      os,
-      args
-    })
-    callback()
-  })
-
-// All commands below this point are stubbed
-vorpal
-  .command(
-    'config',
-    'creates a default config.json file, or reloads the existing config file'
-  )
-  .action(async (args, callback) => {
-    throw new Error('not implemented')
-    callback()
-  })
+  .action(async (args, callback) => { await cliLib.depositEther({ os, args }); callback() })
 
 vorpal
-  .command(
-    'networks',
-    'lists the available networks in the currently loaded config'
-  )
-  .action(async (args, callback) => {
-    throw new Error('not implemented')
-    callback()
-  })
+  .command('unbond <task>', 'undond deposit from task')
+  .option('-a, --account <num>', 'index of web3 account to use.')
+  .option('-t, --task <str>', 'task here.')
+  .types({string:["_"]})
+  .action(async (args, callback) => { await cliLib.unbondDeposit({ os, args }); callback() })
 
 if (!argv["batch"]) {
   vorpal.delimiter('$ ').show()

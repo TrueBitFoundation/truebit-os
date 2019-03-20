@@ -131,6 +131,8 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
 
             let fileID = await uploadFile(fname, buf, types[i].toNumber())
 
+            logger.info(`Uploaded ${fname} to ${fileID}`)
+
             await incentiveLayer.uploadFile(taskID, i, fileID, proof.name, proof.data, proof.loc, { from: account, gas: 1000000, gasPrice: web3.gp })
         }
     }
