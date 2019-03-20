@@ -59,6 +59,7 @@ contract StakeWhitelist is IWhitelist {
         uint price;
         uint bn;
         bytes32 taskID;
+        uint usedBN;
         uint deposit;
         bytes32[] challenges;
         address challenger;
@@ -135,6 +136,7 @@ contract StakeWhitelist is IWhitelist {
         require(t.taskID == 0);
         require(selected[taskID] == address(0));
         t.taskID = taskID;
+        t.usedBN = block.number;
         selected[taskID] = msg.sender;
         emit UsedTicket(idx, taskID, t.owner);
     }
@@ -144,20 +146,22 @@ contract StakeWhitelist is IWhitelist {
         uint task_block = tb.getBlock(taskID);
         Ticket storage t = tickets[idx];
         if (t.bn > task_block) return 0;
-        if (t.taskID != 0 && t.taskID != taskID) return 0;
+        if (t.usedBN < task_block && t.usedBN != 0) return 0;
+//        if (t.taskID != 0 && t.taskID != taskID) return 0;
         return uint(keccak256(abi.encodePacked(idx, taskID, blockhash(task_block))));
     } 
 
     function getVerifierWeight(bytes32 idx, bytes32 taskID, uint task_block) public view returns (uint) {
         Ticket storage t = tickets[idx];
         if (t.bn > task_block) return 0;
+        if (t.usedBN < task_block && t.usedBN != 0) return 0;
         return uint(keccak256(abi.encodePacked(idx, taskID, blockhash(task_block))));
     } 
 
-    function getSolverWeight(bytes32 idx, bytes32 taskID, bytes32 solutionID, uint task_block) public view returns (uint) {
+    function getSolverWeight(bytes32 idx, bytes32 /* taskID */, bytes32 solutionID, uint task_block) public view returns (uint) {
         Ticket storage t = tickets[idx];
         if (t.bn > task_block) return 0;
-        if (t.taskID != 0 && t.taskID != taskID) return 0;
+        if (t.usedBN < task_block && t.usedBN != 0) return 0;
         return uint(keccak256(abi.encodePacked(idx, solutionID, blockhash(task_block))));
     } 
 
@@ -166,7 +170,8 @@ contract StakeWhitelist is IWhitelist {
         uint task_block = tb.getBlock(taskID);
         Ticket storage t = tickets[idx];
         if (t.bn > task_block) return 0;
-        if (t.taskID != 0 && t.taskID != taskID) return 0;
+        if (t.usedBN < task_block && t.usedBN != 0) return 0;
+//        if (t.taskID != 0 && t.taskID != taskID) return 0;
         return uint(keccak256(abi.encodePacked(idx, tb.getSolution(taskID), blockhash(task_block))));
     }
 

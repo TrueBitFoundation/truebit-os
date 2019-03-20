@@ -69,6 +69,7 @@ async function deploy() {
         ]
     )
 
+    console.log("Incentive Layer", incentiveLayer.options.address)
 
     // tru.methods.transferOwnership(incentiveLayer._address).send({from: accounts[0], gas: 1000000})
 
