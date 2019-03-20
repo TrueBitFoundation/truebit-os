@@ -101,7 +101,7 @@ Chess sample
 cd /wasm-ports/samples/chess
 node send.js <text>
 ```
-Checks a game of chess. For example the players could use a state channel to play a match. If there is a disagreement, then the gaem can be posted to Truebit. This will always work for state channels, because both parties have the data available.
+Checks a game of chess. For example the players could use a state channel to play a match. If there is a disagreement, then the game can be posted to Truebit. This will always work for state channels, because both parties have the data available.
 Source at https://github.com/TrueBitFoundation/wasm-ports/blob/v2/samples/chess/chess.cpp
 Doesn't implement all the rules, and not much tested.
 
