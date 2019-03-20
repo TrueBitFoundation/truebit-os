@@ -411,6 +411,8 @@ module.exports = {
         }
 
         let ival = setInterval(() => {
+            task_list = task_list.filter(a => tasks[a])
+            game_list = game_list.filter(a => games[a])            
             task_list.forEach(async t => {
                 try {
                     await handleTimeouts(t)

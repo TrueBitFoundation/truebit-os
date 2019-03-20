@@ -56,7 +56,7 @@ module.exports = {
         let events = []
 
         const clean_list = []
-        const game_list = []
+        let game_list = []
         const RECOVERY_BLOCKS = recover
 
         if (recovery_mode) logger.info(`Recovering back to ${Math.max(0, bn - RECOVERY_BLOCKS)}`)
@@ -620,6 +620,8 @@ module.exports = {
 
         let ival = setInterval(async () => {
             // console.log("deposits", (await tru.balanceOf.call(incentiveLayer.address)).toString())
+            task_list = task_list.filter(a => tasks[a])
+            game_list = game_list.filter(a => games[a])
             task_list.forEach(async t => {
                 try {
                     await handleTimeouts(t)
