@@ -29,12 +29,12 @@ RUN wget https://dist.ipfs.io/go-ipfs/v0.4.19/go-ipfs_v0.4.19_linux-amd64.tar.gz
 
 RUN git clone https://github.com/TruebitFoundation/jit-runner \
  && cd jit-runner \
- && git checkout v2 \
+ && git checkout  v2 \
  && npm i
 
 RUN git clone https://github.com/mrsmkl/truebit-os \
  && cd truebit-os \
- && git checkout timeout-fixes \
+ && git checkout meter_fix \
  && npm i --production \
  && npm run deps \
  && npm run  compile \

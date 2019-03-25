@@ -129,7 +129,7 @@ Progress of tasks can be followed from https://goerli.etherscan.io/address/0xf01
 4. Start a session:
 
 ```
-docker run --rm --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.ethereum mrsmkl/truebit-goerli:19-03-13 /bin/bash
+docker run --rm --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.ethereum mrsmkl/truebit-goerli:19-03-25 /bin/bash
 ```
 
 5. Initiate ```tmux```.
@@ -145,13 +145,15 @@ ipfs daemon
 If it looks like IPFS doesn't find files, try `ipfs swarm connect /ip4/213.251.185.41/tcp/4001/ipfs/QmSob847F3sPkmveU5p2aPmjRgaXXdhXb7nnmJtkBZ1QDz`
 to connect to a Truebit node running IPFS.
 
-8. *Set up a new parity account.* Navigate to the other small window and type:
+8. *Set up a new ethereum account.* Navigate to the other small window and type:
 
 ```
 cd ~/.ethereum
 echo plort > supersecret.txt
 geth --goerli account new --password=supersecret.txt
 ```
+
+If you already have an account, just `cd ~/.ethereum`
 
 To check addresses created, type
 ```
