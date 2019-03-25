@@ -31,7 +31,7 @@ module.exports = async (incentiveLayer, merkleComputer, taskID, wasmCodeBuffer, 
 
     // add metering
     if (vmParameters.gasLimit > 0) {
-        const metering = require('wasm-metering')
+        const metering = require('wasm-metering-tb')
         const meteredWasm = metering.meterWASM(wasmCodeBuffer, {
             moduleStr: 'env',
             fieldStr: 'usegas',
