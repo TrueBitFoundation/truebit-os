@@ -296,13 +296,13 @@ Check that everything works with `npm run test`. Type `npm run` for more options
 
 5. Task-Solve-Verify.  Open a separate Terminal and start an Ethereum client, i.e.
 ```
-ganache-cli
+ganache-cli -h 0.0.0.0
 ```
 and optionally open another terminal with IPFS via `ipfs daemon`.  Finally, start Truebit-OS!
 ```
 npm run truebit
 ```
-To get some tokens, type `claim`, and check your address using `balance`.  If you need ETH, then `exit` Truebit-OS  and use `node send.js address=[youraddress]` to send test ETH.  Remember to omit the "0x" prefix for the address.  Use `help` For assistance with other Truebit-OS commands.
+To get some tokens, type `claim`, and check your address using `balance`.  If you need ETH, then `exit` Truebit-OS  and use `node send.js` _youraddress_ to send test ETH from `account[0]`.  Use `help` For assistance with other Truebit-OS commands.
 
 # Development
 
