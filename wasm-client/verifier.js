@@ -24,7 +24,10 @@ function setup(web3) {
 
 function c(x) { return bigInt(x.toString(10)) }
 
+let verifiers = []
+
 module.exports = {
+    get: () => verifiers,
     init: async (os, account, test = false, recover = -1) => {
 
         let { web3, logger, throttle } = os
@@ -49,6 +52,8 @@ module.exports = {
         const clean_list = []
         let game_list = []
         let task_list = []
+
+        verifiers.push({account:account, games: () => game_list, tasks: () => task_list})
 
         let bn = await web3.eth.getBlockNumber()
 

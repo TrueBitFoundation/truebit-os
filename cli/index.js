@@ -122,11 +122,14 @@ vorpal
   .action(async (args, callback) => { await cliLib.depositEther({ os, args }); callback() })
 
 vorpal
-  .command('unbond <task>', 'undond deposit from task')
+  .command('unbond <task>', 'unbond deposit from task')
   .option('-a, --account <num>', 'index of web3 account to use.')
-  .option('-t, --task <str>', 'task here.')
   .types({string:["_"]})
   .action(async (args, callback) => { await cliLib.unbondDeposit({ os, args }); callback() })
+
+vorpal
+  .command('ps', 'list solvers and verifiers, and the tasks they are involved in')
+  .action(async (args, callback) => { await cliLib.listProcesses({ os }); callback() })
 
 if (!argv["batch"]) {
   vorpal.delimiter('$ ').show()

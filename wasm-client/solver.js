@@ -26,7 +26,10 @@ function setup(web3) {
 
 function c(x) { return bigInt(x.toString(10)) }
 
+let solvers = []
+
 module.exports = {
+    get: () => solvers,
     init: async (os, account, test = false, recover = -1) => {
 
         let { web3, logger, throttle } = os
@@ -35,6 +38,9 @@ module.exports = {
         let tasks = {}
         let games = {}
         let task_list = []
+        let game_list = []
+
+        solvers.push({account:account, games: () => game_list, tasks: () => task_list})
 
         const merkleComputer = require("./merkle-computer")(logger, './../wasm-client/ocaml-offchain/interpreter/wasm')
 
@@ -56,7 +62,6 @@ module.exports = {
         let events = []
 
         const clean_list = []
-        let game_list = []
         const RECOVERY_BLOCKS = recover
 
         if (recovery_mode) logger.info(`Recovering back to ${Math.max(0, bn - RECOVERY_BLOCKS)}`)

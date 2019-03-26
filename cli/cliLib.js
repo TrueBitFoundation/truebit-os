@@ -54,6 +54,27 @@ module.exports.ss_initVerifier = ({ os, account, test, recover }) => {
   return os.ss_verifier.init(os, account, test, recover)
 }
 
+function printList(lst) {
+  for (let i = 0; i < lst.length; i++) {
+    console.log(`${i + 1}. Account ${lst[i].account}`)
+    let tasks = lst[i].tasks()
+    for (let j = 0; j < tasks.length; j++) {
+      console.log(`  Task ${j+1}: ${tasks[j]}`)
+    }
+    let games = lst[i].games()
+    for (let j = 0; j < games.length; j++) {
+      console.log(`  Game ${j+1}: ${games[j]}`)
+    }
+  }
+}
+
+module.exports.listProcesses = ({os}) => {
+  console.log("SOLVERS")
+  printList(os.solver.get())
+  console.log("VERIFIERS")
+  printList(os.verifier.get())
+}
+
 /** submit a task  */
 module.exports.taskGiver = async ({ os, args }) => {
   const account = os.accounts[args.options.account || 0]
