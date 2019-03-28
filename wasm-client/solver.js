@@ -29,7 +29,7 @@ function c(x) { return bigInt(x.toString(10)) }
 let solvers = []
 
 module.exports = {
-    get: () => solvers,
+    get: () => solvers.filter(a => !a.exited()),
     init: async (os, account, test = false, recover = -1) => {
 
         let { web3, logger, throttle } = os
@@ -40,16 +40,23 @@ module.exports = {
         let task_list = []
         let game_list = []
 
-        solvers.push({account:account, games: () => game_list, tasks: () => task_list})
+        let exiting = false
+        let exited = false
+
+        solvers.push({
+            account:account,
+            games: () => game_list, 
+            tasks: () => task_list,
+            exit: () => { exiting = true },
+            exited: () => exited,
+            exiting: () => exiting,
+        })
 
         const merkleComputer = require("./merkle-computer")(logger, './../wasm-client/ocaml-offchain/interpreter/wasm')
 
         let bn = await web3.eth.getBlockNumber()
 
-        logger.log({
-            level: 'info',
-            message: `Solver initialized at block ${bn}`
-        })
+        logger.info(`Solver initialized at block ${bn}`)
 
         let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3)
 
@@ -139,6 +146,8 @@ module.exports = {
         }
 
         addEvent("TaskCreated", incentiveLayer.TaskCreated, async (result) => {
+
+            if (exiting) return
 
             logger.log({
                 level: 'info',
@@ -479,12 +488,13 @@ module.exports = {
         })
 
         addEvent("WinnerSelected", disputeResolutionLayer.WinnerSelected, async (result) => {
-            //TODO: ???
+            let gameID = result.args.gameID
+            delete games[gameID]
         })
 
-        // addEvent("Reported", disputeResolutionLayer.Reported, async (result) => {
-        //     //TODO: ???
-        // })
+        // This needs to be here for recovery to work
+        addEvent("Reported", disputeResolutionLayer.Reported, async (result) => {
+        })
 
         // Timeouts
 
@@ -623,8 +633,22 @@ module.exports = {
             }
         }
 
-        let ival = setInterval(async () => {
-            // console.log("deposits", (await tru.balanceOf.call(incentiveLayer.address)).toString())
+        let ival
+
+        let cleanup = () => {
+            try {
+                let empty = data => { }
+                clean_list.forEach(ev => ev.stopWatching(empty))
+                clearInterval(ival)
+            } catch (e) {
+                logger.error("SOLVER: Error when stopped watching events")
+            }
+            exited = true
+            logger.info("SOLVER: Exiting")
+        }
+
+        let checkTasks = async () => {
+            if (exiting && task_list.length == 0) cleanup()
             task_list = task_list.filter(a => tasks[a])
             game_list = game_list.filter(a => games[a])
             task_list.forEach(async t => {
@@ -632,7 +656,6 @@ module.exports = {
                     await handleTimeouts(t)
                 }
                 catch (e) {
-                    // console.log(e)
                     logger.error(`SOLVER: Error while handling timeouts of task ${t}: ${e.toString()}`)
                 }
             })
@@ -641,7 +664,6 @@ module.exports = {
                     await handleGameTimeouts(g)
                 }
                 catch (e) {
-                    // console.log(e)
                     logger.error(`SOLVER: Error while handling timeouts of game ${g}: ${e.toString()}`)
                 }
             })
@@ -649,16 +671,10 @@ module.exports = {
                 recovery_mode = false
                 recovery.analyze(account, events, recoverTask, recoverGame, disputeResolutionLayer, incentiveLayer, game_list, task_list)
             }
-        }, 2000)
-
-        return () => {
-            try {
-                let empty = data => { }
-                clean_list.forEach(ev => ev.stopWatching(empty))
-                clearInterval(ival)
-            } catch (e) {
-                console.log("SOLVER: Error when stopped watching events")
-            }
         }
+
+        ival = setInterval(checkTasks, 2000)
+
+        return cleanup
     }
 }

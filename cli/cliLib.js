@@ -54,25 +54,44 @@ module.exports.ss_initVerifier = ({ os, account, test, recover }) => {
   return os.ss_verifier.init(os, account, test, recover)
 }
 
-function printList(lst) {
+function printList(lst, n = 1) {
   for (let i = 0; i < lst.length; i++) {
-    console.log(`${i + 1}. Account ${lst[i].account}`)
+    console.log(`${i+n}. Account ${lst[i].account}  ${lst[i].exiting() ? "Preparing to exit" : ""}`)
     let tasks = lst[i].tasks()
     for (let j = 0; j < tasks.length; j++) {
-      console.log(`  Task ${j+1}: ${tasks[j]}`)
+      console.log(`  Task ${j+n}: ${tasks[j]}`)
     }
     let games = lst[i].games()
     for (let j = 0; j < games.length; j++) {
-      console.log(`  Game ${j+1}: ${games[j]}`)
+      console.log(`  Game ${j+n}: ${games[j]}`)
     }
   }
 }
 
 module.exports.listProcesses = ({os}) => {
   console.log("SOLVERS")
-  printList(os.solver.get())
+  let lst = os.solver.get()
+  printList(lst)
   console.log("VERIFIERS")
-  printList(os.verifier.get())
+  printList(os.verifier.get(), lst.length+1)
+}
+
+module.exports.stopProcesse = ({os, args}) => {
+  let lst1 = os.solver.get()
+  let lst2 = os.verifier.get()
+  let num = args.num - 1
+  if (num < 0) {
+    console.log("No such process", args.num)
+    return
+  }
+  if (num < lst1.length) {
+    lst1[num].exit()
+  }
+  else {
+    num -= lst1.length
+    if (num >= lst2.length) console.log("No such process", args.num)
+    else lst2[num].exit()
+  }
 }
 
 /** submit a task  */

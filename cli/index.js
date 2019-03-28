@@ -131,6 +131,10 @@ vorpal
   .command('ps', 'list solvers and verifiers, and the tasks they are involved in')
   .action(async (args, callback) => { await cliLib.listProcesses({ os }); callback() })
 
+vorpal
+  .command('stop <num>', 'stop solver or verifier. Get the number of process with ps')
+  .action(async (args, callback) => { await cliLib.stopProcesse({ os, args }); callback() })
+
 if (!argv["batch"]) {
   vorpal.delimiter('$ ').show()
 }

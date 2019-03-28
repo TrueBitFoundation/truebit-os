@@ -27,7 +27,7 @@ function c(x) { return bigInt(x.toString(10)) }
 let verifiers = []
 
 module.exports = {
-    get: () => verifiers,
+    get: () => verifiers.filter(a => !a.exited()),
     init: async (os, account, test = false, recover = -1) => {
 
         let { web3, logger, throttle } = os
@@ -35,10 +35,7 @@ module.exports = {
         let tasks = {}
         let games = {}
 
-        logger.log({
-            level: 'info',
-            message: `Verifier initialized`
-        })
+        logger.info(`Verifier initialized`)
 
         let [incentiveLayer, fileSystem, disputeResolutionLayer, tru] = await setup(web3)
 
@@ -52,8 +49,17 @@ module.exports = {
         const clean_list = []
         let game_list = []
         let task_list = []
+        let exiting = false
+        let exited = false
 
-        verifiers.push({account:account, games: () => game_list, tasks: () => task_list})
+        verifiers.push({
+            account:account,
+            games: () => game_list,
+            tasks: () => task_list,
+            exit: () => { exiting = true },
+            exited: () => exited,
+            exiting: () => exiting,
+        })
 
         let bn = await web3.eth.getBlockNumber()
 
@@ -90,6 +96,8 @@ module.exports = {
 
         //Solution committed event
         addEvent("SolutionsCommitted", incentiveLayer.SolutionsCommitted, async result => {
+
+            if (exiting) return
 
             logger.log({
                 level: 'info',
@@ -252,8 +260,8 @@ module.exports = {
             }
         })
 
-
-        // addEvent("Queried", disputeResolutionLayer.Queried, async result => {})
+        // This needs to be here for recovery to work
+        addEvent("Queried", disputeResolutionLayer.Queried, async result => {})
 
         addEvent("Reported", disputeResolutionLayer.Reported, async result => {
             let gameID = result.args.gameID
@@ -325,6 +333,11 @@ module.exports = {
                 }
 
             }
+        })
+
+        addEvent("WinnerSelected", disputeResolutionLayer.WinnerSelected, async (result) => {
+            let gameID = result.args.gameID
+            delete games[gameID]
         })
 
         let busy_table = {}
@@ -415,9 +428,25 @@ module.exports = {
             }
         }
 
-        let ival = setInterval(() => {
+        let ival
+
+        let cleanup = () => {
+            try {
+                let empty = data => { }
+                clearInterval(ival)
+                clean_list.forEach(ev => ev.stopWatching(empty))
+            }
+            catch (e) {
+                logger.error("VERIFIER: Error when stopped watching events")
+            }
+            exited = true
+            logger.info("VERIFIER: Exiting")
+        }
+
+        let checkTasks = () => {
             task_list = task_list.filter(a => tasks[a])
-            game_list = game_list.filter(a => games[a])            
+            game_list = game_list.filter(a => games[a])
+            if (exiting && task_list.length == 0) cleanup()
             task_list.forEach(async t => {
                 try {
                     await handleTimeouts(t)
@@ -440,17 +469,10 @@ module.exports = {
                 recovery_mode = false
                 recovery.analyze(account, events, recoverTask, recoverGame, disputeResolutionLayer, incentiveLayer, game_list, task_list, true)
             }
-        }, 2000)
-
-        return () => {
-            try {
-                let empty = data => { }
-                clearInterval(ival)
-                clean_list.forEach(ev => ev.stopWatching(empty))
-            }
-            catch (e) {
-                console.log("Umm")
-            }
         }
+
+        ival = setInterval(checkTasks, 2000)
+
+        return cleanup
     }
 }
