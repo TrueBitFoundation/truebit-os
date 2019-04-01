@@ -23,7 +23,7 @@ before_install:
   - export PATH="$HOME/bin/go-ipfs:$PATH"
   - ipfs init
   - ipfs daemon &
-  - sleep 10
+  - sleep 15
   - curl http://localhost:5001/api/v0/id
 
   # Install ocaml
