@@ -31,7 +31,7 @@ docker rm tb; docker pull mrsmkl/truebit-goerli:latest; docker pull mrsmkl/wasm-
 
 First start up the docker image:
 ```
-docker run -ti mrsmkl/wasm-ports:19-03-13 /bin/bash
+docker run --rm -ti mrsmkl/wasm-ports:19-03-25 /bin/bash
 ```
 
 Start up the Truebit environment:
@@ -57,7 +57,7 @@ Then use the `compile.sh` script. You'll also have to re-deploy with `node ../de
 
 To speed up network sync the next time, make a directory `~/goerli` and then mount it with docker:
 ```
-docker run --rm --name=tb -it -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.local/share/io.parity.ethereum mrsmkl/wasm-ports:19-03-13 /bin/bash
+docker run --rm --name=tb -it -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.local/share/io.parity.ethereum mrsmkl/wasm-ports:19-03-25 /bin/bash
 ```
 
 Start up IPFS and Parity:
@@ -113,7 +113,15 @@ node send.js <wasm file>
 Uses parity-wasm to read and write a WASM file.
 Source at https://github.com/TrueBitFoundation/wasm-ports/blob/v2/samples/wasm/src/main.rs
 
+Size of video packets in a file:
+```
+cd /wasm-ports/samples/ffmpeg
+node send.js input.ts
+```
+Source at https://github.com/mrsmkl/FFmpeg/blob/truebit_check/fftools/ffcheck.c
+
 Progress of tasks can be followed from https://goerli.etherscan.io/address/0xf018f7f68f6eb999f4e7c02158e9a1ea4d77a067
+
 
 ## Goerli testnet tutorial
 
@@ -128,7 +136,7 @@ Progress of tasks can be followed from https://goerli.etherscan.io/address/0xf01
 4. Start a session:
 
 ```
-docker run --rm --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.ethereum mrsmkl/truebit-goerli:19-03-13 /bin/bash
+docker run --rm --name=tb -it -p 8545:8545 -p 3000:80 -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.ethereum mrsmkl/truebit-goerli:19-03-25 /bin/bash
 ```
 
 5. Initiate ```tmux```.
@@ -144,13 +152,15 @@ ipfs daemon
 If it looks like IPFS doesn't find files, try `ipfs swarm connect /ip4/213.251.185.41/tcp/4001/ipfs/QmSob847F3sPkmveU5p2aPmjRgaXXdhXb7nnmJtkBZ1QDz`
 to connect to a Truebit node running IPFS.
 
-8. *Set up a new parity account.* Navigate to the other small window and type:
+8. *Set up a new ethereum account.* Navigate to the other small window and type:
 
 ```
 cd ~/.ethereum
 echo plort > supersecret.txt
 geth --goerli account new --password=supersecret.txt
 ```
+
+If you already have an account, just `cd ~/.ethereum`
 
 To check addresses created, type
 ```

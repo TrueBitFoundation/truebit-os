@@ -124,9 +124,16 @@ vorpal
 vorpal
   .command('unbond <task>', 'unbond deposit from task')
   .option('-a, --account <num>', 'index of web3 account to use.')
-  .option('-t, --task <str>', 'task here.')
   .types({string:["_"]})
   .action(async (args, callback) => { await cliLib.unbondDeposit({ os, args }); callback() })
+
+vorpal
+  .command('ps', 'list solvers and verifiers, and the tasks they are involved in')
+  .action(async (args, callback) => { await cliLib.listProcesses({ os }); callback() })
+
+vorpal
+  .command('stop <num>', 'stop solver or verifier. Get the number of process with ps')
+  .action(async (args, callback) => { await cliLib.stopProcesse({ os, args }); callback() })
 
 if (!argv["batch"]) {
   vorpal.delimiter('$ ').show()

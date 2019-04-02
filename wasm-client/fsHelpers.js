@@ -55,14 +55,6 @@ exports.init = function (fileSystem, web3, mcFileSystem, logger, incentiveLayer,
         return id
     }
 
-    /*function uploadIPFS(fname, buf) {
-        return new Promise(function (cont, err) {
-            ipfs.files.add([{ content: buf, path: fname }], function (err, res) {
-                cont(res[0])
-            })
-        })
-    }*/
-
     async function createIPFSFile(fname, buf) {
         let res = await mcFileSystem.upload(buf, fname)
         let hash = res[0]

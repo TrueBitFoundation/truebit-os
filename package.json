@@ -33,7 +33,7 @@
     "nyc": "^13.1.0",
     "truffle-contract": "^3.0.5",
     "vorpal": "^1.12.0",
-    "wasm-metering": "^0.2.1",
+    "wasm-metering-tb": "^0.2.1",
     "web3": "1.0.0-beta.34",
     "websocket": "^1.0.26",
     "winston": "^3.0.0"

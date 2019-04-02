@@ -45,7 +45,10 @@ async function deploy() {
 
     let accounts = await web3.eth.getAccounts()
 
-//    console.log("bg limit", await web3.eth.getBlock(1))
+    //    console.log("bg limit", await web3.eth.getBlock(1))
+
+    let ipfsRegister = await deployContract('IpfsRegister', { from: accounts[0], gas: 5500000 })
+    console.log("IPFS Register", ipfsRegister.options.address)
 
     let fileSystem = await deployContract('Filesystem', { from: accounts[0], gas: 5500000 })
     console.log("Filesystem", fileSystem.options.address)
@@ -69,6 +72,7 @@ async function deploy() {
         ]
     )
 
+    console.log("Incentive Layer", incentiveLayer.options.address)
 
     // tru.methods.transferOwnership(incentiveLayer._address).send({from: accounts[0], gas: 1000000})
 
@@ -86,6 +90,7 @@ async function deploy() {
         tru: exportContract(tru),
         exchangeRateOracle: exportContract(exchangeRateOracle),
         incentiveLayer: exportContract(incentiveLayer),
+        ipfsRegister: exportContract(ipfsRegister),
     }
 
     if (networkName == "private") {
