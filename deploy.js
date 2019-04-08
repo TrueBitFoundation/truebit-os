@@ -49,6 +49,8 @@ async function deploy() {
 
     let ipfsRegister = await deployContract('IpfsRegister', { from: accounts[0], gas: 5500000 })
     console.log("IPFS Register", ipfsRegister.options.address)
+    
+    let IPFSnodeManager = await deployContract('IPFSnodeManager', { from: accounts[0], gas: 1000000 })
 
     let fileSystem = await deployContract('Filesystem', { from: accounts[0], gas: 5500000 })
     console.log("Filesystem", fileSystem.options.address)
@@ -72,7 +74,6 @@ async function deploy() {
         ]
     )
 
-    console.log("Incentive Layer", incentiveLayer.options.address)
 
     // tru.methods.transferOwnership(incentiveLayer._address).send({from: accounts[0], gas: 1000000})
 
@@ -91,6 +92,7 @@ async function deploy() {
         exchangeRateOracle: exportContract(exchangeRateOracle),
         incentiveLayer: exportContract(incentiveLayer),
         ipfsRegister: exportContract(ipfsRegister),
+        IPFSnodeManager: exportContract(IPFSnodeManager),
     }
 
     if (networkName == "private") {
@@ -133,5 +135,6 @@ async function deploy() {
     }
 
 }
+
 
 deploy()

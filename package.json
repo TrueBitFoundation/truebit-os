@@ -27,6 +27,7 @@
     "ethereumjs-util": "^5.2.0",
     "figlet": "^1.2.0",
     "ipfs-api": "^14.3.7",
+    "ipfs-http-client": "^30.1.0",
     "minimist": "^1.2.0",
     "mocha": "^5.2.0",
     "npm": "^6.4.1",
