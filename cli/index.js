@@ -134,6 +134,18 @@ vorpal
 vorpal
   .command('stop <num>', 'stop solver or verifier. Get the number of process with ps')
   .action(async (args, callback) => { await cliLib.stopProcesse({ os, args }); callback() })
+  
+vorpal
+  .command('register-node', 'register the IPFS address of your node')
+  .action(async (args, callback) => { await cliLib.registerNode({ os, args }); callback() })
+
+vorpal
+  .command('connect-nodes', 'link to registered IPFS nodes')
+  .action(async (args, callback) => { await cliLib.connectNodes({ os, args }); callback() })
+
+vorpal
+  .command('list-nodes', 'list registered IPFS nodes')
+  .action(async (args, callback) => { await cliLib.listNodes({ os, args }); callback() })
 
 if (!argv["batch"]) {
   vorpal.delimiter('$ ').show()

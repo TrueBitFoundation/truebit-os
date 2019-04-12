@@ -3,6 +3,7 @@
 // It provides a seperation between the cli interface and the functional interface.
 
 const fs = require('fs')
+const ipfsClient = require('ipfs-http-client')
 const mineBlocks = require('../os/lib/util/mineBlocks')
 const contractsConfig = require('../wasm-client/util/contractsConfig')
 const contract = require('../wasm-client/contractHelper')
@@ -268,4 +269,71 @@ module.exports.claimTokens = async ({ os, args }) => {
     module.exports.balance({os, args})
   }
 }
+
+/** register node */
+module.exports.registerNode = async ({ os, args }) => {
+  const account = os.accounts[args.options.account || 0]
+  const httpProvider = os.web3.currentProvider
+	const config = await contractsConfig(os.web3)
+  const IPFSnodeManager = await contract(httpProvider, config['IPFSnodeManager'])
+  const ipfs = await ipfsClient('localhost', '5001', { protocol: 'http' })
+  const IPFSaddress = await ipfs.id()
+  os.logger.log({
+    level: 'info',
+    message: `IPFSaddress: ${IPFSaddress.addresses[2]}`
+  })
+  console.log(IPFSaddress.addresses[2])
+  await IPFSnodeManager.addNode(IPFSaddress.addresses[2], { from: account, gas: 1000000, gasPrice: os.web3.gp })
+  module.exports.balance({os, args})
+}
+
+/** connect nodes */
+module.exports.connectNodes = async ({ os, args }) => {
+  const httpProvider = os.web3.currentProvider
+	const config = await contractsConfig(os.web3)
+  const IPFSnodeManager = await contract(httpProvider, config['IPFSnodeManager'])
+  const ipfs = await ipfsClient('localhost', '5001', { protocol: 'http' })
+  const nodes = await IPFSnodeManager.getNodes({})
+  nodeArray = os.web3.utils.toAscii(nodes).split(",")
+  nodeArray.pop()
+  console.log("Nodes: ")
+  console.log(nodeArray)
+  nodeArray.forEach(async function (node) {
+    console.log('Trying to connect to: '+ node)
+    try {
+      await ipfs.swarm.connect(node)
+      os.logger.log({
+        level: 'info',
+        message: `Success: Connected to ${node}`
+      })
+    } catch (e) {
+      os.logger.log({
+        level: 'error',
+        message: `Exception: ${e}`
+      })
+    }    
+  }); 
+
+  module.exports.balance({os, args})
+}
+
+/** list nodes */
+module.exports.listNodes = async ({ os, args }) => {
+  const httpProvider = os.web3.currentProvider
+	const config = await contractsConfig(os.web3)
+  const IPFSnodeManager = await contract(httpProvider, config['IPFSnodeManager'])
+  const nodes = await IPFSnodeManager.getNodes({})
+  nodeArray = os.web3.utils.toAscii(nodes).split(",")
+  nodeArray.pop()
+  console.log("Nodes: ")
+  console.log(nodeArray)
+  os.logger.log({
+    level: 'info',
+    message: `Nodes: ${splitNodes(nodeArray)}`
+  })
+  module.exports.balance({os, args})
+}
+
+
+
 
