@@ -22,16 +22,13 @@ If you want to talk to the developers working on this project feel free to say h
 
 # Running on Docker
 
-Install [Docker](https://www.docker.com/), and open a Terminal.  If you previously used another Truebit-OS Docker image, you may need to update first:
-```
-docker rm tb; docker pull mrsmkl/truebit-goerli:latest; docker pull mrsmkl/wasm-ports:latest
-```
+Install [Docker](https://www.docker.com/), and open a Terminal.
 
 ## Compiling and running Truebit tasks
 
 First start up the docker image:
 ```
-docker run --rm -ti mrsmkl/wasm-ports:19-03-25 /bin/bash
+docker run --rm -ti mrsmkl/wasm-ports:19-04-02 /bin/bash
 ```
 
 Start up the Truebit environment:
@@ -57,7 +54,7 @@ Then use the `compile.sh` script. You'll also have to re-deploy with `node ../de
 
 To speed up network sync the next time, make a directory `~/goerli` and then mount it with docker:
 ```
-docker run --rm --name=tb -it -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.local/share/io.parity.ethereum mrsmkl/wasm-ports:19-03-25 /bin/bash
+docker run --rm --name=tb -it -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.local/share/io.parity.ethereum mrsmkl/wasm-ports:19-04-02 /bin/bash
 ```
 
 Start up IPFS and Parity:
