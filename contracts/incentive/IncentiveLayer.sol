@@ -1,13 +1,12 @@
 pragma solidity ^0.5.0;
 
 import "./DepositsManager.sol";
-// import "./JackpotManager.sol";
-import "./TRU.sol";
 import "../filesystem/Filesystem.sol";
 import "./ExchangeRateOracle.sol";
 import "./RewardsManager.sol";
 
 import "../interface/IGameMaker.sol";
+import "../interface/IToken.sol";
 import "../interface/IDisputeResolutionLayer.sol";
 
 interface Callback {
@@ -123,25 +122,19 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
     ExchangeRateOracle oracle;
     address disputeResolutionLayer; //using address type because in some cases it is IGameMaker, and others IDisputeResolutionLayer
     Filesystem fs;
-    TRU tru;
 
-    constructor (address payable _TRU, address _exchangeRateOracle, address _disputeResolutionLayer, address fs_addr) 
-        DepositsManager(_TRU)
+    constructor (address _TRU, address _CPU, address _STAKE, address _exchangeRateOracle, address _disputeResolutionLayer, address fs_addr) 
+        DepositsManager(_CPU, _STAKE)
         RewardsManager(_TRU)
         public 
     {
         disputeResolutionLayer = _disputeResolutionLayer;
         oracle = ExchangeRateOracle(_exchangeRateOracle);
         fs = Filesystem(fs_addr);
-        tru = TRU(_TRU);
     }
 
     function getBalance(address addr) public view returns (uint) {
         return tru.balanceOf(addr);
-    }
-
-    function debugDeposit(bytes32 taskID) public view returns (int) {
-        return int(deposits[msg.sender]) - int(tasks[taskID].minDeposit);
     }
 
     // @dev – locks up part of the a user's deposit into a task.
@@ -172,8 +165,8 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         s.allChallengers[index] = address(0);
 
         //transfer jackpot payment	
-        uint amount = t.tax.div(s.allChallengers.length);
-        token.transfer(msg.sender, amount);
+        uint amount = t.tax.div(2 ** (s.allChallengers.length-1));
+        tru.mint(msg.sender, amount);
 	
         emit ReceivedJackpot(msg.sender, amount);
     }
@@ -256,8 +249,8 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         t.tax = reward * taxMultiplier;
         t.cost = reward + t.tax;
         
-        require(deposits[msg.sender] >= reward + t.tax);
-        deposits[msg.sender] = deposits[msg.sender].sub(reward + t.tax);
+        require(reward_deposits[msg.sender] >= reward + t.tax);
+        reward_deposits[msg.sender] = reward_deposits[msg.sender].sub(reward + t.tax);
     
         depositReward(id, reward, t.tax);
         // BaseJackpotManager(jackpotManager).increaseJackpot(t.tax);
@@ -344,12 +337,6 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         t.randomBitsHash = randomBitsHash;
         t.state = State.SolverSelected;
         t.timeoutBlock = block.number + (1+vm.gasLimit/RUN_RATE);
-
-        // Burn task giver's taxes now that someone has claimed the task
-        /*
-        deposits[t.owner] = deposits[t.owner].sub(t.tax);
-        token.burn(t.tax);
-        */
 
         emit SolverSelected(taskID, msg.sender, t.initTaskHash, t.minDeposit, t.randomBitsHash);
         return true;
@@ -599,7 +586,8 @@ contract IncentiveLayer is DepositsManager, RewardsManager {
         else return uint(proof[1]);
     }
     
-    function getRoot(bytes32[] memory proof, uint loc) internal pure returns (bytes32) {
+    function getRoot(bytes32[] memory proof, uint loc_) internal pure returns (bytes32) {
+        uint loc = loc_;
         require(proof.length >= 2);
         bytes32 res = keccak256(abi.encodePacked(proof[0], proof[1]));
         for (uint i = 2; i < proof.length; i++) {

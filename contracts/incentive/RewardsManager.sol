@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
 import "../openzeppelin-solidity/SafeMath.sol";
-import "./TRU.sol";
+import "../interface/IToken.sol";
 
 contract RewardsManager {
     using SafeMath for uint;
@@ -9,7 +9,7 @@ contract RewardsManager {
     mapping(bytes32 => uint) public rewards;
     mapping(bytes32 => uint) public taxes;
     address public owner;
-    TRU public token;
+    IToken public tru;
 
     event RewardDeposit(bytes32 indexed task, address who, uint amount, uint tax);
     event RewardClaimed(bytes32 indexed task, address who, uint amount, uint tax);
@@ -19,38 +19,32 @@ contract RewardsManager {
         _;
     }
 
-    constructor(address payable _tru) public {
+    constructor(address _t) public {
         owner = msg.sender;
-        token = TRU(_tru);
+        tru = IToken(_t);
     }
 
     function getTaskReward(bytes32 taskID) public view returns (uint) {
         return rewards[taskID];
     }
 
-    function depositReward(bytes32 taskID, uint reward, uint tax) internal returns (bool) {
-        // require(token.allowance(msg.sender, address(this)) >= reward + tax);
-        // token.transferFrom(msg.sender, address(this), reward + tax);
-
+    function depositReward(bytes32 taskID, uint reward, uint tax) internal {
         rewards[taskID] = rewards[taskID].add(reward);
         taxes[taskID] = rewards[taskID].add(tax);
         emit RewardDeposit(taskID, msg.sender, reward, tax);
-        return true; 
     }
 
-    function payReward(bytes32 taskID, address to) internal returns (bool) {
+    function payReward(bytes32 taskID, address to) internal {
         require(rewards[taskID] > 0);
         uint payout = rewards[taskID];
         rewards[taskID] = 0;
 
         uint tax = taxes[taskID];
         taxes[taskID] = 0;
-        // No minting, so just keep the tokens here
-        // token.burn(tax); 
 
-        token.transfer(to, payout);
+        tru.mint(to, payout);
+//        tru.transfer(to, payout);
         emit RewardClaimed(taskID, to, payout, tax);
-        return true;
     }
 
     function getTax(bytes32 taskID) public view returns (uint) {

@@ -1,4 +1,4 @@
-const depositsHelper = require('./depositsHelper')
+const depositsHelper = require('./depositsHelper').depositReward
 const fs = require('fs')
 const contract = require('./contractHelper')
 const assert = require('assert')
@@ -16,7 +16,7 @@ function setup(web3) {
         const config = await contractsConfig(web3)
         let incentiveLayer = await contract(httpProvider, config['incentiveLayer'])
         let fileSystem = await contract(httpProvider, config['fileSystem'])
-        let tru = await contract(httpProvider, config['tru'])
+        let tru = await contract(httpProvider, config['cpu'])
         return [incentiveLayer, fileSystem, tru]
     })()
 }
@@ -68,9 +68,9 @@ module.exports = async (web3, logger, mcFileSystem) => {
     //tbFileSystem is the Truebit filesystem contract
     //mcFileSystem is a module for ipfs helpers from merkleComputer module
 
-    incentiveLayer = contracts[0]
-    tbFileSystem = contracts[1]
-    tru = contracts[2]
+    let incentiveLayer = contracts[0]
+    let tbFileSystem = contracts[1]
+    let tru = contracts[2]
 
     async function uploadOnchain(codeData, options) {
         return merkleComputer.uploadOnchain(codeData, web3, options)
