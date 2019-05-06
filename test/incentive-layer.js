@@ -4,22 +4,21 @@ const contractsConfig = require('../wasm-client/util/contractsConfig')
 const contract = require('../wasm-client/contractHelper')
 const mineBlocks = require('../os/lib/util/mineBlocks')
 
-function setup(web3) {
-	return (async () => {
+async function setup(web3) {
 		const httpProvider = web3.currentProvider
 		const config = await contractsConfig(web3)
 
 		return Promise.all([
 			contract(httpProvider, config['incentiveLayer']),
-			contract(httpProvider, config['tru']),
+			contract(httpProvider, config['stake']),
+			contract(httpProvider, config['cpu']),
 		])
-	})()
 }
 
 describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
 	this.timeout(60000)
 
-	let incentiveLayer, tru, taskGiver, solver, verifier, accounts, dummy
+	let incentiveLayer, stake, cpu, taskGiver, solver, verifier, accounts, dummy
 	let minDeposit, taskID, randomBits, randomBitsHash, solution0Hash, solution1Hash, web3
 
 	before(async () => {
@@ -30,7 +29,8 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
 		web3 = os.web3
 
 		incentiveLayer = contracts[0]
-		tru = contracts[1]
+		cpu = contracts[2]
+		stake = contracts[1]
 
 		taskGiver = os.accounts[0]
 		solver = os.accounts[1]
@@ -47,7 +47,22 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
 		solutionCommit = os.web3.utils.soliditySha3(solution0Hash)
 
 		for (let account of accounts) {
-			await tru.approve(incentiveLayer.address, minDeposit, { from: account })
+			await stake.approve(incentiveLayer.address, minDeposit, { from: account })
+			await cpu.approve(incentiveLayer.address, minDeposit, { from: account })
+		}
+
+	})
+
+	it("participants should make a deposit for rewards", async () => {
+
+		for (let account of accounts) {
+
+			await incentiveLayer.makeRewardDeposit(minDeposit, { from: account })
+
+			let deposit = (await incentiveLayer.getRewardDeposit.call(account)).toNumber()
+
+			assert(deposit > 1)
+
 		}
 
 	})
