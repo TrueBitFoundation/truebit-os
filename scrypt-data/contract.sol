@@ -23,7 +23,7 @@ interface TrueBit {
                                   uint8 stack, uint8 mem, uint8 globals, uint8 table, uint8 call, uint32 limit) external returns (bytes32);
    function requireFile(bytes32 id, bytes32 hash, /* Storage */ uint st) external;
    function commitRequiredFiles(bytes32 id) external;
-   function makeDeposit(uint _deposit) external payable returns (uint);
+   function makeRewardDeposit(uint _deposit) external payable returns (uint);
 }
 
 interface TRU {
@@ -42,7 +42,7 @@ contract Scrypt {
    Filesystem filesystem;
    TRU tru;
 
-   bytes32 bundleID;
+   // bytes32 bundleID;
    bytes32 codeFileID;
    bytes32 initHash;
 
@@ -50,11 +50,10 @@ contract Scrypt {
    mapping (bytes32 => bytes) task_to_string;
    mapping (bytes => bytes32) result;
 
-   constructor(address tb, address tru_, address fs, bytes32 _bundleID, bytes32 _codeFileID, bytes32 _initHash) public {
+   constructor(address tb, address tru_, address fs, bytes32 _codeFileID, bytes32 _initHash) public {
        truebit = TrueBit(tb);
        tru = TRU(tru_);
        filesystem = Filesystem(fs);
-       bundleID = _bundleID;
        codeFileID = _codeFileID;
        initHash = _initHash;
    }
@@ -81,6 +80,8 @@ contract Scrypt {
       bytes32[] memory input = formatData(data);
       emit InputData(input);
       
+      bytes32 bundleID = filesystem.makeBundle(num);
+
       bytes32 inputFileID = filesystem.createFileWithContents("input.data", num, input, data.length);
       string_to_file[data] = inputFileID;
       filesystem.addToBundle(bundleID, inputFileID);
@@ -89,36 +90,13 @@ contract Scrypt {
       filesystem.addToBundle(bundleID, filesystem.createFileWithContents("output.data", num+1000000000, empty, 0));
       
       filesystem.finalizeBundle(bundleID, codeFileID);
-      
+   
       tru.approve(address(truebit), 1000);
-      truebit.makeDeposit(1000);
-      // string memory bstr = ;
+      truebit.makeRewardDeposit(1000);
       bytes32 task = truebit.createTaskWithParams(filesystem.getInitHash(bundleID), 1, bundleID, 1, 1, 20, 20, 8, 20, 10, 5000);
       truebit.requireFile(task, filesystem.hashName("output.data"), 0);
       truebit.commitRequiredFiles(task);
       task_to_string[task] = data;
-      return filesystem.getInitHash(bundleID);
-   }
-
-   function debug(bytes memory data) public returns (bytes32) {
-      uint num = nonce;
-      nonce++;
-
-      bytes32[] memory input = formatData(data);
-      emit InputData(input);
-      
-      bytes32 inputFileID = filesystem.createFileWithContents("input.data", num, input, data.length);
-      string_to_file[data] = inputFileID;
-      filesystem.addToBundle(bundleID, inputFileID);
-      
-      bytes32[] memory empty = new bytes32[](0);
-      filesystem.addToBundle(bundleID, filesystem.createFileWithContents("output.data", num+1000000000, empty, 0));
-      
-      filesystem.finalizeBundle(bundleID, codeFileID);
-      
-      tru.approve(address(truebit), 1000);
-      truebit.makeDeposit(1000);
-
       return filesystem.getInitHash(bundleID);
    }
 

@@ -44,10 +44,10 @@ contract TRU is MintableToken, BurnableToken {
     }
 
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
-        require(_value <= balances[_from]);
-        require(_value <= allowed[_from][msg.sender]);
+        require(_value <= balances[_from], "no balance");
+        require(_value <= allowed[_from][msg.sender], "no allowance");
         require(_to != address(0));
-        require(allow_all || transfer_wl[msg.sender]);
+        require(allow_all || transfer_wl[msg.sender], "locked address");
 
         balances[_from] = balances[_from].sub(_value);
         balances[_to] = balances[_to].add(_value);
