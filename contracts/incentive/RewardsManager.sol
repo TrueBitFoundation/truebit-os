@@ -11,6 +11,8 @@ contract RewardsManager {
     address public owner;
     IToken public tru;
 
+    uint fee;
+
     event RewardDeposit(bytes32 indexed task, address who, uint amount, uint tax);
     event RewardClaimed(bytes32 indexed task, address who, uint amount, uint tax);
     
@@ -22,6 +24,10 @@ contract RewardsManager {
     constructor(address _t) public {
         owner = msg.sender;
         tru = IToken(_t);
+    }
+
+    function setFee(uint a) public onlyOwner {
+        fee = a;
     }
 
     function getTaskReward(bytes32 taskID) public view returns (uint) {
@@ -42,7 +48,10 @@ contract RewardsManager {
         uint tax = taxes[taskID];
         taxes[taskID] = 0;
 
-        tru.mint(to, payout);
+        uint solver_fee = payout * fee / 1 ether;
+
+        tru.mint(owner, solver_fee);
+        tru.mint(to, payout-solver_fee);
 //        tru.transfer(to, payout);
         emit RewardClaimed(taskID, to, payout, tax);
     }
