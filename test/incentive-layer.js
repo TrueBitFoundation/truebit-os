@@ -3,16 +3,21 @@ const fs = require('fs')
 const contractsConfig = require('../wasm-client/util/contractsConfig')
 const contract = require('../wasm-client/contractHelper')
 const mineBlocks = require('../os/lib/util/mineBlocks')
+var bigInt = require("big-integer")
 
 async function setup(web3) {
-		const httpProvider = web3.currentProvider
-		const config = await contractsConfig(web3)
+	const httpProvider = web3.currentProvider
+	const config = await contractsConfig(web3)
 
-		return Promise.all([
-			contract(httpProvider, config['incentiveLayer']),
-			contract(httpProvider, config['stake']),
-			contract(httpProvider, config['cpu']),
-		])
+	return Promise.all([
+		contract(httpProvider, config['incentiveLayer']),
+		contract(httpProvider, config['stake']),
+		contract(httpProvider, config['cpu']),
+	])
+}
+
+function c(x) {
+    return bigInt(x.toString(10))
 }
 
 describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
@@ -105,6 +110,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
 
 		let log = tx.logs.find(log => log.event === 'TaskCreated')
 
+		taskID = log.args.taskID
 		//confirm existence of params in event
 		assert(log.args.taskID)
 		assert(log.args.codeType)
@@ -113,10 +119,23 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
 		assert(log.args.reward)
 
 		//confirm proper economic values
-		assert.equal(log.args.minDeposit.toString(), minDeposit)
-		assert.equal(log.args.tax.toNumber(), (log.args.reward.toNumber() * 5))
 
-		taskID = log.args.taskID
+		let rate = c(await incentiveLayer.getTaxRate.call())
+		let fee = c(await incentiveLayer.getFee.call())
+		let fee_fixed = c(await incentiveLayer.getFee.call())
+		let task_fee = c(reward).multiply(fee_fixed).add(fee)
+
+		let ten18 = c("1000000000000000000")
+
+		let wo_fee = c(reward).subtract(task_fee)
+
+		let tax = wo_fee.multiply(rate).divide(ten18)
+		let solver_reward = wo_fee.subtract(tax)
+
+		assert.equal(log.args.minDeposit.toString(), minDeposit)
+		assert(c(log.args.tax).equals(tax))
+		assert(c(log.args.reward).equals(solver_reward))
+
 	})
 
 	it("should reject creating a task with no deposit", async () => {

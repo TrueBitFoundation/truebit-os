@@ -18,5 +18,12 @@ contract RewardsManager is Ownable {
         fee_fixed = a;
     }
 
+    function getFee() public view returns (uint) {
+        return fee;
+    }
+
+    function getFixedFee() public view returns (uint) {
+        return fee_fixed;
+    }
 
 }

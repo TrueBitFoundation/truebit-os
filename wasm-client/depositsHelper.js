@@ -1,5 +1,5 @@
-var bigInt = require("big-integer")
 
+var bigInt = require("big-integer")
 
 function c(x) {
     return bigInt(x.toString(10))

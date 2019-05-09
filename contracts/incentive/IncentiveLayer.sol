@@ -249,6 +249,7 @@ contract IncentiveLayer is DepositsManager {
 	    require(maxDifficulty > 0);
         uint minDeposit = oracle.getMinDeposit(maxDifficulty);
         require(minDeposit > 0);
+        require(reward_with_fee > 0);
 
         bytes32 id = keccak256(abi.encodePacked(initTaskHash, codeType, bundleId, maxDifficulty, reward_with_fee, numTasks));
         numTasks.add(1);
@@ -260,9 +261,9 @@ contract IncentiveLayer is DepositsManager {
         Task storage t = tasks[id];
         t.owner = msg.sender;
         t.minDeposit = minDeposit;
-        t.reward = reward;
         t.fee = fee_amount;
         t.tax = reward * taxMultiplier / 1 ether;
+        t.reward = reward - t.tax;
 
         require(reward_deposits[msg.sender] >= reward_with_fee);
         reward_deposits[msg.sender] -= reward_with_fee;
@@ -288,7 +289,6 @@ contract IncentiveLayer is DepositsManager {
         bytes32 id = createTaskAux(initTaskHash, codeType, bundleId, maxDifficulty, reward);
         defaultParameters(id);
 	    commitRequiredFiles(id);
-        
         return id;
     }
 
