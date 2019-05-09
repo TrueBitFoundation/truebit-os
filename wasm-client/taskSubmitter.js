@@ -293,7 +293,7 @@ module.exports = async (web3, logger, mcFileSystem) => {
         // task.minDeposit = web3.utils.toWei(task.minDeposit, 'ether')
         task.reward = web3.utils.toWei(task.reward, 'ether')
         let taxrate = await incentiveLayer.getTaxRate.call()
-        let cost = task.reward * (parseInt(taxrate)+1)
+        let cost = task.reward // * (parseInt(taxrate)+1)
         console.log("deposit", cost)
         await depositsHelper(web3, incentiveLayer, tru, task.from, cost)
 

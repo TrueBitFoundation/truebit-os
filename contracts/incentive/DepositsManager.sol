@@ -2,8 +2,9 @@ pragma solidity ^0.5.0;
 
 import "../openzeppelin-solidity/SafeMath.sol";
 import "../interface/IToken.sol";
+import "./RewardsManager.sol";
 
-contract DepositsManager {
+contract DepositsManager is RewardsManager {
     using SafeMath for uint;
 
     mapping(address => uint) public deposits;

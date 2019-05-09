@@ -2,62 +2,21 @@ pragma solidity ^0.5.0;
 
 import "../openzeppelin-solidity/SafeMath.sol";
 import "../interface/IToken.sol";
+import "./DepositsManager.sol";
+import "../openzeppelin-solidity/Ownable.sol";
 
-contract RewardsManager {
-    using SafeMath for uint;
-
-    mapping(bytes32 => uint) public rewards;
-    mapping(bytes32 => uint) public taxes;
-    address public owner;
-    IToken public tru;
+contract RewardsManager is Ownable {
 
     uint fee;
-
-    event RewardDeposit(bytes32 indexed task, address who, uint amount, uint tax);
-    event RewardClaimed(bytes32 indexed task, address who, uint amount, uint tax);
-    
-    modifier onlyOwner() {
-        require(msg.sender == owner);
-        _;
-    }
-
-    constructor(address _t) public {
-        owner = msg.sender;
-        tru = IToken(_t);
-    }
+    uint fee_fixed;
 
     function setFee(uint a) public onlyOwner {
         fee = a;
     }
 
-    function getTaskReward(bytes32 taskID) public view returns (uint) {
-        return rewards[taskID];
+    function setFixedFee(uint a) public onlyOwner {
+        fee_fixed = a;
     }
 
-    function depositReward(bytes32 taskID, uint reward, uint tax) internal {
-        rewards[taskID] = rewards[taskID].add(reward);
-        taxes[taskID] = rewards[taskID].add(tax);
-        emit RewardDeposit(taskID, msg.sender, reward, tax);
-    }
-
-    function payReward(bytes32 taskID, address to) internal {
-        require(rewards[taskID] > 0);
-        uint payout = rewards[taskID];
-        rewards[taskID] = 0;
-
-        uint tax = taxes[taskID];
-        taxes[taskID] = 0;
-
-        uint solver_fee = payout * fee / 1 ether;
-
-        tru.mint(owner, solver_fee);
-        tru.mint(to, payout-solver_fee);
-//        tru.transfer(to, payout);
-        emit RewardClaimed(taskID, to, payout, tax);
-    }
-
-    function getTax(bytes32 taskID) public view returns (uint) {
-        return taxes[taskID];
-    }
 
 }
