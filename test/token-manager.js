@@ -10,7 +10,7 @@ function contract(web3, info) {
 
 let assert_eq = (a,b) => assert.equal(a.toString(10), b.toString(10))
 
-describe('Truebit Filesystem Smart Contract Unit Tests', function () {
+describe('Truebit Token Manager Unit Tests', function () {
     this.timeout(60000)
 
     let accounts, web3, manager, token, other

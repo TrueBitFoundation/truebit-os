@@ -58,7 +58,7 @@ contract TokenManager {
         u.token.transferFrom(msg.sender, address(this), amount);
         Token storage info = whitelist[address(u.token)];
         require(info.rate > 0, "token not whitelisted");
-        require(info.limit > amount, "token limit reached");
+        require(info.limit >= amount, "token limit reached");
         if (info.fee > 0) u.token.transfer(owner, info.fee);
         uint amount_left = amount - info.fee;
         u.balance += amount_left;
@@ -82,8 +82,8 @@ contract TokenManager {
         User storage u = users[to];
         Token storage info = whitelist[address(u.token)];
         uint token_amount = amount * info.rate_back / 1 ether;
-        require(u.balance > token_amount, "cannot get more tokens back than was originally deposited");
-        require(token_amount > info.fee_back, "cannot afford fee");
+        require(u.balance >= token_amount, "cannot get more tokens back than was originally deposited");
+        require(token_amount >= info.fee_back, "cannot afford fee");
         u.balance -= token_amount;
         u.token.transfer(to, token_amount-info.fee_back);
         u.token.transfer(owner, info.fee_back);
