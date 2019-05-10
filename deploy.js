@@ -66,6 +66,9 @@ async function deploy() {
     let cpu = await deployContract('TRU', { from: accounts[0], gas: 2000000 }, ["CPU token", "CPU", false])
     console.log("CPU", cpu.options.address)
 
+    let cpuManager = await deployContract('TokenManager', { from: accounts[0], gas: 2000000 }, [cpu.options.address])
+    console.log("CPU Manager", cpu.options.address)
+
     let stake = await deployContract('TRU', { from: accounts[0], gas: 2000000 }, ["STAKE token", "STAKE", false])
     console.log("STAKE", stake.options.address)
 
@@ -100,6 +103,7 @@ async function deploy() {
         interactive: exportContract(interactive),
         tru: exportContract(tru),
         cpu: exportContract(cpu),
+        cpuManager: exportContract(cpuManager),
         stake: exportContract(stake),
         exchangeRateOracle: exportContract(exchangeRateOracle),
         incentiveLayer: exportContract(incentiveLayer),

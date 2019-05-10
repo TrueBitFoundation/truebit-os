@@ -47,6 +47,7 @@ contract TokenManager {
     }
 
     function register(address token) public {
+        if (address(users[msg.sender].token) == token) return;
         require (address(users[msg.sender].token) == address(0), "already registered");
         users[msg.sender].token = IToken(token);
     }
@@ -58,7 +59,7 @@ contract TokenManager {
         Token storage info = whitelist[address(u.token)];
         require(info.rate > 0, "token not whitelisted");
         require(info.limit > amount, "token limit reached");
-        u.token.transfer(owner, info.fee);
+        if (info.fee > 0) u.token.transfer(owner, info.fee);
         uint amount_left = amount - info.fee;
         u.balance += amount_left;
         require(contracts[other] == msg.sender || contracts[other] == address(0), "not your contract");
@@ -82,7 +83,7 @@ contract TokenManager {
         Token storage info = whitelist[address(u.token)];
         uint token_amount = amount * info.rate_back / 1 ether;
         require(u.balance > token_amount, "cannot get more tokens back than was originally deposited");
-        require(token_amount > info.fee_back);
+        require(token_amount > info.fee_back, "cannot afford fee");
         u.balance -= token_amount;
         u.token.transfer(to, token_amount-info.fee_back);
         u.token.transfer(owner, info.fee_back);
