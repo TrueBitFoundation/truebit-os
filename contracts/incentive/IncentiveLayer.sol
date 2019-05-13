@@ -118,7 +118,7 @@ contract IncentiveLayer is DepositsManager {
     mapping(bytes32 => Task) private tasks;
     mapping(bytes32 => Solution) private solutions;
     mapping(bytes32 => VMParameters) private vmParams;
-    mapping (bytes32 => uint) challenges;
+    mapping(bytes32 => uint) challenges;
 
     ExchangeRateOracle oracle;
     IDispute disputeResolutionLayer;

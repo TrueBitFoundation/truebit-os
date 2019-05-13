@@ -22,7 +22,7 @@ describe('Truebit Token Manager Unit Tests', function () {
 
         web3 = os.web3
 
-        accounts = [os.accounts[0]]
+        accounts = [os.accounts[0], os.accounts[1]]
 
         const config = await contractsConfig(web3)
 
@@ -69,6 +69,14 @@ describe('Truebit Token Manager Unit Tests', function () {
         let cur_other = c(await other.methods.balanceOf(accounts[0]).call())
         assert_eq(cur_balance, balance)
         assert_eq(cur_other, other_balance)
+    })
+
+    it("add funds for a contract", async () => {
+        let contract_balance = c(await token.methods.balanceOf(accounts[1]).call())
+        await other.methods.approve(manager.options.address, amount).send({from: accounts[0], gas: 1000000})
+        await manager.methods.depositFor(accounts[1], amount).send({from: accounts[0], gas: 1000000})
+        let new_contract_balance = c(await token.methods.balanceOf(accounts[1]).call())
+        assert_eq(c(amount), new_contract_balance.subtract(contract_balance))
     })
 
 })
