@@ -207,7 +207,7 @@ contract StakeWhitelist is IWhitelist {
         }
     }
 
-    function getChallenges(bytes32 idx) public view returns (bytes32 [] memory) {
+    function getChallenges(bytes32 idx) public view returns (bytes32[] memory) {
         Ticket storage t = tickets[idx];
         return t.challenges;
     }

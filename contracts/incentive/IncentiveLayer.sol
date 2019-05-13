@@ -6,7 +6,6 @@ import "./RewardsManager.sol";
 import "../filesystem/Filesystem.sol";
 import "./ExchangeRateOracle.sol";
 
-import "../interface/IGameMaker.sol";
 import "../interface/IToken.sol";
 import "../interface/IDisputeResolutionLayer.sol";
 
@@ -64,7 +63,8 @@ contract IncentiveLayer is DepositsManager {
     event TaskTimeout(bytes32 taskID);
 
     enum State { TaskInitialized, SolverSelected, SolutionCommitted, ChallengesAccepted, IntentsRevealed, SolutionRevealed, TaskFinalized, TaskTimeout }
-    enum Status { Uninitialized, Challenged, Unresolved, SolverWon, ChallengerWon }//For dispute resolution
+//    enum Status { Uninitialized, Challenged, Unresolved, SolverWon, ChallengerWon }//For dispute resolution
+
 
     struct RequiredFile {
         bytes32 nameHash;
@@ -121,7 +121,7 @@ contract IncentiveLayer is DepositsManager {
     mapping (bytes32 => uint) challenges;
 
     ExchangeRateOracle oracle;
-    address disputeResolutionLayer; //using address type because in some cases it is IGameMaker, and others IDisputeResolutionLayer
+    IDispute disputeResolutionLayer;
     Filesystem fs;
 
     IToken tru;
@@ -131,7 +131,7 @@ contract IncentiveLayer is DepositsManager {
         RewardsManager()
         public
     {
-        disputeResolutionLayer = _disputeResolutionLayer;
+        disputeResolutionLayer = IDispute(_disputeResolutionLayer);
         oracle = ExchangeRateOracle(_exchangeRateOracle);
         fs = Filesystem(fs_addr);
         tru = IToken(_TRU);
@@ -418,7 +418,7 @@ contract IncentiveLayer is DepositsManager {
     function taskTimeout(bytes32 taskID) public {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
-        uint g_timeout = IDisputeResolutionLayer(disputeResolutionLayer).timeoutBlock(s.currentGame);
+        uint g_timeout = disputeResolutionLayer.timeoutBlock(s.currentGame);
         require(block.number > g_timeout + BASIC_TIMEOUT);
         require(block.number > t.timeoutBlock + BASIC_TIMEOUT);
         require(t.state != State.TaskTimeout);
@@ -430,7 +430,7 @@ contract IncentiveLayer is DepositsManager {
     function isTaskTimeout(bytes32 taskID) public view returns (bool) {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
-        uint g_timeout = IDisputeResolutionLayer(disputeResolutionLayer).timeoutBlock(s.currentGame);
+        uint g_timeout = disputeResolutionLayer.timeoutBlock(s.currentGame);
         if (block.number <= g_timeout + BASIC_TIMEOUT) return false;
         if (t.state == State.TaskTimeout) return false;
         if (t.state == State.TaskFinalized) return false;
@@ -441,7 +441,7 @@ contract IncentiveLayer is DepositsManager {
     function solverLoses(bytes32 taskID) public returns (bool) {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
-        if (IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.ChallengerWon)) {
+        if (disputeResolutionLayer.status(s.currentGame) == IDispute.Status.ChallengerWon) {
             slashDeposit(taskID, t.selectedSolver, s.currentChallenger);
             cancelTask(taskID);
             return s.currentChallenger == msg.sender;
@@ -553,7 +553,7 @@ contract IncentiveLayer is DepositsManager {
         Solution storage s = solutions[taskID];
         if (t.state != State.SolutionRevealed) return false;
         if (s.solution0Challengers.length == 0) return false;
-        return (s.currentGame == 0 || IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon));
+        return (s.currentGame == 0 || disputeResolutionLayer.status(s.currentGame) == IDispute.Status.SolverWon);
     }
 
     function runVerificationGame(bytes32 taskID) public {
@@ -561,9 +561,9 @@ contract IncentiveLayer is DepositsManager {
         Solution storage s = solutions[taskID];
 
         require(t.state == State.SolutionRevealed);
-        require(s.currentGame == 0 || IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon));
+        require(s.currentGame == 0 || disputeResolutionLayer.status(s.currentGame) == IDispute.Status.SolverWon);
 
-        if (IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon)) {
+        if (disputeResolutionLayer.status(s.currentGame) == IDispute.Status.SolverWon) {
             slashDeposit(taskID, s.currentChallenger, t.selectedSolver);
         }
 
@@ -581,7 +581,7 @@ contract IncentiveLayer is DepositsManager {
         VMParameters storage params = vmParams[taskID];
         uint size = 1;
         uint timeout = BASIC_TIMEOUT+(1+params.gasLimit/INTERPRET_RATE);
-        bytes32 gameID = IGameMaker(disputeResolutionLayer).make(taskID, solver, challenger, t.initTaskHash, solutionHash, size, timeout);
+        bytes32 gameID = disputeResolutionLayer.make(taskID, solver, challenger, t.initTaskHash, solutionHash, size, timeout);
         solutions[taskID].currentGame = gameID;
     }
 
@@ -624,9 +624,9 @@ contract IncentiveLayer is DepositsManager {
         Solution storage s = solutions[taskID];
 
         require(t.state == State.SolutionRevealed);
-        require(s.solution0Challengers.length == 0 && (s.currentGame == 0 || IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon)));
+        require(s.solution0Challengers.length == 0 && (s.currentGame == 0 || disputeResolutionLayer.status(s.currentGame) == IDispute.Status.SolverWon));
 
-        if (IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon)) {
+        if (disputeResolutionLayer.status(s.currentGame) == IDispute.Status.SolverWon) {
             slashDeposit(taskID, s.currentChallenger, t.selectedSolver);
         }
 
@@ -658,7 +658,7 @@ contract IncentiveLayer is DepositsManager {
 
         if (t.state != State.SolutionRevealed) return false;
 
-        if (!(s.solution0Challengers.length == 0 && (s.currentGame == 0 || IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon)))) return false;
+        if (!(s.solution0Challengers.length == 0 && (s.currentGame == 0 || disputeResolutionLayer.status(s.currentGame) == IDispute.Status.SolverWon))) return false;
 
         for (uint i = 0; i < t.uploads.length; i++) {
            if (t.uploads[i].fileId == 0) return false;

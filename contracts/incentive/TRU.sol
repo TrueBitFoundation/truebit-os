@@ -32,6 +32,10 @@ contract TRU is MintableToken, BurnableToken {
         transfer_wl[a] = true;
     }
 
+    function disableTransfers(address a) public onlyOwner {
+        transfer_wl[a] = false;
+    }
+
     function transfer(address _to, uint _value) public returns (bool) {
         require(_value <= balances[msg.sender]);
         require(_to != address(0));

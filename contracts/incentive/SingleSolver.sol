@@ -3,7 +3,7 @@ pragma solidity ^0.5.0;
 import "../filesystem/Filesystem.sol";
 import "../openzeppelin-solidity/Ownable.sol";
 
-import "../interface/IGameMaker.sol";
+// import "../interface/IGameMaker.sol";
 import "../interface/IDisputeResolutionLayer.sol";
 
 interface Callback {
@@ -92,7 +92,7 @@ contract SingleSolverIncentiveLayer is Ownable, ITruebit {
     event SolutionsCommitted(bytes32 taskID, CodeType codeType, bytes32 bundleId, bytes32 solutionHash);
     event SolutionRevealed(bytes32 taskID);
     event VerificationCommitted(bytes32 taskID, address verifier, uint index);
-    event VerificationGame(address indexed solver, uint currentChallenger); 
+    event VerificationGame(address indexed solver, uint currentChallenger);
     event PayReward(address indexed solver, uint reward);
 
     event EndRevealPeriod(bytes32 taskID);
@@ -137,7 +137,7 @@ contract SingleSolverIncentiveLayer is Ownable, ITruebit {
 
     struct Solution {
         bytes32 solutionHash;
-        address payable [] allChallengers;
+        address payable[] allChallengers;
         address payable currentChallenger;
         bool solverConvicted;
         bytes32 currentGame;
@@ -150,16 +150,16 @@ contract SingleSolverIncentiveLayer is Ownable, ITruebit {
     mapping(bytes32 => Task) private tasks;
     mapping(bytes32 => Solution) private solutions;
     mapping(bytes32 => VMParameters) private vmParams;
-    mapping (bytes32 => uint) challenges;    
+    mapping (bytes32 => uint) challenges;
 
-    address disputeResolutionLayer; //using address type because in some cases it is IGameMaker, and others IDisputeResolutionLayer
+    IDispute disputeResolutionLayer;
     Filesystem fs;
     IWhiteList whitelist;
 
-    constructor (address _disputeResolutionLayer, address fs_addr, address wl_addr) 
-        public 
+    constructor (address _disputeResolutionLayer, address fs_addr, address wl_addr)
+        public
     {
-        disputeResolutionLayer = _disputeResolutionLayer;
+        disputeResolutionLayer = IDispute(_disputeResolutionLayer);
         fs = Filesystem(fs_addr);
         whitelist = IWhiteList(wl_addr);
     }
@@ -329,7 +329,7 @@ contract SingleSolverIncentiveLayer is Ownable, ITruebit {
     function taskTimeout(bytes32 taskID) public {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
-        uint g_timeout = IDisputeResolutionLayer(disputeResolutionLayer).timeoutBlock(s.currentGame);
+        uint g_timeout = disputeResolutionLayer.timeoutBlock(s.currentGame);
         require(block.number > g_timeout);
         require(block.number > t.timeoutBlock + BASIC_TIMEOUT);
         require(t.state != State.TaskTimeout);
@@ -341,7 +341,7 @@ contract SingleSolverIncentiveLayer is Ownable, ITruebit {
     function isTaskTimeout(bytes32 taskID) public view returns (bool) {
         Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
-        uint g_timeout = IDisputeResolutionLayer(disputeResolutionLayer).timeoutBlock(s.currentGame);
+        uint g_timeout = disputeResolutionLayer.timeoutBlock(s.currentGame);
         if (block.number <= g_timeout) return false;
         if (t.state == State.TaskTimeout) return false;
         if (t.state == State.TaskFinalized) return false;
@@ -352,7 +352,7 @@ contract SingleSolverIncentiveLayer is Ownable, ITruebit {
     function solverLoses(bytes32 taskID) public returns (bool) {
         // Task storage t = tasks[taskID];
         Solution storage s = solutions[taskID];
-        if (IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.ChallengerWon)) {
+        if (disputeResolutionLayer.status(s.currentGame) == IDispute.Status.ChallengerWon) {
             cancelTask(taskID);
             slashOwner(taskID, s.currentChallenger);
             return s.currentChallenger == msg.sender;
@@ -417,7 +417,7 @@ contract SingleSolverIncentiveLayer is Ownable, ITruebit {
         Solution storage s = solutions[taskID];
         if (t.state != State.SolutionRevealed) return false;
         if (s.allChallengers.length == 0) return false;
-        return (s.currentGame == 0 || IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon));
+        return (s.currentGame == 0 || disputeResolutionLayer.status(s.currentGame) == IDispute.Status.SolverWon);
     }
     
     function runVerificationGame(bytes32 taskID) public {
@@ -425,7 +425,7 @@ contract SingleSolverIncentiveLayer is Ownable, ITruebit {
         Solution storage s = solutions[taskID];
         
         require(t.state == State.SolutionRevealed);
-        require(s.currentGame == 0 || IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon));
+        require(s.currentGame == 0 || disputeResolutionLayer.status(s.currentGame) == IDispute.Status.SolverWon);
 
         address payable slashedVerifier = s.currentChallenger;
 
@@ -444,7 +444,7 @@ contract SingleSolverIncentiveLayer is Ownable, ITruebit {
         VMParameters storage params = vmParams[taskID];
         uint size = 1;
         uint timeout = BASIC_TIMEOUT+(1+params.gasLimit/INTERPRET_RATE);
-        bytes32 gameID = IGameMaker(disputeResolutionLayer).make(taskID, solver, challenger, t.initTaskHash, solutionHash, size, timeout);
+        bytes32 gameID = disputeResolutionLayer.make(taskID, solver, challenger, t.initTaskHash, solutionHash, size, timeout);
         solutions[taskID].currentGame = gameID;
     }
     
@@ -486,7 +486,7 @@ contract SingleSolverIncentiveLayer is Ownable, ITruebit {
         Solution storage s = solutions[taskID];
 
         require(t.state == State.SolutionRevealed);
-        require(s.allChallengers.length == 0 && (s.currentGame == 0 || IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon)));
+        require(s.allChallengers.length == 0 && (s.currentGame == 0 || disputeResolutionLayer.status(s.currentGame) == IDispute.Status.SolverWon));
 
         bytes32[] memory files = new bytes32[](t.uploads.length);
         for (uint i = 0; i < t.uploads.length; i++) {
@@ -504,7 +504,7 @@ contract SingleSolverIncentiveLayer is Ownable, ITruebit {
         emit TaskFinalized(taskID);
         // Callback(t.owner).solved(taskID, files);
 
-        if (IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon)) {
+        if (disputeResolutionLayer.status(s.currentGame) == IDispute.Status.SolverWon) {
             slashVerifier(taskID, s.currentChallenger);
         }
 
@@ -536,7 +536,7 @@ contract SingleSolverIncentiveLayer is Ownable, ITruebit {
         
         if (t.state != State.SolutionRevealed) return false;
 
-        if (!(s.allChallengers.length == 0 && (s.currentGame == 0 || IDisputeResolutionLayer(disputeResolutionLayer).status(s.currentGame) == uint(Status.SolverWon)))) return false;
+        if (!(s.allChallengers.length == 0 && (s.currentGame == 0 || disputeResolutionLayer.status(s.currentGame) == IDispute.Status.SolverWon))) return false;
 
         for (uint i = 0; i < t.uploads.length; i++) {
            if (t.uploads[i].fileId == 0) return false;
