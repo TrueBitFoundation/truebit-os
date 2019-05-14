@@ -20,6 +20,14 @@ contract TRU is MintableToken, BurnableToken {
 
     bool faucetEnabled;
 
+    function lockToken() public onlyOwner {
+        allow_all = false;
+    }
+
+    function unlockToken() public onlyOwner {
+        allow_all = true;
+    }
+
     function enableFaucet() public onlyOwner {
         faucetEnabled = true;
     }

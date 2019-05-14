@@ -74,7 +74,8 @@ describe('Truebit Token Manager Unit Tests', function () {
     it("add funds for a contract", async () => {
         let contract_balance = c(await token.methods.balanceOf(accounts[1]).call())
         await other.methods.approve(manager.options.address, amount).send({from: accounts[0], gas: 1000000})
-        await manager.methods.depositFor(accounts[1], amount).send({from: accounts[0], gas: 1000000})
+        await manager.methods.depositAllowance(accounts[1], amount).send({from: accounts[0], gas: 1000000})
+        await manager.methods.transferFrom(accounts[0], accounts[1], amount).send({from: accounts[1], gas: 1000000})
         let new_contract_balance = c(await token.methods.balanceOf(accounts[1]).call())
         assert_eq(c(amount), new_contract_balance.subtract(contract_balance))
     })

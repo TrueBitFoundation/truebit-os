@@ -52,7 +52,20 @@ contract TokenManager {
         users[msg.sender].token = IToken(token);
     }
 
-    function depositFor(address other, uint amount) public {
+    mapping (address => mapping (address => uint)) allowances;
+
+    function allowance(address from, address to) public view returns (uint) {
+        return allowances[from][to];
+    }
+
+    function transferFrom(address from, address to, uint a) public {
+        require(allowances[from][to] >= a, "not enough allowance");
+        require(msg.sender == to, "can only pull funds to oneself");
+        allowances[from][to] -= a;
+        tru.mint(to, a);
+    }
+
+    function prepareDeposit(address other, uint amount) internal returns (uint, uint) {
         User storage u = users[msg.sender];
         require(u.token.allowance(msg.sender, address(this)) >= amount, "not enough allowance");
         u.token.transferFrom(msg.sender, address(this), amount);
@@ -61,17 +74,26 @@ contract TokenManager {
         require(info.limit >= amount, "token limit reached");
         if (info.fee > 0) u.token.transfer(owner, info.fee);
         uint amount_left = amount - info.fee;
-        u.balance += amount_left;
-        require(contracts[other] == msg.sender || contracts[other] == address(0), "not your contract");
+        require(contracts[other] == msg.sender || contracts[other] == address(0) || contracts[other] == address(1), "not your contract");
         if (other != msg.sender) require(address(users[other].token) == address(0), "other users cannot be your contract");
-        contracts[other] = msg.sender;
         info.limit -= amount;
         uint new_tokens = amount_left * info.rate / 1 ether;
-        tru.mint(other, new_tokens);
+        return (new_tokens, amount_left);
     }
 
     function deposit(uint amount) public {
-        depositFor(msg.sender, amount);
+        require(contracts[msg.sender] == address(0) || contracts[msg.sender] == msg.sender, "contracts cannot deposit");
+        (uint new_tokens, uint amount_left) = prepareDeposit(msg.sender, amount);
+        contracts[msg.sender] = msg.sender;
+        users[msg.sender].balance += amount_left;
+        tru.mint(msg.sender, new_tokens);
+    }
+
+    function depositAllowance(address other, uint amount) public {
+        require(contracts[other] == address(0) || contracts[other] == address(1), "not public contract");
+        (uint new_tokens, ) = prepareDeposit(other, amount);
+        allowances[msg.sender][other] = new_tokens;
+        contracts[other] = address(1);
     }
 
     // maybe shouldn't be able to withdraw from contracts
