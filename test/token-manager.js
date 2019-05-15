@@ -46,7 +46,7 @@ describe('Truebit Token Manager Unit Tests', function () {
     })
 
     it("whitelist conversion for other token", async () => {
-        await manager.methods.setRate(other.options.address, rate, rate, limit, 0, 0).send({from: accounts[0], gas: 1000000})
+        await manager.methods.setRate(other.options.address, rate, rate, limit, 0, 0, 0, 0).send({from: accounts[0], gas: 1000000})
     })
 
     it("registering user", async () => {
