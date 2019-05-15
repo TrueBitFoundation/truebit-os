@@ -71,6 +71,7 @@ parity --chain=goerli account list
 Then use the faucet to get some GÖETH:  https://goerli-faucet.slock.it/
 
 To connect to IPFS nodes, try `ipfs swarm connect /ip4/213.251.185.41/tcp/4001/ipfs/QmSob847F3sPkmveU5p2aPmjRgaXXdhXb7nnmJtkBZ1QDz`
+(does not matter if fails)
 
 (Optional) After parity has synced, you can start Truebit:
 ```
