@@ -15,6 +15,9 @@ contract TokenManager {
         // linear fees
         uint fee_l;
         uint fee_back_l;
+
+        uint period;
+        uint warning;
     }
 
     mapping (address => Token) whitelist;
@@ -40,8 +43,17 @@ contract TokenManager {
         owner = other;
     }
 
+    function warnChange(address token) public {
+        require(msg.sender == owner, "only owner allowed");
+        whitelist[token].warning = block.number;
+    }
+
     // rate 0 means that token is disabled
-    function setRate(address token, uint rate, uint rate_back, uint limit, uint fee, uint fee_l, uint fee_back, uint fee_back_l) public {
+    function setRate(address token, uint rate, uint rate_back, uint limit, uint fee, uint fee_l, uint fee_back, uint fee_back_l, uint period) public {
+        if (whitelist[token].period > 0) {
+            require(whitelist[token].warning > 0, "no warning was made before change");
+            require(block.number > whitelist[token].period + whitelist[token].warning, "");
+        }
         require(msg.sender == owner, "only owner allowed");
         whitelist[token].rate = rate;
         whitelist[token].rate_back = rate_back;
@@ -50,12 +62,53 @@ contract TokenManager {
         whitelist[token].fee_back = fee_back;
         whitelist[token].fee_l = fee_l;
         whitelist[token].fee_back_l = fee_back_l;
+        whitelist[token].period = period;
     }
 
     function register(address token) public {
         if (address(users[msg.sender].token) == token) return;
         require (address(users[msg.sender].token) == address(0), "already registered");
         users[msg.sender].token = IToken(token);
+    }
+
+    function getToken(address user) public view returns (address) {
+        return address(users[user].token);
+    }
+
+    function getRate(address token) public view returns (uint) {
+        return whitelist[token].rate;
+    }
+
+    function getRateBack(address token) public view returns (uint) {
+        return whitelist[token].rate_back;
+    }
+
+    function getLimit(address token) public view returns (uint) {
+        return whitelist[token].limit;
+    }
+
+    function getFee(address token) public view returns (uint) {
+        return whitelist[token].fee;
+    }
+
+    function getLinearFee(address token) public view returns (uint) {
+        return whitelist[token].fee_l;
+    }
+
+    function getFeeBack(address token) public view returns (uint) {
+        return whitelist[token].fee_back;
+    }
+
+    function getLinearFeeBack(address token) public view returns (uint) {
+        return whitelist[token].fee_back_l;
+    }
+
+    function getWarningPeriod(address token) public view returns (uint) {
+        return whitelist[token].period;
+    }
+
+    function getWarningTime(address token) public view returns (uint) {
+        return whitelist[token].warning;
     }
 
     function allowance(address from, address to) public view returns (uint) {
