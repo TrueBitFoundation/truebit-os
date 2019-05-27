@@ -166,6 +166,7 @@ contract IncentiveLayer is DepositsManager {
         Solution storage s = solutions[taskID];
         Task storage t = tasks[taskID];
         require(s.allChallengers[index] == msg.sender, "Tried to get jackpot belonging to others");
+        require(t.randomBits != 0, "Jackpot was not triggered");
         s.allChallengers[index] = address(0);
 
         //transfer jackpot payment
@@ -208,6 +209,7 @@ contract IncentiveLayer is DepositsManager {
         return bondedDeposit;
     }
 
+    // Pay reward to sender
     function payReward(bytes32 taskID, address to) internal {
         Task storage task = tasks[taskID];
         uint payout = task.reward;
@@ -256,6 +258,8 @@ contract IncentiveLayer is DepositsManager {
 
         uint fee_amount = reward_with_fee * fee / 1 ether + fee_fixed;
 
+        require(reward_with_fee >= fee_amount);
+
         uint reward = reward_with_fee - fee_amount;
 
         Task storage t = tasks[id];
@@ -267,9 +271,6 @@ contract IncentiveLayer is DepositsManager {
 
         require(reward_deposits[msg.sender] >= reward_with_fee);
         reward_deposits[msg.sender] -= reward_with_fee;
-
-        // depositReward(id, reward, t.tax);
-        // BaseJackpotManager(jackpotManager).increaseJackpot(t.tax);
 
         t.initTaskHash = initTaskHash;
         t.codeType = codeType;
@@ -386,19 +387,10 @@ contract IncentiveLayer is DepositsManager {
     // @return – boolean
     function prematureReveal(bytes32 taskID, uint originalRandomBits) public returns (bool) {
         Task storage t = tasks[taskID];
-        require(t.state == State.SolverSelected);
-        // require(block.number < t.taskCreationBlockNumber.add(TIMEOUT));
+        require(t.state == State.SolverSelected || t.state == State.SolutionCommitted);
         require(t.randomBitsHash == keccak256(abi.encodePacked(originalRandomBits)));
 
         slashDeposit(taskID, t.selectedSolver, msg.sender);
-        
-        // Reset task data to selected another solver
-        /*
-        t.state = State.TaskInitialized;
-        t.selectedSolver = address(0x0);
-        t.timeoutBlock = block.number;
-        emit TaskCreated(taskID, t.minDeposit, t.lastBlock, t.reward, 1, t.codeType, t.storageType, t.storageAddress);
-        */
 
         cancelTask(taskID);
 
@@ -529,7 +521,7 @@ contract IncentiveLayer is DepositsManager {
 
         require(keccak256(abi.encodePacked(s.solutionHash0)) == s.solutionCommit);
 
-        rewardJackpot(taskID);
+        emit JackpotTriggered(taskID);
 
         t.state = State.SolutionRevealed;
         t.randomBits = originalRandomBits;
@@ -537,15 +529,6 @@ contract IncentiveLayer is DepositsManager {
         t.timeoutBlock = block.number;
     }
 
-
-    function rewardJackpot(bytes32 taskID) internal {
-        // Task storage t = tasks[taskID];
-        // Solution storage s = solutions[taskID];
-        // t.jackpotID = BaseJackpotManager(jackpotManager).setJackpotReceivers(s.allChallengers);
-        emit JackpotTriggered(taskID);
-
-        // payReward(taskID, t.owner);//Still compensating solver even though solution wasn't thoroughly verified, task giver recommended to not use solution
-    }
 
     // verifier should be responsible for calling this first
     function canRunVerificationGame(bytes32 taskID) public view returns (bool) {
@@ -572,7 +555,6 @@ contract IncentiveLayer is DepositsManager {
             verificationGame(taskID, t.selectedSolver, s.currentChallenger, s.solutionHash0);
             s.solution0Challengers.length -= 1;
         }
-        // emit VerificationGame(t.selectedSolver, s.currentChallenger);
         t.timeoutBlock = block.number;
     }
 

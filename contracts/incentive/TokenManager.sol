@@ -2,33 +2,36 @@ pragma solidity ^0.5.0;
 
 import "../interface/IToken.sol";
 
+// Manages converting other tokens to token "tru"
 contract TokenManager {
 
     address owner;
 
     struct Token {
-        uint rate;
-        uint rate_back;
-        uint limit;
+        uint rate;      // conversion rate to "tru" token
+        uint rate_back; // conversion from "tru" to other token
+        uint limit;     // number of other tokens that can be converted
+        // rate fees
         uint fee;
         uint fee_back;
         // linear fees
         uint fee_l;
         uint fee_back_l;
 
-        uint period;
-        uint warning;
+        uint period;  // period that owner needs to wait until changing whitelist
+        uint warning; // the block where the owner has warned about change
     }
 
     mapping (address => Token) whitelist;
 
-    IToken tru;
+    IToken tru; // managed token
 
     constructor (address tru_) public {
         owner = msg.sender;
         tru = IToken(tru_);
     }
 
+    // users have to register which token they want to use
     struct User {
         IToken token;
         uint balance;
@@ -111,6 +114,7 @@ contract TokenManager {
         return whitelist[token].warning;
     }
 
+    // Allowance and transferFrom are used by the contracts that need CPU tokens
     function allowance(address from, address to) public view returns (uint) {
         return allowances[from][to];
     }
@@ -140,6 +144,7 @@ contract TokenManager {
         return (new_tokens, amount_left);
     }
 
+    // Make deposit to get staking tokens
     function deposit(uint amount) public {
         require(contracts[msg.sender] == address(0) || contracts[msg.sender] == msg.sender, "contracts cannot deposit");
         (uint new_tokens, uint amount_left) = prepareDeposit(msg.sender, amount);
@@ -148,6 +153,7 @@ contract TokenManager {
         tru.mint(msg.sender, new_tokens);
     }
 
+    // Make deposit for CPU tokens for a smart contract
     function depositAllowance(address other, uint amount) public {
         require(contracts[other] == address(0) || contracts[other] == address(1), "not public contract");
         (uint new_tokens, ) = prepareDeposit(other, amount);
@@ -155,7 +161,6 @@ contract TokenManager {
         contracts[other] = address(1);
     }
 
-    // maybe shouldn't be able to withdraw from contracts
     function withdrawFrom(address other, address to, uint amount) internal {
         require(tru.allowance(other, address(this)) >= amount, "not enough allowance");
         tru.transferFrom(other, address(this), amount);
@@ -171,6 +176,7 @@ contract TokenManager {
         u.token.transfer(owner, fee_amount);
     }
 
+    // Withdraw stake tokens
     function withdraw(uint amount) public {
         withdrawFrom(msg.sender, msg.sender, amount);
     }
