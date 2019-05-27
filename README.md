@@ -28,7 +28,7 @@ Install [Docker](https://www.docker.com/), and open a Terminal.
 
 First start up the docker image:
 ```
-docker run --rm -ti mrsmkl/wasm-ports:19-04-02 /bin/bash
+docker run --rm -ti mrsmkl/wasm-ports:19-05-15 /bin/bash
 ```
 
 Start up the Truebit environment:
@@ -54,7 +54,7 @@ Then use the `compile.sh` script. You'll also have to re-deploy with `node ../de
 
 To speed up network sync the next time, make a directory `~/goerli` and then mount it with docker:
 ```
-docker run --rm --name=tb -it -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.local/share/io.parity.ethereum mrsmkl/wasm-ports:19-04-02 /bin/bash
+docker run --rm --name=tb -it -p 4001:4001 -p 30303:30303 -v ~/goerli:/root/.local/share/io.parity.ethereum mrsmkl/wasm-ports:19-05-15 /bin/bash
 ```
 
 Start up IPFS and Parity:
@@ -71,6 +71,7 @@ parity --chain=goerli account list
 Then use the faucet to get some GÖETH:  https://goerli-faucet.slock.it/
 
 To connect to IPFS nodes, try `ipfs swarm connect /ip4/213.251.185.41/tcp/4001/ipfs/QmSob847F3sPkmveU5p2aPmjRgaXXdhXb7nnmJtkBZ1QDz`
+(does not matter if fails)
 
 (Optional) After parity has synced, you can start Truebit:
 ```
