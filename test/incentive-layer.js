@@ -13,6 +13,7 @@ async function setup(web3) {
 		contract(httpProvider, config['incentiveLayer']),
 		contract(httpProvider, config['stake']),
 		contract(httpProvider, config['cpu']),
+		contract(httpProvider, config['exchangeRateOracle']),
 	])
 }
 
@@ -36,6 +37,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
 		incentiveLayer = contracts[0]
 		cpu = contracts[2]
 		stake = contracts[1]
+		let oracle = contracts[3]
 
 		taskGiver = os.accounts[0]
 		solver = os.accounts[1]
@@ -44,7 +46,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
 
 		accounts = [taskGiver, solver, verifier]
 
-		minDeposit = "1000000000000000000"
+		minDeposit = await oracle.getMinDeposit.call(0)
 
 		randomBits = 42
 		randomBitsHash = os.web3.utils.soliditySha3(randomBits)
@@ -233,7 +235,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
 		assert.equal(log.args.taskData, 0x0)
 		assert.equal(log.args.randomBitsHash, randomBitsHash)
 
-		assert.equal(log.args.minDeposit, minDeposit)
+		assert.equal(log.args.minDeposit.toString(10), minDeposit.toString(10))
 
 	})
 
