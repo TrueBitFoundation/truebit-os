@@ -314,6 +314,10 @@ To get some tokens, type `claim`, and check your address using `balance`.  If yo
 
 # Development
 
+Tutorial for writing Truebit tasks is [here](https://github.com/TrueBitFoundation/wasm-ports/tree/v2/samples/scrypt).
+
+### Running tests
+
 To run the tests use: `npm run test`
 
 ### WASM Client
