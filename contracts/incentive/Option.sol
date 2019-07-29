@@ -3,19 +3,20 @@ pragma solidity ^0.5.0;
 import "../interface/IToken.sol";
 
 contract Option {
-    IToken cpu;
-    IToken tru;
 
     struct Item {
         IToken token;
         uint rate;
     }
 
-    address owner;
-
     mapping (address => Item) whitelist;
 
     uint constant TIMEOUT = 100;
+
+    address owner;
+
+    IToken cpu;
+    IToken tru;
 
     constructor (address cpu_, address tru_) public {
         owner = msg.sender;
@@ -44,6 +45,7 @@ contract Option {
     mapping (bytes32 => Mint) minting;
 
     // suggest minting more CPU
+    // there might be some limits for how much one can mint, for example they could be bonded into stakes
     function startMint(address ta, uint amount, uint cpu_amount) public returns (bytes32) {
         IToken t = whitelist[ta].token;
 
@@ -86,6 +88,7 @@ contract Option {
         cpu.transferFrom(msg.sender, address(this), m.cpu_amount);
         IToken t = whitelist[m.token].token;
         t.transfer(m.to, m.amount);
+        m.state = Status.Withdrawn;
     }
 
     struct Convert {
@@ -95,6 +98,8 @@ contract Option {
 
     mapping (bytes32 => Convert) conv;
 
+    // using CPU tokens: there are basically two alternatives, first is that somebody converts it to TRU tokens with median price
+    // second is that TRU tokens are minted
     function use() public {
         uniq++;
         bytes32 id = keccak256(abi.encodePacked(uniq, msg.sender));
@@ -119,5 +124,72 @@ contract Option {
     }
 
 }
+
+// staking with pricing
+contract Staking {
+    address owner;
+
+    uint constant MARGIN = 1.2 ether;
+    uint constant TIMEOUT = 100;
+
+    IToken cpu;
+    IToken tru;
+
+    constructor (address cpu_, address tru_) public {
+        owner = msg.sender;
+        cpu = IToken(cpu_);
+        tru = IToken(tru_);
+    }
+
+    enum Status { None, Posted, Active }
+
+    struct Stake {
+        address owner;
+        uint tru_amount;
+        Status state;
+        uint bn;
+    }
+
+    mapping (bytes32 => Stake) stakes;
+
+    uint uniq;
+
+    function post(uint tru_amount) public {
+        uniq++;
+        bytes32 id = keccak256(abi.encodePacked(uniq, msg.sender));
+        stakes[id] = Stake(msg.sender, tru_amount, Status.Posted, block.number);
+        tru.transferFrom(msg.sender, address(this), tru_amount);
+        cpu.transferFrom(msg.sender, address(this), 1 ether);
+    }
+
+    function activate(bytes32 id) public {
+        Stake storage s = stakes[id];
+        require(s.state == Status.Posted, "Wrong state");
+        require(s.bn + TIMEOUT > block.number, "Wait for timeout");
+        cpu.transferFrom(msg.sender, address(this), 1 ether);
+        s.state = Status.Active;
+    }
+
+    function buyCPU(bytes32 id) public {
+        Stake storage s = stakes[id];
+        require(s.state == Status.Posted, "Wrong state");
+        uint suggested = s.tru_amount * MARGIN / 100 ether / 1 ether;
+        tru.transferFrom(msg.sender, address(this), suggested);
+        tru.transfer(s.owner, s.tru_amount + suggested);
+        cpu.transfer(msg.sender, 1 ether);
+    }
+
+    function buyTRU(bytes32 id) public {
+        Stake storage s = stakes[id];
+        require(s.state == Status.Posted, "Wrong state");
+        uint suggested = (s.tru_amount/MARGIN) / 100 ether / 1 ether;
+        cpu.transferFrom(msg.sender, address(this), 1 ether);
+        tru.transfer(msg.sender, suggested);
+        tru.transfer(s.owner, s.tru_amount-suggested);
+        cpu.transfer(s.owner, 2 ether);
+    }
+
+}
+
 
 
