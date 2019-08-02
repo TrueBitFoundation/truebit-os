@@ -50,6 +50,14 @@ async function main() {
         console.log("suggested price for 1 CPU", sugg)
         if (sugg.lt(target)) {
             console.log("CPU price is lower than target, buy")
+            await stake.methods.approve(opt.options.address, sugg.toString()).send({from: accounts[0], gas:300000})
+            try {
+                await opt.methods.exchange(id).call({from: accounts[0], gas:300000})
+                await opt.methods.exchange(id).send({from: accounts[0], gas:300000})
+            }
+            catch (err) {
+                console.log("exchange failed", err.toString())
+            }
         }
     }
 

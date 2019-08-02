@@ -85,6 +85,7 @@ contract Option {
         // calculate suggested price: it's amount of tokens divided by amount of CPU tokens
         // then adjust by the rate which tells how much is actually accepted as collateral
         uint suggested = getSuggested(id);
+        require(m.state == Status.Minting, "Invalid item or id");
         IToken t = whitelist[m.token].token;
         t.transferFrom(msg.sender, address(this), suggested);
         cpu.transfer(msg.sender, 1 ether);
