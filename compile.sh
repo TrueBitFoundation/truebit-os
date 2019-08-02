@@ -19,4 +19,5 @@ solc --abi --optimize --overwrite --bin -o ../build --allow-paths /interface,  i
 solc --abi --optimize --overwrite --bin -o ../build --allow-paths /interface,  incentive/StakeWhitelist.sol
 solc --abi --optimize --overwrite --bin -o ../build --allow-paths /interface,  incentive/TokenManager.sol
 solc --abi --optimize --overwrite --bin -o ../build --allow-paths /interface,  misc/IPFSnodeManager.sol
+solc --abi --optimize --overwrite --bin -o ../build --allow-paths /interface,  incentive/Option.sol
 

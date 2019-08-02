@@ -63,13 +63,13 @@ async function deploy() {
     let tru = await deployContract('TRU', { from: accounts[0], gas: 2000000 }, ["TRU token", "TRU", true])
     console.log("TRU", tru.options.address)
 
-    let cpu = await deployContract('TRU', { from: accounts[0], gas: 2000000 }, ["CPU token", "CPU", false])
+    let cpu = await deployContract('TRU', { from: accounts[0], gas: 2000000 }, ["CPU token", "CPU", true])
     console.log("CPU", cpu.options.address)
 
     let cpuManager = await deployContract('TokenManager', { from: accounts[0], gas: 2000000 }, [cpu.options.address])
     console.log("CPU Manager", cpu.options.address)
 
-    let stake = await deployContract('TRU', { from: accounts[0], gas: 2000000 }, ["STAKE token", "STAKE", false])
+    let stake = await deployContract('TRU', { from: accounts[0], gas: 2000000 }, ["STAKE token", "STAKE", true])
     console.log("STAKE", stake.options.address)
 
     let exchangeRateOracle = await deployContract('ExchangeRateOracle', { from: accounts[0], gas: 1000000 })
@@ -112,6 +112,15 @@ async function deploy() {
     }
 
     if (networkName == "private") {
+        console.log("deploying conversion contracts")
+        let opt = await deployContract('Option', { from: accounts[0], gas: 5000000 }, [cpu.options.address, tru.options.address])
+        await opt.methods.add(stake.options.address, web3.utils.toWei("1", "ether")).send({ from: accounts[0], gas: 300000 })
+        await cpu.methods.addMinter(opt.options.address).send({ from: accounts[0], gas: 300000 })
+        config.option = exportContract(opt)
+    }
+
+    if (networkName == "private") {
+        console.log("Deploying random selection")
         let whitelist = await deployContract('WhiteList', { from: accounts[0], gas: 2000000 })
         let stake_whitelist = await deployContract('StakeWhitelist', { from: accounts[0], gas: 2000000 })
         let testbook = await deployContract('TestBook', { from: accounts[0], gas: 2000000 })

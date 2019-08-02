@@ -9,11 +9,10 @@ contract Option {
         uint rate;
     }
 
+    address owner;
     mapping (address => Item) whitelist;
 
-    uint constant TIMEOUT = 100;
-
-    address owner;
+    uint constant TIMEOUT = 10;
 
     IToken cpu;
     IToken tru;
@@ -24,8 +23,10 @@ contract Option {
         tru = IToken(tru_);
     }
 
+    // 1 ether = 100%
     function add(address t, uint rate) public {
         require(msg.sender == owner, "Only owner can modify whitelist");
+        require(rate >= 1 ether, "Rate must be over 100%");
         whitelist[t] = Item(IToken(t), rate);
     }
 
@@ -44,6 +45,8 @@ contract Option {
 
     mapping (bytes32 => Mint) minting;
 
+    event StartMint(bytes32 id, address snd, address token, uint amount, uint cpu_amount);
+
     // suggest minting more CPU
     // there might be some limits for how much one can mint, for example they could be bonded into stakes
     function startMint(address ta, uint amount, uint cpu_amount) public returns (bytes32) {
@@ -56,16 +59,24 @@ contract Option {
         uniq++;
         bytes32 id = keccak256(abi.encodePacked(uniq, msg.sender, ta, amount));
         minting[id] = Mint(msg.sender, block.number, ta, amount, cpu_amount, Status.Minting);
+        emit StartMint(id, msg.sender, ta, amount, cpu_amount);
         return id;
     }
 
     // after timeout, CPU can be minted
-    function mint(bytes32 id) public {
+    function mint(bytes32 id) public returns (bool) {
         Mint storage m = minting[id];
         require(m.state == Status.Minting, "Invalid item or id");
-        require(m.bn + TIMEOUT > block.number, "Wait for timeout");
+        require(m.bn + TIMEOUT < block.number, "Wait for timeout");
         m.state = Status.Minted;
         cpu.mint(m.to, m.cpu_amount);
+        return true;
+    }
+
+    function getSuggested(bytes32 id) public view returns (uint) {
+        Mint storage m = minting[id];
+        uint suggested = (m.amount*1 ether*1 ether / m.cpu_amount) / whitelist[m.token].rate;
+        return suggested;
     }
 
     // prevent minting, get the CPU bond
@@ -73,7 +84,7 @@ contract Option {
         Mint storage m = minting[id];
         // calculate suggested price: it's amount of tokens divided by amount of CPU tokens
         // then adjust by the rate which tells how much is actually accepted as collateral
-        uint suggested = (m.amount*1 ether / m.cpu_amount) / whitelist[m.token].rate;
+        uint suggested = getSuggested(id);
         IToken t = whitelist[m.token].token;
         t.transferFrom(msg.sender, address(this), suggested);
         cpu.transfer(msg.sender, 1 ether);
@@ -91,6 +102,8 @@ contract Option {
         m.state = Status.Withdrawn;
     }
 
+    // using CPU tokens: there are basically two alternatives, first is that somebody converts it to TRU tokens with median price
+    // second is that TRU tokens are minted
     struct Convert {
         address to;
         uint bn;
@@ -98,8 +111,6 @@ contract Option {
 
     mapping (bytes32 => Convert) conv;
 
-    // using CPU tokens: there are basically two alternatives, first is that somebody converts it to TRU tokens with median price
-    // second is that TRU tokens are minted
     function use() public {
         uniq++;
         bytes32 id = keccak256(abi.encodePacked(uniq, msg.sender));
@@ -107,7 +118,9 @@ contract Option {
         conv[id] = Convert(msg.sender, block.number);
     }
 
-    function medianPrice() public returns (uint);
+    function medianPrice() public returns (uint) {
+        return 1 ether;
+    }
 
     function give(bytes32 id) public {
         Convert storage c = conv[id];
@@ -119,10 +132,9 @@ contract Option {
     function timeout(bytes32 id) public {
         Convert storage c = conv[id];
         require(c.bn != 0, "Empty conversion item");
-        require(c.bn + TIMEOUT > block.number, "Wait for timeout");
+        require(c.bn + TIMEOUT < block.number, "Wait for timeout");
         tru.mint(c.to, medianPrice());
     }
-
 }
 
 // staking with pricing
@@ -165,7 +177,7 @@ contract Staking {
     function activate(bytes32 id) public {
         Stake storage s = stakes[id];
         require(s.state == Status.Posted, "Wrong state");
-        require(s.bn + TIMEOUT > block.number, "Wait for timeout");
+        require(s.bn + TIMEOUT < block.number, "Wait for timeout");
         cpu.transferFrom(msg.sender, address(this), 1 ether);
         s.state = Status.Active;
     }
