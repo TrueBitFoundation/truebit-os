@@ -114,9 +114,11 @@ async function deploy() {
     if (networkName == "private") {
         console.log("deploying conversion contracts")
         let opt = await deployContract('Option', { from: accounts[0], gas: 5000000 }, [cpu.options.address, tru.options.address])
+        let deposit = await deployContract('Staking', { from: accounts[0], gas: 5000000 }, [cpu.options.address, tru.options.address])
         await opt.methods.add(stake.options.address, web3.utils.toWei("1", "ether")).send({ from: accounts[0], gas: 300000 })
         await cpu.methods.addMinter(opt.options.address).send({ from: accounts[0], gas: 300000 })
         config.option = exportContract(opt)
+        config.deposit = exportContract(deposit)
     }
 
     if (networkName == "private") {

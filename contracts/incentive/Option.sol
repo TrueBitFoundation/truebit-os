@@ -143,7 +143,7 @@ contract Staking {
     address owner;
 
     uint constant MARGIN = 1.2 ether;
-    uint constant TIMEOUT = 100;
+    uint constant TIMEOUT = 10;
 
     IToken cpu;
     IToken tru;
@@ -154,7 +154,7 @@ contract Staking {
         tru = IToken(tru_);
     }
 
-    enum Status { None, Posted, Active }
+    enum Status { None, Posted, Active, Withdrawn }
 
     struct Stake {
         address owner;
@@ -167,39 +167,68 @@ contract Staking {
 
     uint uniq;
 
-    function post(uint tru_amount) public {
+    event Posted(bytes32 id, address a, uint tru_amount);
+
+    function post(uint tru_amount) public returns (bytes32) {
         uniq++;
         bytes32 id = keccak256(abi.encodePacked(uniq, msg.sender));
         stakes[id] = Stake(msg.sender, tru_amount, Status.Posted, block.number);
         tru.transferFrom(msg.sender, address(this), tru_amount);
         cpu.transferFrom(msg.sender, address(this), 1 ether);
+        emit Posted(id, msg.sender, tru_amount);
+        return id;
     }
 
     function activate(bytes32 id) public {
         Stake storage s = stakes[id];
         require(s.state == Status.Posted, "Wrong state");
         require(s.bn + TIMEOUT < block.number, "Wait for timeout");
-        cpu.transferFrom(msg.sender, address(this), 1 ether);
+        cpu.transfer(address(this), 1 ether);
         s.state = Status.Active;
+    }
+
+    // amount of TRU to buy one CPU
+    function getSuggestedCPU(bytes32 id) public view returns (uint) {
+        Stake storage s = stakes[id];
+        uint suggested = s.tru_amount * MARGIN / 100 ether;
+        return suggested;
     }
 
     function buyCPU(bytes32 id) public {
         Stake storage s = stakes[id];
         require(s.state == Status.Posted, "Wrong state");
-        uint suggested = s.tru_amount * MARGIN / 100 ether / 1 ether;
+        uint suggested = getSuggestedCPU(id);
         tru.transferFrom(msg.sender, address(this), suggested);
         tru.transfer(s.owner, s.tru_amount + suggested);
         cpu.transfer(msg.sender, 1 ether);
+        s.state = Status.Withdrawn;
+    }
+
+    // amount of CPU to buy one TRU
+    /*
+    function getSuggestedTRU(bytes32 id) public view returns (uint) {
+        Stake storage s = stakes[id];
+        uint suggested = 100 ether * MARGIN / s.tru_amount;
+        return suggested;
+    }
+    */
+
+    // amount of TRU bought with one CPU
+    function getSuggestedTRU(bytes32 id) public view returns (uint) {
+        Stake storage s = stakes[id];
+        uint suggested = s.tru_amount * 1 ether * 1 ether / MARGIN / 100 ether;
+        return suggested;
     }
 
     function buyTRU(bytes32 id) public {
         Stake storage s = stakes[id];
         require(s.state == Status.Posted, "Wrong state");
-        uint suggested = (s.tru_amount/MARGIN) / 100 ether / 1 ether;
+        uint suggested = getSuggestedTRU(id);
         cpu.transferFrom(msg.sender, address(this), 1 ether);
         tru.transfer(msg.sender, suggested);
         tru.transfer(s.owner, s.tru_amount-suggested);
         cpu.transfer(s.owner, 2 ether);
+        s.state = Status.Withdrawn;
     }
 
 }
