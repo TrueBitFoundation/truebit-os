@@ -119,8 +119,10 @@ contract Option {
         conv[id] = Convert(msg.sender, block.number);
     }
 
-    function medianPrice() public returns (uint) {
-        return 1 ether;
+    uint median = 1 ether;
+
+    function medianPrice() public view returns (uint) {
+        return median;
     }
 
     function give(bytes32 id) public {
@@ -143,6 +145,7 @@ contract Staking {
     address owner;
 
     uint constant MARGIN = 1.2 ether;
+    uint constant CPU_AMOUNT = 100 ether;
     uint constant TIMEOUT = 10;
 
     IToken cpu;
@@ -167,6 +170,9 @@ contract Staking {
 
     uint uniq;
 
+    uint total_tru;
+    uint total_cpu_value;
+
     event Posted(bytes32 id, address a, uint tru_amount);
 
     function post(uint tru_amount) public returns (bytes32) {
@@ -185,12 +191,15 @@ contract Staking {
         require(s.bn + TIMEOUT < block.number, "Wait for timeout");
         cpu.transfer(address(this), 1 ether);
         s.state = Status.Active;
+        // keeping track of average
+        total_tru++;
+        total_cpu_value += s.tru_amount * 1 ether / CPU_AMOUNT;
     }
 
     // amount of TRU to buy one CPU
     function getSuggestedCPU(bytes32 id) public view returns (uint) {
         Stake storage s = stakes[id];
-        uint suggested = s.tru_amount * MARGIN / 100 ether;
+        uint suggested = s.tru_amount * MARGIN / CPU_AMOUNT;
         return suggested;
     }
 
@@ -208,7 +217,7 @@ contract Staking {
     /*
     function getSuggestedTRU(bytes32 id) public view returns (uint) {
         Stake storage s = stakes[id];
-        uint suggested = 100 ether * MARGIN / s.tru_amount;
+        uint suggested = CPU_AMOUNT * MARGIN / s.tru_amount;
         return suggested;
     }
     */
@@ -216,7 +225,7 @@ contract Staking {
     // amount of TRU bought with one CPU
     function getSuggestedTRU(bytes32 id) public view returns (uint) {
         Stake storage s = stakes[id];
-        uint suggested = s.tru_amount * 1 ether * 1 ether / MARGIN / 100 ether;
+        uint suggested = s.tru_amount * 1 ether * 1 ether / MARGIN / CPU_AMOUNT;
         return suggested;
     }
 
@@ -229,6 +238,19 @@ contract Staking {
         tru.transfer(s.owner, s.tru_amount-suggested);
         cpu.transfer(s.owner, 2 ether);
         s.state = Status.Withdrawn;
+    }
+
+    function withdraw(bytes32 id) public {
+        Stake storage s = stakes[id];
+        require(s.state == Status.Active, "Incorrect id or state");
+        tru.transfer(s.owner, s.tru_amount);
+        s.state = Status.Withdrawn;
+        total_tru--;
+        total_cpu_value -= s.tru_amount * 1 ether / CPU_AMOUNT;
+    }
+
+    function averagePrice() public view returns (uint) {
+        return total_cpu_value / total_tru;
     }
 
 }
