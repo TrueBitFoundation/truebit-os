@@ -11,8 +11,8 @@ eval $(opam config env)
 opam install cryptokit yojson ctypes ctypes-foreign -y
 
 cd wasm-client/ocaml-offchain
-git submodule init
-git submodule update
+# git submodule init
+# git submodule update
 
 cd interpreter
 make
