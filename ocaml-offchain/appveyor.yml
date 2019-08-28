@@ -1,0 +1,28 @@
+platform:
+    - x86
+
+environment:
+  global:
+    CYG_ROOT: C:/cygwin
+    CYG_CACHE: C:/cygwin/var/cache/setup
+    CYG_MIRROR: http://mirrors.kernel.org/sourceware/cygwin/
+  matrix:
+    -
+      CYG_ARCH: x86
+
+init:
+  - 'echo System architecture: %PLATFORM%'
+
+install:
+  - 'appveyor DownloadFile http://cygwin.com/setup-%CYG_ARCH%.exe -FileName setup.exe'
+  - 'setup.exe -gqnNdO -R "%CYG_ROOT%" -s "%CYG_MIRROR%" -l "%CYG_CACHE%" -P make,git,gcc-core,gcc-g++,ocaml,ocaml-camlp4,ocaml-compiler-libs,libncurses-devel,unzip,libmpfr-devel,patch,flexdll,libglpk-devel >NUL'
+  - '%CYG_ROOT%/bin/bash -lc "cygcheck -dc cygwin gcc-core"'
+  - '%CYG_ROOT%/bin/bash -lc "cd \"$OLDPWD\" && env DJDIR="workaround" ./configure && make lib-ext && make && make install"'
+  - '%CYG_ROOT%/bin/bash -lc "opam init -y -a"'
+  - '%CYG_ROOT%/bin/bash -lc "opam config env"'
+  - '%CYG_ROOT%/bin/bash -lc "opam install -y -v ocamlfind"'
+
+build_script:
+  - cd interpreter
+  - make
+

@@ -1,0 +1,41 @@
+<html>
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-scrypt/1.2.0/scrypt.min.js"></script>
+    
+    <script>
+      let s
+      scrypt_module_factory(function (scrypt) {
+        s = scrypt
+      });
+    </script>
+
+    <script src="bundle.js"></script>    
+  </head>
+
+  <style>
+    .app {
+    font-size: 20px;
+    font-family: "Comic Sans MS"
+    }
+  </style>
+  
+  
+  <body style="background-color:#cdf7a8;">
+
+    <div id="app" class="app">
+      
+      <div>Generate a Scrypt hash of some text using TrueBit:</div>
+      <textarea rows="1" cols="100" id="input-data"></textarea>
+      <button onclick="window.runScrypt()">Submit</button>
+      <p></p>
+
+      Scrypt Hashes from js-scrypt:
+      <div id="js-scrypt"></div>
+      <br>
+      Scrypt Hashes from Truebit solver:
+      <div id="tb-scrypt"></div>
+      
+    </div>
+    
+  </body>  
+</html>  

@@ -1,0 +1,14 @@
+**/*~
+**/*.tmproj
+**/*.pyc
+**/_build
+**/Qm*
+**/_output
+interpreter/merge.wasm
+interpreter/merge.wast
+interpreter/sol-test
+interpreter/globals.*
+solidity/contracts
+solidity/node_modules
+*.cmi
+**/node_modules
