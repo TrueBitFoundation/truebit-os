@@ -29,7 +29,7 @@ before_install:
   # Install ocaml
   - sudo apt-get install -y wget gcc ocaml opam libzarith-ocaml-dev m4 pkg-config zlib1g-dev libffi-dev
 #  - opam init -y --comp=4.06.1
-#  - opam init -y --comp=4.05.0
+  - opam init -y --comp=4.05.0
   - eval $(opam config env)
   - opam update
   - opam install -y cryptokit yojson ctypes ctypes-foreign
@@ -51,7 +51,7 @@ script:
   - sh runtests.sh
   - cd ../..
   - NODE_ENV='production' npm run test
-  - node cli/index.js wasm-client/config-jit.json -c "start solve" &
+  - node cli/index.js wasm-client/config-jit.json --batch -c "start solve" &
   - sleep 15
   - mocha wasm-ports/samples/test
 
