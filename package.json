@@ -37,6 +37,7 @@
     "wasm-metering-tb": "^0.2.1",
     "web3": "1.0.0-beta.34",
     "websocket": "^1.0.26",
+    "truebit-util": "^1.0.1",
     "winston": "^3.0.0"
   }
 }

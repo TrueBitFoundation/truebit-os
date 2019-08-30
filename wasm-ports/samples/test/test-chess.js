@@ -34,7 +34,7 @@ describe('Truebit Chess test', async function() {
 
     })
 
-    let dta = new Buffer("hjkl")
+    let dta = "0x" + Buffer.from("hjkl").toString("hex")
 
     it('submit test task', async () => {
         await sampleSubmitter.methods.submitData(dta).send({gas: 2000000, from: account})

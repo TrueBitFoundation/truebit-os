@@ -34,7 +34,7 @@ describe('Truebit Bilinear pairing test', async function() {
 
     })
 
-    let dta = new Buffer("sdlfhsdfuhsdlufhlsdufhlsdufhlsdufhlsdufhlsdufsdlfuh\n")
+    let dta = "0x" + Buffer.from("sdlfhsdfuhsdlufhlsdufhlsdufhlsdufhlsdufhlsdufsdlfuh\n").toString("hex")
 
     it('submit test task', async () => {
         await sampleSubmitter.methods.submitData(dta).send({gas: 2000000, from: account})

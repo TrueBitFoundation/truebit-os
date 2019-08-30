@@ -41,7 +41,6 @@ install:
   - npm run compile
   - npm run deploy
   - cd wasm-ports/samples
-  - npm install
   - sh deploy.sh
   - cd ../..
 
