@@ -48,11 +48,11 @@ install:
   - cd ../..
 
 script:
+  - node cli/index.js wasm-client/config-jit.json --batch -c "start solve" &
+  - sleep 15
+  - mocha wasm-ports/samples/test
   - cd ocaml-offchain/interpreter
   - sh runtests.sh
   - cd ../..
   - NODE_ENV='production' npm run test
-  - node cli/index.js wasm-client/config-jit.json --batch -c "start solve" &
-  - sleep 15
-  - mocha wasm-ports/samples/test
 
