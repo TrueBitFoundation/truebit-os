@@ -121,9 +121,8 @@ let vec f s = let n = len32 s in list f n s
 let name s =
   let pos = pos s in
   let str = string s in
-  (* prerr_endline ("??? " ^ str) ; *)
   try Utf8.decode str with Utf8.Utf8 ->
-    ( prerr_endline ("??? " ^ str) ; error s pos "invalid UTF-8 encoding" )
+    ( (* prerr_endline ("??? " ^ str) ; *) error s pos "invalid UTF-8 encoding" )
 
 let sized f s =
   let size = len32 s in

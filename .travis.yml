@@ -37,10 +37,14 @@ before_install:
 install:
   - npm run fixperms
   - npm install
-#  - npm run install
   - npm run deps
   - npm run compile
   - npm run deploy
 
 script:
+  - cd ocaml-offchain/interpreter
+  - sh runtests.sh
+  - cd ../..
   - NODE_ENV='production' npm run test
+
+
