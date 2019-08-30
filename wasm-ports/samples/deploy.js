@@ -43,8 +43,10 @@ async function deploy() {
 
     let ipfsFile = (await ipfs.files.add([{ content: codeBuf, path: "task.wasm" }]))[0]
 
+    console.log(ipfsFile)
+
     let ipfsHash = ipfsFile.hash
-    let size = ipfsFile.size
+    let size = codeBuf.byteLength
     let name = ipfsFile.path
 
     //Deploy contract with appropriate artifacts
@@ -82,6 +84,8 @@ async function deploy() {
     let mr = merkleRoot(web3, codeBuf)
 
     codeFileID = await tbFileSystem.methods.calcId(fileNonce).call({ from: account })
+
+    console.log("debug", name, size, ipfsHash, mr, initHash, fileNonce)
 
     await tbFileSystem.methods.addIPFSCodeFile(name, size, ipfsHash, mr, initHash, fileNonce).send({ from: account, gas: 300000 })
 
