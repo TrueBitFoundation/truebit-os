@@ -75,24 +75,20 @@ RUN cd bin \
  && mv solc-static-linux solc \
  && chmod 744 solc
 
-RUN git clone https://github.com/TruebitFoundation/jit-runner \
+RUN git clone https://github.com/TruebitFoundation/truebit-os \
+ && cd truebit-os \
+ && git checkout mono-2 \
  && cd jit-runner \
- && git  checkout v2 \
  && npm i
 
-RUN git clone https://github.com/TrueBitFoundation/emscripten-module-wrapper \
+RUN cd truebit-os/emscripten-module-wrapper \
  && source /emsdk/emsdk_env.sh \
- && cd emscripten-module-wrapper \
- && git checkout v2 \
  && npm install \
- && ln -s /emscripten-module-wrapper /root/emscripten-module-wrapper
+ && ln -s /truebit-os/emscripten-module-wrapper /root/emscripten-module-wrapper
 
-
-RUN git clone https://github.com/TrueBitFoundation/wasm-ports \
+RUN cd truebit-os/wasm-ports \
  && source /emsdk/emsdk_env.sh \
  && export EMCC_WASM_BACKEND=1 \
- && cd wasm-ports \
- && git checkout v2 \
  && apt-get install -y lzip autoconf libtool flex bison \
  && sh gmp.sh \
  && sh openssl.sh \
@@ -101,16 +97,13 @@ RUN git clone https://github.com/TrueBitFoundation/wasm-ports \
  && sh boost.sh \
  && sh libpbc.sh
 
-RUN git clone https://github.com/mrsmkl/truebit-os \
- && cd truebit-os \
- && git checkout meter_fix \
+RUN cd truebit-os \
  && npm i --production \
  && npm run deps \
  && npm run  compile \
  && rm -rf ~/.opam
 
-RUN cd wasm-ports/samples/pairing \
- && git pull \
+RUN cd truebit-os/wasm-ports/samples/pairing \
  && source  /emsdk/emsdk_env.sh \
  && ( ipfs daemon & ) \
  && export EMCC_WASM_BACKEND=1 \
@@ -120,22 +113,13 @@ RUN cd wasm-ports/samples/pairing \
  && cd ../chess \
  && sh compile.sh
 
-RUN cd wasm-ports/samples/ffmpeg \
- && git pull \
+RUN cd truebit-os/wasm-ports/samples/ffmpeg \
  && source  /emsdk/emsdk_env.sh \
  && ( ipfs daemon & ) \
  && sh compile.sh
 
-RUN cd wasm-ports/samples \
- && git  pull \
- && npm i \
- && cd /wasm-ports \
- && ln -s /truebit-os .
+RUN cd truebit-os/wasm-ports/samples \
+ && npm i
 
-RUN cd wasm-ports/samples/pairing \
- && git pull
-
-RUN cd truebit-os \
- && git  pull
 
 EXPOSE 4001 30303 80 8545
