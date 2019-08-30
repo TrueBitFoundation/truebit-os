@@ -10,7 +10,6 @@ cache:
 
 before_install:
   # Install Ethereum Tools
-  - cd wasm-ports/samples
   - sudo add-apt-repository ppa:ethereum/ethereum -y
   - sudo apt-get update
   - sudo apt-get install software-properties-common
