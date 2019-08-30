@@ -10,6 +10,7 @@ cache:
 
 before_install:
   # Install Ethereum Tools
+  - cd wasm-ports/samples
   - sudo add-apt-repository ppa:ethereum/ethereum -y
   - sudo apt-get update
   - sudo apt-get install software-properties-common
@@ -51,6 +52,5 @@ script:
   - NODE_ENV='production' npm run test
   - node cli/index.js wasm-client/config-jit.json -c "start solve" &
   - sleep 15
-  - cd wasm-ports/samples
-  - mocha
+  - mocha wasm-ports/samples/test
 

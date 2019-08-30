@@ -11,6 +11,8 @@ const getNetwork = require('truebit-util').getNetwork
 
 let account, fileSystem, scryptSubmitter
 
+let dir = "wasm-ports/samples/scrypt/"
+
 before(async () => {
     let accounts = await web3.eth.getAccounts()
     account = accounts[0]
@@ -27,7 +29,7 @@ describe('Truebit Scrypt test', async function() {
         let networkName = await getNetwork(web3)
 
 	//get scrypt submitter artifact
-	const artifacts = JSON.parse(fs.readFileSync("scrypt/public/" + networkName + ".json"))
+	const artifacts = JSON.parse(fs.readFileSync(dir + "public/" + networkName + ".json"))
 
         // fileSystem = new web3.eth.Contract(artifacts.fileSystem.abi, artifacts.fileSystem.address)
         scryptSubmitter = new web3.eth.Contract(artifacts.sample.abi, artifacts.sample.address)

@@ -9,6 +9,8 @@ const web3 = new Web3(new Web3.providers.HttpProvider(host))
 
 const getNetwork = require('truebit-util').getNetwork
 
+let dir = "wasm-ports/samples/pairing/"
+
 let account, fileSystem, sampleSubmitter
 
 before(async () => {
@@ -27,7 +29,7 @@ describe('Truebit Bilinear pairing test', async function() {
         let networkName = await getNetwork(web3)
 
         //get scrypt submitter artifact
-	    const artifacts = JSON.parse(fs.readFileSync("pairing/public/" + networkName + ".json"))
+	    const artifacts = JSON.parse(fs.readFileSync(dir + "public/" + networkName + ".json"))
 
         // fileSystem = new web3.eth.Contract(artifacts.fileSystem.abi, artifacts.fileSystem.address)
         sampleSubmitter = new web3.eth.Contract(artifacts.sample.abi, artifacts.sample.address)
