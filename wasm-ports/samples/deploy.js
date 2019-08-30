@@ -51,7 +51,7 @@ async function deploy() {
 
     let networkName = await getNetwork(web3)
 
-    let artifacts = JSON.parse(fs.readFileSync('../../truebit-os/wasm-client/' + networkName + '.json'))
+    let artifacts = JSON.parse(fs.readFileSync('../../../wasm-client/' + networkName + '.json'))
 
     let accounts = await web3.eth.getAccounts()
     let account = accounts[0]
@@ -89,7 +89,7 @@ async function deploy() {
 
     let args = [
         artifacts.incentiveLayer.address,
-        artifacts.tru.address,
+        artifacts.cpu.address,
         artifacts.fileSystem.address,
         codeFileID,
         info.memsize,
@@ -102,9 +102,9 @@ async function deploy() {
 
     let c = await contract.deploy({ data: "0x" + bin, arguments: args }).send(options)
 
-    let tru = new web3.eth.Contract(artifacts.tru.abi, artifacts.tru.address)
+    let cpu = new web3.eth.Contract(artifacts.cpu.abi, artifacts.cpu.address)
 
-    tru.methods.transfer(c.options.address, "100000000000000000000").send({ from: accounts[0], gas: 200000 })
+    cpu.methods.transfer(c.options.address, "100000000000000000000").send({ from: accounts[0], gas: 200000 })
 
     artifacts["sample"] = { address: c.options.address, abi: abi }
 

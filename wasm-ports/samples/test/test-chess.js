@@ -39,6 +39,7 @@ describe('Truebit Chess test', async function() {
     it('submit test task', async () => {
         await sampleSubmitter.methods.submitData(dta).send({gas: 2000000, from: account})
     })
+
     it('wait for solution', async () => {
         let solution = ""
         while (solution.length == 0) {

@@ -40,11 +40,18 @@ install:
   - npm run deps
   - npm run compile
   - npm run deploy
+  - cd wasm-ports/samples
+  - npm install
+  - sh deploy.sh
+  - cd ../..
 
 script:
   - cd ocaml-offchain/interpreter
   - sh runtests.sh
   - cd ../..
   - NODE_ENV='production' npm run test
-
+  - node cli/index.js wasm-client/config-jit.json -c "start solve" &
+  - sleep 15
+  - cd wasm-ports/samples
+  - mocha
 

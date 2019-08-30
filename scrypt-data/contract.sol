@@ -7,15 +7,13 @@ interface Filesystem {
    function getSize(bytes32 id) external view returns (uint);
    function getRoot(bytes32 id) external view returns (bytes32);
    function getData(bytes32 id) external view returns (bytes32[] memory);
-   function forwardData(bytes32 id, address a) external;   
-   
+   function forwardData(bytes32 id, address a) external;
    function makeBundle(uint num) external view returns (bytes32);
    function addToBundle(bytes32 id, bytes32 file_id) external returns (bytes32);
    function finalizeBundle(bytes32 bundleID, bytes32 codeFileID) external;
-   function getInitHash(bytes32 bid) external view returns (bytes32);   
+   function getInitHash(bytes32 bid) external view returns (bytes32);
    function addIPFSFile(string calldata name, uint size, string calldata hash, bytes32 root, uint nonce) external returns (bytes32);
    function hashName(string calldata name) external returns (bytes32);
-   
 }
 
 interface TrueBit {
@@ -34,7 +32,7 @@ contract Scrypt {
 
    event GotFiles(bytes32[] files);
    event Consuming(bytes32[] arr);
-   
+
    event InputData(bytes32[] data);
 
    uint nonce;
@@ -46,7 +44,7 @@ contract Scrypt {
    bytes32 codeFileID;
    bytes32 initHash;
 
-   mapping (bytes => bytes32) string_to_file; 
+   mapping (bytes => bytes32) string_to_file;
    mapping (bytes32 => bytes) task_to_string;
    mapping (bytes => bytes32) result;
 
@@ -79,18 +77,18 @@ contract Scrypt {
 
       bytes32[] memory input = formatData(data);
       emit InputData(input);
-      
+
       bytes32 bundleID = filesystem.makeBundle(num);
 
       bytes32 inputFileID = filesystem.createFileWithContents("input.data", num, input, data.length);
       string_to_file[data] = inputFileID;
       filesystem.addToBundle(bundleID, inputFileID);
-      
+
       bytes32[] memory empty = new bytes32[](0);
       filesystem.addToBundle(bundleID, filesystem.createFileWithContents("output.data", num+1000000000, empty, 0));
-      
+
       filesystem.finalizeBundle(bundleID, codeFileID);
-   
+
       tru.approve(address(truebit), 1000);
       truebit.makeRewardDeposit(1000);
       bytes32 task = truebit.createTaskWithParams(filesystem.getInitHash(bundleID), 1, bundleID, 1, 1, 20, 20, 8, 20, 10, 5000);
@@ -105,7 +103,7 @@ contract Scrypt {
    // this is the callback name
    function solved(bytes32 id, bytes32[] memory files) public {
       // could check the task id
-      require(TrueBit(msg.sender) == truebit);
+      require(TrueBit(msg.sender) == truebit, "only Truebit contract can post the solution");
       remember_task = id;
       emit GotFiles(files);
       bytes32[] memory arr = filesystem.getData(files[0]);
@@ -117,5 +115,5 @@ contract Scrypt {
    function scrypt(bytes memory data) public view returns (bytes32) {
       return result[data];
    }
-   
+
 }
