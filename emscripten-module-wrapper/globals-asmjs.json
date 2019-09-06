@@ -1,0 +1,3 @@
+{"mem":[
+  "1624",5249392],
+"env":{"DYNAMICTOP_PTR":6496,"tempDoublePtr":6480,"ABORT":0,"STACKTOP":6512,"STACK_MAX":5249392,"memoryBase":1024,"tableBase":0},"total_memory":16777216}

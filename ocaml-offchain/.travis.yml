@@ -1,0 +1,32 @@
+dist: xenial
+sudo: required
+language: c++
+
+matrix:
+  include:
+    - os: linux
+      dist: xenial
+      before_install: 
+      - sudo apt-get update -qq
+      - sudo apt-get install -q libgmp3-dev
+    - os: osx
+      before_install:
+      - brew update
+
+install: 
+  - wget https://raw.github.com/ocaml/opam/master/shell/opam_installer.sh -O - | sudo sh -s /usr/local/bin
+  - export OPAMJOBS=2
+  - opam init -y --comp=4.05.0
+  - eval `opam config env`
+  - opam update
+  - opam install -y ocamlbuild ocamlfind yojson cryptokit ctypes ctypes-foreign
+    #- ./interpreter/meta/travis/install-ocaml.sh
+
+script: 
+  - pwd
+  - cd interpreter
+  - make
+  - ls
+  - chmod +x runtests.sh
+  - ./runtests.sh
+  #- ./interpreter/meta/travis/build-test.sh - osx

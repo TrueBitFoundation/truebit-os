@@ -1,4 +1,4 @@
-const depositsHelper = require('./depositsHelper')
+const depositsHelper = require('./depositsHelper').deposit
 const contract = require('./contractHelper')
 const toTaskInfo = require('./util/toTaskInfo')
 const midpoint = require('./util/midpoint')
@@ -17,7 +17,7 @@ function setup(web3) {
         let incentiveLayer = await contract(httpProvider, config['incentiveLayer'])
         let fileSystem = await contract(httpProvider, config['fileSystem'])
         let disputeResolutionLayer = await contract(httpProvider, config['interactive'])
-        let tru = await contract(httpProvider, config['tru'])
+        let tru = await contract(httpProvider, config['stake'])
         return [incentiveLayer, fileSystem, disputeResolutionLayer, tru]
     })()
 }

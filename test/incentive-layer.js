@@ -3,23 +3,28 @@ const fs = require('fs')
 const contractsConfig = require('../wasm-client/util/contractsConfig')
 const contract = require('../wasm-client/contractHelper')
 const mineBlocks = require('../os/lib/util/mineBlocks')
+var bigInt = require("big-integer")
 
-function setup(web3) {
-	return (async () => {
-		const httpProvider = web3.currentProvider
-		const config = await contractsConfig(web3)
+async function setup(web3) {
+	const httpProvider = web3.currentProvider
+	const config = await contractsConfig(web3)
 
-		return Promise.all([
-			contract(httpProvider, config['incentiveLayer']),
-			contract(httpProvider, config['tru']),
-		])
-	})()
+	return Promise.all([
+		contract(httpProvider, config['incentiveLayer']),
+		contract(httpProvider, config['stake']),
+		contract(httpProvider, config['cpu']),
+		contract(httpProvider, config['exchangeRateOracle']),
+	])
+}
+
+function c(x) {
+    return bigInt(x.toString(10))
 }
 
 describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
 	this.timeout(60000)
 
-	let incentiveLayer, tru, taskGiver, solver, verifier, accounts, dummy
+	let incentiveLayer, stake, cpu, taskGiver, solver, verifier, accounts, dummy
 	let minDeposit, taskID, randomBits, randomBitsHash, solution0Hash, solution1Hash, web3
 
 	before(async () => {
@@ -30,7 +35,9 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
 		web3 = os.web3
 
 		incentiveLayer = contracts[0]
-		tru = contracts[1]
+		cpu = contracts[2]
+		stake = contracts[1]
+		let oracle = contracts[3]
 
 		taskGiver = os.accounts[0]
 		solver = os.accounts[1]
@@ -39,7 +46,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
 
 		accounts = [taskGiver, solver, verifier]
 
-		minDeposit = "1000000000000000000"
+		minDeposit = await oracle.getMinDeposit.call(0)
 
 		randomBits = 42
 		randomBitsHash = os.web3.utils.soliditySha3(randomBits)
@@ -47,7 +54,22 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
 		solutionCommit = os.web3.utils.soliditySha3(solution0Hash)
 
 		for (let account of accounts) {
-			await tru.approve(incentiveLayer.address, minDeposit, { from: account })
+			await stake.approve(incentiveLayer.address, minDeposit, { from: account })
+			await cpu.approve(incentiveLayer.address, minDeposit, { from: account })
+		}
+
+	})
+
+	it("participants should make a deposit for rewards", async () => {
+
+		for (let account of accounts) {
+
+			await incentiveLayer.makeRewardDeposit(minDeposit, { from: account })
+
+			let deposit = (await incentiveLayer.getRewardDeposit.call(account)).toNumber()
+
+			assert(deposit > 1)
+
 		}
 
 	})
@@ -90,6 +112,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
 
 		let log = tx.logs.find(log => log.event === 'TaskCreated')
 
+		taskID = log.args.taskID
 		//confirm existence of params in event
 		assert(log.args.taskID)
 		assert(log.args.codeType)
@@ -98,10 +121,23 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
 		assert(log.args.reward)
 
 		//confirm proper economic values
-		assert.equal(log.args.minDeposit.toString(), minDeposit)
-		assert.equal(log.args.tax.toNumber(), (log.args.reward.toNumber() * 5))
 
-		taskID = log.args.taskID
+		let rate = c(await incentiveLayer.getTaxRate.call())
+		let fee = c(await incentiveLayer.getFee.call())
+		let fee_fixed = c(await incentiveLayer.getFee.call())
+		let task_fee = c(reward).multiply(fee_fixed).add(fee)
+
+		let ten18 = c("1000000000000000000")
+
+		let wo_fee = c(reward).subtract(task_fee)
+
+		let tax = wo_fee.multiply(rate).divide(ten18)
+		let solver_reward = wo_fee.subtract(tax)
+
+		assert.equal(log.args.minDeposit.toString(), minDeposit)
+		assert(c(log.args.tax).equals(tax))
+		assert(c(log.args.reward).equals(solver_reward))
+
 	})
 
 	it("should reject creating a task with no deposit", async () => {
@@ -199,7 +235,7 @@ describe('Truebit Incentive Layer Smart Contract Unit Tests', function () {
 		assert.equal(log.args.taskData, 0x0)
 		assert.equal(log.args.randomBitsHash, randomBitsHash)
 
-		assert.equal(log.args.minDeposit, minDeposit)
+		assert.equal(log.args.minDeposit.toString(10), minDeposit.toString(10))
 
 	})
 

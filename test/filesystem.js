@@ -1,7 +1,6 @@
 const assert = require('assert')
 const contractsConfig = require('../wasm-client/util/contractsConfig')
 const merkleRoot = require('../utils/merkleRoot').web3
-const mineBlocks = require('../os/lib/util/mineBlocks')
 
 function makeRandom(n) {
     let res = ""
@@ -9,40 +8,6 @@ function makeRandom(n) {
         res += Math.floor(Math.random() * 16).toString(16)
     }
     return Buffer.from(res, "hex")
-}
-
-async function wait(web3, fs, acc) {
-    
-    let bn = await web3.eth.getBlockNumber()
-    fs.methods.ev().send({from:acc})
-    console.log("block", bn)
-
-    await (new Promise((resolve, reject) => {
-        fs.once("MakeEvent", {fromBlock:bn}, (err,ev) => {
-            console.log(ev)
-            if (err) reject(err); else resolve(ev) })
-    }))
-
-    let bn2 = await web3.eth.getBlockNumber()
-    console.log("block", bn2)
-
-}
-
-async function waitFor(web3, fs, evn) {
-    
-    let bn = await web3.eth.getBlockNumber()
-    // console.log("block", bn)
-
-    let res = await (new Promise((resolve, reject) => {
-        fs.once(evn, {fromBlock:bn}, (err,ev) => {
-            // console.log(ev)
-            if (err) reject(err); else resolve(ev) })
-    }))
-
-    let bn2 = await web3.eth.getBlockNumber()
-    // console.log("block", bn2)
-    return res
-
 }
 
 function contract(web3, info) {
@@ -81,7 +46,6 @@ describe('Truebit Filesystem Smart Contract Unit Tests', function () {
         assert.equal(res.events.CreatedFile.returnValues.root, merkleRoot(web3, buf))
         /*
         let file = await filesystem.methods.calcId(rnd).call()
-        console.log("umm here", file)
         assert.equal(await filesystem.methods.getRoot(file).call(), merkleRoot(web3, buf))
         */
     })

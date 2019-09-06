@@ -1,0 +1,25 @@
+{
+  "ipfshash": "QmRq5qQywSzM7QpQRZfSNZRzezWTRm1u4eCS3Riaum3UqR",
+  "codehash": "0x823a5d21584fcaf53948e1493d03959203f26c9de4c955bf6c9779e69f11f849",
+  "info": {
+    "vm": {
+      "code": "0x823a5d21584fcaf53948e1493d03959203f26c9de4c955bf6c9779e69f11f849",
+      "stack": "0xb4c11951957c6f8f642c4af61cd6b24640fec6dc7fc607ee8206a99e92410d30",
+      "memory": "0xb4c11951957c6f8f642c4af61cd6b24640fec6dc7fc607ee8206a99e92410d30",
+      "input_size": "0xbf3c97b7d35a4c34a2cbff966ea000e6a9a3fbb0bdb2712e68e5a2843ca58ae6",
+      "input_name": "0x784630ae35c7cd667aa0db713f739b5f89862c67220856155770e139e2843f38",
+      "input_data": "0xea70789c2e8162f2e567841307eaa6f1df5428b3d8207e5c087d585c1f974070",
+      "call_stack": "0xb4c11951957c6f8f642c4af61cd6b24640fec6dc7fc607ee8206a99e92410d30",
+      "globals": "0xb4c11951957c6f8f642c4af61cd6b24640fec6dc7fc607ee8206a99e92410d30",
+      "calltable": "0x7bf9aa8e0ce11d87877e8b7a304e8e7105531771dbff77d1b00366ecb1549624",
+      "calltypes": "0xb4c11951957c6f8f642c4af61cd6b24640fec6dc7fc607ee8206a99e92410d30",
+      "pc": 0,
+      "stack_ptr": 0,
+      "call_ptr": 0,
+      "memsize": 0
+    },
+    "hash": "0x1c85d511204ac656f6c8dd294521cbb7870deeed8781ec227cc92b785de0f0a4"
+  },
+  "memsize": 20,
+  "gas": 5000
+}

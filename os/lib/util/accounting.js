@@ -5,7 +5,7 @@ const contract = require('../../../wasm-client/contractHelper')
 module.exports = async (os) => {
 
     const config = await contractsConfig(os.web3)
-    const TRU = await contract(os.web3.currentProvider, config['tru'])
+    const tru = await contract(os.web3.currentProvider, config['tru'])
     
     return {
 	ethBalance: async (account) => {

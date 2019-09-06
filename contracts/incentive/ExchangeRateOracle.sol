@@ -16,6 +16,6 @@ contract ExchangeRateOracle is Ownable {
     }
 
     function getMinDeposit (uint taskDifficulty) public view returns (uint) {
-        return taskDifficulty * priceOfCycleTRU + 1 ether;
+        return taskDifficulty * priceOfCycleTRU + 100 ether;
     }
 }

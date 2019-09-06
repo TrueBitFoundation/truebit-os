@@ -1,0 +1,14 @@
+{
+  "name": "truebit-jit-runner",
+  "version": "1.0.0",
+  "description": "JIT runner for Truebit",
+  "keywords": [
+    "wasm",
+    "jit"
+  ],
+  "author": "mrsmkl",
+  "dependencies": {
+    "minimist": "^1.2.0",
+    "winston": "^3.0.0"
+  }
+}

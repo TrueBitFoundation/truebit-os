@@ -60,22 +60,35 @@ async function deploy() {
     let interactive = await deployContract('Interactive', { from: accounts[0], gas: 5500000 }, [judge.options.address])
     console.log("Interactive", interactive.options.address)
 
-    let tru = await deployContract('TRU', { from: accounts[0], gas: 2000000 })
-    let exchangeRateOracle = await deployContract('ExchangeRateOracle', { from: accounts[0], gas: 1000000 })
+    let tru = await deployContract('TRU', { from: accounts[0], gas: 2000000 }, ["TRU token", "TRU", true])
     console.log("TRU", tru.options.address)
+
+    let cpu = await deployContract('TRU', { from: accounts[0], gas: 2000000 }, ["CPU token", "CPU", true])
+    console.log("CPU", cpu.options.address)
+
+    let cpuManager = await deployContract('TokenManager', { from: accounts[0], gas: 2000000 }, [cpu.options.address])
+    console.log("CPU Manager", cpu.options.address)
+
+    let stake = await deployContract('TRU', { from: accounts[0], gas: 2000000 }, ["STAKE token", "STAKE", true])
+    console.log("STAKE", stake.options.address)
+
+    let exchangeRateOracle = await deployContract('ExchangeRateOracle', { from: accounts[0], gas: 1000000 })
 
     let incentiveLayer = await deployContract(
         'IncentiveLayer',
         { from: accounts[0], gas: 5200000 },
-        [tru.options.address,
+        [tru.options.address, cpu.options.address, stake.options.address,
         exchangeRateOracle.options.address,
         interactive.options.address,
         fileSystem.options.address,
         ]
     )
 
+    console.log("Incentive layer", incentiveLayer.options.address)
 
-    // tru.methods.transferOwnership(incentiveLayer._address).send({from: accounts[0], gas: 1000000})
+    await cpu.methods.allowTransfers(incentiveLayer.options.address).send({ from: accounts[0], gas: 1000000 })
+    await stake.methods.allowTransfers(incentiveLayer.options.address).send({ from: accounts[0], gas: 1000000 })
+    await tru.methods.addMinter(incentiveLayer.options.address).send({ from: accounts[0], gas: 300000 })
 
     let wait = 0
     if (networkName == "kovan") wait = 10000
@@ -89,6 +102,9 @@ async function deploy() {
         judge: exportContract(judge),
         interactive: exportContract(interactive),
         tru: exportContract(tru),
+        cpu: exportContract(cpu),
+        cpuManager: exportContract(cpuManager),
+        stake: exportContract(stake),
         exchangeRateOracle: exportContract(exchangeRateOracle),
         incentiveLayer: exportContract(incentiveLayer),
         ipfsRegister: exportContract(ipfsRegister),
@@ -96,6 +112,17 @@ async function deploy() {
     }
 
     if (networkName == "private") {
+        console.log("deploying conversion contracts")
+        let opt = await deployContract('Option', { from: accounts[0], gas: 5000000 }, [cpu.options.address, tru.options.address])
+        let deposit = await deployContract('Staking', { from: accounts[0], gas: 5000000 }, [cpu.options.address, tru.options.address])
+        await opt.methods.add(stake.options.address, web3.utils.toWei("1", "ether")).send({ from: accounts[0], gas: 300000 })
+        await cpu.methods.addMinter(opt.options.address).send({ from: accounts[0], gas: 300000 })
+        config.option = exportContract(opt)
+        config.deposit = exportContract(deposit)
+    }
+
+    if (networkName == "private") {
+        console.log("Deploying random selection")
         let whitelist = await deployContract('WhiteList', { from: accounts[0], gas: 2000000 })
         let stake_whitelist = await deployContract('StakeWhitelist', { from: accounts[0], gas: 2000000 })
         let testbook = await deployContract('TestBook', { from: accounts[0], gas: 2000000 })
@@ -115,11 +142,16 @@ async function deploy() {
         config.stake_whitelist = exportContract(stake_whitelist)
         config.testbook = exportContract(testbook)
 
+        await tru.methods.addMinter(accounts[0]).send({ from: accounts[0], gas: 300000 })
+        await cpu.methods.addMinter(accounts[0]).send({ from: accounts[0], gas: 300000 })
+        await stake.methods.addMinter(accounts[0]).send({ from: accounts[0], gas: 300000 })
         // Mint tokens for testing
         accounts.forEach(async addr => {
             await web3.eth.sendTransaction({ from: accounts[0], to: addr, value: web3.utils.toWei("2", "ether") })
             await tru.methods.addMinter(addr).send({ from: accounts[0], gas: 300000 })
             await tru.methods.mint(addr, "100000000000000000000000").send({ from: addr, gas: 300000 })
+            await cpu.methods.mint(addr, "100000000000000000000000").send({ from: accounts[0], gas: 300000 })
+            await stake.methods.mint(addr, "100000000000000000000000").send({ from: accounts[0], gas: 300000 })
         })
     }
 

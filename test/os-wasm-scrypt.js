@@ -49,7 +49,7 @@ describe('Truebit OS WASM Scrypt test', async function () {
 		assert(os.solver)
 	})
 
-	let tbFilesystem, tru
+	let tbFilesystem, cpu
 
 	describe('Normal task lifecycle', async () => {
 		let killSolver
@@ -59,7 +59,7 @@ describe('Truebit OS WASM Scrypt test', async function () {
 		before(async () => {
 			cConfig = await contractsConfig(web3)
 			tbFilesystem = await contract(web3.currentProvider, cConfig['fileSystem'])
-			tru = await contract(web3.currentProvider, cConfig['tru'])
+			cpu = await contract(web3.currentProvider, cConfig['cpu'])
 			killSolver = await os.solver.init(os, os.accounts[1])
 
 			tgBalanceEth = await accounting.ethBalance(account)
@@ -78,12 +78,6 @@ describe('Truebit OS WASM Scrypt test', async function () {
 			await accounting.truReportDif(tgBalanceTru, account, "TaskGiver")
 			await accounting.truReportDif(sBalanceTru, os.accounts[1], "Solver")
 
-		})
-
-		it("should start a bundle", async () => {
-			let nonce = Math.floor(Math.random() * Math.pow(2, 60))
-			bundleID = await tbFilesystem.calcId.call(nonce)
-			await tbFilesystem.makeBundle(nonce, { from: account, gas: 300000 })
 		})
 
 		it('should upload task code', async () => {
@@ -121,7 +115,7 @@ describe('Truebit OS WASM Scrypt test', async function () {
 			let contr = await deployContract(
 				abi,
 				fs.readFileSync("./scrypt-data/compiled/Scrypt.bin"),
-				[cConfig.incentiveLayer.address,cConfig.tru.address, cConfig.fileSystem.address, bundleID, codeFileID, info.codehash],
+				[cConfig.incentiveLayer.address, cConfig.cpu.address, cConfig.fileSystem.address, codeFileID, info.codehash],
 				{ from: account, gas: 2000000 })
 			
 			scrypt_contract = await contract(web3.currentProvider, {abi:abi, address:contr.options.address})
@@ -135,7 +129,7 @@ describe('Truebit OS WASM Scrypt test', async function () {
 				console.log("got stuff", lst)
 				scrypt_result = lst[0]
 			})
-			await tru.transfer(scrypt_contract.address, "100000000000", { from: account, gas: 200000 })
+			await cpu.mint(scrypt_contract.address, "100000000000", { from: account, gas: 200000 })
 		})
 
 		it('should submit task', async () => {
@@ -156,6 +150,6 @@ describe('Truebit OS WASM Scrypt test', async function () {
 			assert.equal(scrypt_result, '0x78b512d6425a6fe9e45baf14603bfce1c875a6962db18cc12ecf4292dbd51da6')
 
 		})
-	
+
 	})
 })

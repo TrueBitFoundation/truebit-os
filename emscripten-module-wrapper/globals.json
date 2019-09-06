@@ -1,0 +1,4 @@
+{"mem":
+  ["7400",5272496,"256",5272496],
+  "env":{"STACKTOP":29616,"STACK_MAX":5272496,"DYNAMICTOP_PTR":29600,"ABORT":0,"__dso_handle":28304,"memoryBase":1024,"tableBase":0},"total_memory":16777216
+}

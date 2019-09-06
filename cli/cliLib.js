@@ -278,13 +278,14 @@ module.exports.registerNode = async ({ os, args }) => {
   const IPFSnodeManager = await contract(httpProvider, config['IPFSnodeManager'])
   const ipfs = await ipfsClient('localhost', '5001', { protocol: 'http' })
   const IPFSaddress = await ipfs.id()
-  os.logger.log({
-    level: 'info',
-    message: `IPFSaddress: ${IPFSaddress.addresses[2]}`
-  })
-  console.log(IPFSaddress.addresses[2])
+  os.logger.info(`IPFSaddress: ${IPFSaddress.addresses[2]}`)
   await IPFSnodeManager.addNode(IPFSaddress.addresses[2], { from: account, gas: 1000000, gasPrice: os.web3.gp })
-  module.exports.balance({os, args})
+}
+
+function splitNodes(os, nodes) {
+  let nodeArray = os.web3.utils.toAscii(nodes).split(",")
+  nodeArray.pop()
+  return nodeArray
 }
 
 /** connect nodes */
@@ -294,27 +295,19 @@ module.exports.connectNodes = async ({ os, args }) => {
   const IPFSnodeManager = await contract(httpProvider, config['IPFSnodeManager'])
   const ipfs = await ipfsClient('localhost', '5001', { protocol: 'http' })
   const nodes = await IPFSnodeManager.getNodes({})
-  nodeArray = os.web3.utils.toAscii(nodes).split(",")
-  nodeArray.pop()
-  console.log("Nodes: ")
-  console.log(nodeArray)
+  let nodeArray = splitNodes(os, nodes)
+  const my_address = (await ipfs.id()).addresses[2]
   nodeArray.forEach(async function (node) {
-    console.log('Trying to connect to: '+ node)
+    if (node == my_address) return
+    os.logger.info('Trying to connect to: '+ node)
     try {
       await ipfs.swarm.connect(node)
-      os.logger.log({
-        level: 'info',
-        message: `Success: Connected to ${node}`
-      })
+      os.logger.info(`Success: Connected to ${node}`)
     } catch (e) {
-      os.logger.log({
-        level: 'error',
-        message: `Exception: ${e}`
-      })
+      os.logger.error(`Exception: ${e}`)
     }    
   }); 
 
-  module.exports.balance({os, args})
 }
 
 /** list nodes */
@@ -323,15 +316,7 @@ module.exports.listNodes = async ({ os, args }) => {
 	const config = await contractsConfig(os.web3)
   const IPFSnodeManager = await contract(httpProvider, config['IPFSnodeManager'])
   const nodes = await IPFSnodeManager.getNodes({})
-  nodeArray = os.web3.utils.toAscii(nodes).split(",")
-  nodeArray.pop()
-  console.log("Nodes: ")
-  console.log(nodeArray)
-  os.logger.log({
-    level: 'info',
-    message: `Nodes: ${splitNodes(nodeArray)}`
-  })
-  module.exports.balance({os, args})
+  os.logger.info(`Nodes: ${splitNodes(os, nodes)}`)
 }
 
 
