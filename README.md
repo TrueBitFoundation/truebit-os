@@ -6,10 +6,9 @@
   <img src="./gundam-schematic.gif"/>
 </p>
 
-Truebit OS is the client software needed for running solvers and verifiers in [Truebit network](http://truebit.io/). The smart contracts are also included in the repo. The offchain interpreter is at https://github.com/TrueBitFoundation/ocaml-offchain/ and the JIT environment is at https://github.com/TrueBitFoundation/jit-runner. Tools for developing apps are at https://github.com/TrueBitFoundation/emscripten-module-wrapper and https://github.com/TrueBitFoundation/wasm-ports/.
+Truebit OS is the client software needed for running Solvers and Verifiers in [Truebit network](http://truebit.io/). The smart contracts are also included in the repo. The offchain interpreter is at https://github.com/TrueBitFoundation/ocaml-offchain/ and the JIT environment is at https://github.com/TrueBitFoundation/jit-runner. Tools for developing apps are at https://github.com/TrueBitFoundation/emscripten-module-wrapper and https://github.com/TrueBitFoundation/wasm-ports/.
 
-You can install Truebit using Docker or build it from source.  One can install locally or run over the Goerli testnet.
-If you want to talk to the developers working on this project feel free to say hello on our [Gitter](https://gitter.im/TrueBitFoundation/Lobby).  
+Below is a step-by step system demo with some sample tasks.  You can run Truebit on Docker or build it from source, install locally or run over the Görli testnet.  For directions on generating your own Truebit tasks and using the filesystem, please see the [Quick start links](https://github.com/TrueBitFoundation/wiki/blob/master/README.md#quick-start-links) on the Wiki.  If you want to talk to the developers working on this project feel free to say hello on our [Gitter](https://gitter.im/TrueBitFoundation/Lobby) channel.
 
 # Contents
 
